@@ -469,7 +469,20 @@ HitRes Box::intersect(const Ray & ray, const HitRes &hr)
 {
 	double res = BorderTest(ray, min + position, max + position);
 	if (hr.distance > res)
-		return res;
+	{
+		HitRes newhr(res);
+		Vertex point = ray.origin + ray.direction * res;
+		Vertex b2p = point - position;
+		point.x = point.y = point.z = 0;
+		if (abs(abs(b2p.z) - max.z) < 1e-6)//front or back
+			point.z = b2p.z>0 ? 1 : -1;
+		if (abs(abs(b2p.y) - max.y) < 1e-6)//up or down
+			point.y = b2p.y>0 ? 1 : -1;
+		if (abs(abs(b2p.x) - max.x) < 1e-6)//left or right
+			point.x = b2p.x>0 ? 1 : -1;
+		newhr.normal = Normal(point);
+		return newhr;
+	}
 	else
 		return hr;
 }
