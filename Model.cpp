@@ -310,6 +310,9 @@ void Model::reset()
 	texs.swap(vector<Texture>());
 	mtls.swap(vector<Material>());
 	parts.swap(vector<vector<Triangle>>());
+	newparts.swap(vector<vector<Triangle>>());
+	borders.swap(vector<Vertex>());
+	bboxs.swap(vector<Vertex>());
 
 	vers.swap(vector<Vertex>());
 	nors.swap(vector<Normal>());
@@ -338,25 +341,47 @@ void Model::RTPrepare()
 	bboxs.clear();
 	for (Vertex &v : borders)
 		bboxs.push_back(v + position);
+	newparts.clear();
+	vector<Triangle> tmppart;
+	for (vector<Triangle> &part : parts)
+	{
+		for (Triangle &t : part)
+		{
+			Triangle newt = t;
+			newt.points[0] += position;
+			newt.points[1] += position;
+			newt.points[2] += position;
+			tmppart.push_back(newt);
+		}
+		newparts.push_back(tmppart);
+		tmppart.clear();
+	}
 }
 
 HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 {
 	double ans = BorderTest(ray, BorderMin, BorderMax);
-	if (ans > 1e15)
-		return hr;
-	else
+	if (ans < 1e15)//inside
 	{
-		ans = 1e20;
+		HitRes newhr = hr;
 		double newans;
+		vector<bool> tpart;
 		for (auto a = 0; a < bboxs.size(); a += 2)
 		{
 			newans = BorderTest(ray, bboxs[a], bboxs[a + 1]);
-			if (ans > newans)
-				ans = newans;
+			tpart.push_back(newans < hr.distance);
 		}
-		return ans;
+		for (auto a = 0; a < tpart.size(); ++a)
+			if(tpart[a])
+				for (Triangle &t : newparts[a])
+				{
+					newans = TriangleTest(ray, t);
+					if (newhr.distance > newans)
+						newhr = HitRes(newans);
+				}
+		return newhr;
 	}
+	return hr;
 }
 
 void Model::GLPrepare()
@@ -461,6 +486,35 @@ double Model::BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max)
 	if (dmax < 0 || dmax < dmin)
 		return 1e20;
 	return dmin < 0.0 ? 0.0 : dmin;
+}
+
+double Model::TriangleTest(const Ray & ray, const Triangle & tri)
+{
+	/*
+	** Point(u,v) = (1-u-v)*p0 + u*p1 + v*p2
+	** Ray:Point(t) = o + t*dir
+	** o + t*dir = (1-u-v)*p0 + u*p1 + v*p2
+	*/
+	Vertex axisu = tri.points[1] - tri.points[0],
+		axisv = tri.points[2] - tri.points[0];
+	Vertex tmp1 = ray.direction * axisv;
+	double a = axisu & tmp1;
+	if (abs(a) < 1e-6)
+		return 1e20;
+	double f = 1 / a;
+	Vertex t2r = ray.origin - tri.points[0];
+	double u = (t2r & tmp1) * f;
+	if (u < 0.0 || u > 1.0)
+		return 1e20;
+	Vertex tmp2 = t2r * axisu;
+	double v = (ray.direction & tmp2) * f;
+	if (v < 0.0 || u + v>1.0)
+		return 1e20;
+	double t = (axisv & tmp2) * f;
+	if (t > 1e-6)
+		return t;
+	else
+		return 1e20;
 }
 
 

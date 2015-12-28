@@ -256,7 +256,7 @@ void onKeyboard(unsigned char key, int x, int y)
 		//start ray-trace
 		else
 		{
-			int tnum = 1;
+			int tnum = 8;
 			switch (key)
 			{
 			case '1':
@@ -447,6 +447,7 @@ DWORD WINAPI showdata(LPVOID lpParam)
 		wprintf(L"相机n坐标：\t%4f，%4f，%4f\n", cam.n.x, cam.n.y, cam.n.z);
 
 		wprintf(L"灯球坐标：\t%4f，%4f，%4f\n", light.angy, light.angz, light.dis);
+		wprintf(L"Toggle:%3d\n", obj_toggle);
 		wprintf(L"%s\n", rayt.isFinish ? L"finish" : L"runing");
 		Sleep(33);
 	}
