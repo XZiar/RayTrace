@@ -34,7 +34,7 @@ void RayTracer::RTcheck(const int8_t tNum, const int8_t tID)
 	state[tID] = true;
 }
 
-void RayTracer::RTintersection(int8_t tNum, int8_t tID)
+void RayTracer::RTdepth(int8_t tNum, int8_t tID)
 {
 	int32_t blk_h = height / 64, blk_w = width / 64;
 	Camera &cam = scene->cam;
@@ -75,6 +75,62 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 				}
 				else
 					c_bg.put(out_cur);
+				out_cur += 3;
+			}
+			out_cur += (width - 64) * 3;
+		}
+		blk_xcur += tNum;
+		if (blk_xcur >= blk_w)
+		{
+			blk_ycur += blk_xcur / blk_w;
+			blk_xcur = blk_xcur % blk_w;
+		}
+	}
+	state[tID] = true;
+}
+
+void RayTracer::RTnorm(int8_t tNum, int8_t tID)
+{
+	int32_t blk_h = height / 64, blk_w = width / 64;
+	Camera &cam = scene->cam;
+	const double zNear = cam.zNear, zFar = cam.zFar;
+	Ray baseray(cam.position, cam.n);
+
+	double dp = tan(cam.fovy * PI / 360) / (height / 2);
+	Color c_blk(true), c_wht(false);
+
+	for (int16_t blk_xcur = tID, blk_ycur = 0; blk_ycur < blk_h;)//per unit
+	{
+		uint8_t *out_cur = output + blk_ycur * 64 * (3 * width) + blk_xcur * 64 * 3;
+
+		for (auto ycur = blk_ycur * 64 - height / 2, ymax = ycur + 64; ycur < ymax; ++ycur)//pur y-line
+		{
+			for (auto xcur = blk_xcur * 64 - width / 2, xmax = xcur + 64; xcur < xmax; ++xcur)//per pixel
+			{
+				if (!isRun)
+				{
+					state[tID] = true;
+					return;
+				}
+
+				Vertex dir = cam.n + cam.u*(xcur*dp) + cam.v*(ycur*dp);
+				Ray ray(cam.position, dir);
+
+				HitRes hr;
+				for (auto t : scene->Objects)
+				{
+					if (get<1>(t))
+						hr = get<0>(t)->intersect(ray, hr);
+				}
+				if (hr.distance > zFar)
+					c_blk.put(out_cur);
+				else if (hr.distance < zNear)
+					c_wht.put(out_cur);
+				else
+				{
+					Color c(hr.normal);
+					c.put(out_cur);
+				}
 				out_cur += 3;
 			}
 			out_cur += (width - 64) * 3;
@@ -132,12 +188,16 @@ void RayTracer::start(const uint8_t type, const int8_t tnum)
 		case MY_MODEL_CHECK:
 			t[a] = thread(mem_fn(&RayTracer::RTcheck), this, tnum, a);
 			break;
-		case MY_MODEL_INTERSECTION:
-			t[a] = thread(mem_fn(&RayTracer::RTintersection), this, tnum, a);
+		case MY_MODEL_DEPTHTEST:
+			t[a] = thread(mem_fn(&RayTracer::RTdepth), this, tnum, a);
+			break;
+		case MY_MODEL_NORMALTEST:
+			t[a] = thread(mem_fn(&RayTracer::RTnorm), this, tnum, a);
 			break;
 		case MY_MODEL_RAYTRACE:
 			t[a] = thread(mem_fn(&RayTracer::RTthread), this, tnum, a);
 			break;
+		
 		}
 		
 		t[a].detach();

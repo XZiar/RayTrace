@@ -90,6 +90,7 @@ public:
 	uint8_t r, g, b;
 	Color(const bool black);
 	Color(const double depth, const double mindepth, const double maxdepth);
+	Color(const Normal n);
 	void put(uint8_t *addr);
 	void get(uint8_t *addr);
 };

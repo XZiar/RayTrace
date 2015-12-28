@@ -118,6 +118,7 @@ void init(void)
 	scene.Switch(MY_MODEL_LIGHT, 1, true);
 	auto a = scene.AddSphere(1.0);
 	scene.MovePos(MY_MODEL_OBJECT, a, { 0.0, -5.2, 0.0 });
+	obj_toggle = a;
 }
 
 void display(void)
@@ -257,16 +258,19 @@ void onKeyboard(unsigned char key, int x, int y)
 		else
 		{
 			int tnum = 8;
+			Mode = false;
 			switch (key)
 			{
 			case '1':
-				Mode = false;
 				rayt.start(MY_MODEL_CHECK, tnum);
 				glutTimerFunc(50, onTimer, 1);
 				break;
 			case '2':
-				Mode = false;
-				rayt.start(MY_MODEL_INTERSECTION, tnum);
+				rayt.start(MY_MODEL_DEPTHTEST, tnum);
+				glutTimerFunc(50, onTimer, 1);
+				break;
+			case '3':
+				rayt.start(MY_MODEL_NORMALTEST, tnum);
 				glutTimerFunc(50, onTimer, 1);
 				break;
 			}

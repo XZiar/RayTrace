@@ -301,6 +301,13 @@ Color::Color(const double depth, const double mindepth, const double maxdepth)
 	r = g = b = (max - after) * 255 / max;
 }
 
+Color::Color(const Normal n)
+{
+	r = 127 * (n.x + 1);
+	g = 127 * (n.y + 1);
+	b = 127 * (n.z + 1);
+}
+
 void Color::put(uint8_t * addr)
 {
 	*addr = r, *(addr + 1) = g, *(addr + 2) = b;
@@ -375,8 +382,13 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr)
 	if (dis < 0)
 		return hr;
 	GLdouble t = -((ray.direction & s2r) + sqrt(dis));
-	if(t < hr.distance)
-		return t;
+	if (t < hr.distance)
+	{
+		HitRes newhr(t);
+		Vertex point = ray.origin + ray.direction * t;
+		newhr.normal = Normal(point - position);
+		return newhr;
+	}
 	return hr;
 }
 
