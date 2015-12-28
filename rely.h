@@ -31,4 +31,5 @@
 #include <tuple>
 #include <memory>
 #include <thread>
+#include <atomic>
 using namespace std;

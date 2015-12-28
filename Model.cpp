@@ -1,5 +1,8 @@
+#include "rely.h"
 #include "Model.h"
+
 #define pS(a,b,c) (a)*65536+(b)*256+(c)
+
 static inline int32_t parseStr(string str)
 {
 	if (str.length() < 3)
