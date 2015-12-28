@@ -88,7 +88,7 @@ class Color
 public:
 	uint8_t r, g, b;
 	Color(const bool black);
-	Color(const double depth, const double maxdepth);
+	Color(const double depth, const double mindepth, const double maxdepth);
 	void put(uint8_t *addr);
 	void get(uint8_t *addr);
 };
@@ -125,7 +125,9 @@ protected:
 	virtual void GLPrepare() = 0;
 public:
 	Vertex position;
+
 	DrawObject(GLuint n) : GLListNum(n) { };
+	virtual ~DrawObject() { };
 	void GLDraw();
 	virtual HitRes intersect(Ray &ray) = 0;
 };
@@ -137,6 +139,7 @@ private:
 	Material mtl;
 public:
 	Sphere(double r = 1.0, GLuint lnum = 0);
+
 	void SetMtl(const Material &mtl);
 	virtual void GLPrepare() override;
 	virtual HitRes intersect(Ray &ray) override;

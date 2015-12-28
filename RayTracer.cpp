@@ -72,7 +72,7 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 				}
 				if (hr)
 				{
-					Color c(hr.distance, 100);
+					Color c(hr.distance, 1, 5);
 					c.put(out_cur);
 				}
 				else
@@ -80,7 +80,7 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 				out_cur += 3;
 			}
 			out_cur += (width - 64) * 3;
-			Sleep(tNum);
+			//Sleep(1);
 		}
 		blk_xcur += tNum;
 		if (blk_xcur >= blk_w)

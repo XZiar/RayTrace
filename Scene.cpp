@@ -47,7 +47,7 @@ void Scene::init()
 	glEndList();
 }
 
-int8_t Scene::AddSphere(double radius)
+uint8_t Scene::AddSphere(double radius)
 {
 	Material mtl;
 	mtl.name = "Sphere";
@@ -65,7 +65,7 @@ int8_t Scene::AddSphere(double radius)
 	return Objects.size() - 1;
 }
 
-int8_t Scene::AddModel(const wstring & objname, const wstring & mtlname, uint8_t code)
+uint8_t Scene::AddModel(const wstring & objname, const wstring & mtlname, uint8_t code)
 {
 	GLuint lnum = glGenLists(1);
 	Model *model = new Model(lnum);
@@ -75,16 +75,38 @@ int8_t Scene::AddModel(const wstring & objname, const wstring & mtlname, uint8_t
 	return Objects.size() - 1;
 }
 
-bool Scene::SetPos(const int8_t &num, const Vertex & v)
+bool Scene::Delete(uint8_t type, const uint8_t num)
 {
-	if (num >= Objects.size())
+	switch (type)
+	{
+	case MY_MODEL_OBJECT:
+		if (num >= Objects.size())
+			return false;
+		delete get<0>(Objects[num]);
+		Objects.erase(Objects.begin() + num);
+		break;
+	case MY_MODEL_LIGHT:
 		return false;
-	get<0>(Objects[num])->position = v;
-
+	}
 	return true;
 }
 
-bool Scene::Switch(uint8_t type, const int8_t &num, const bool &isShow)
+bool Scene::MovePos(const uint8_t type, const uint8_t num, const Vertex & v)
+{
+	switch (type)
+	{
+	case MY_MODEL_OBJECT:
+		if (num >= Objects.size())
+			return false;
+		get<0>(Objects[num])->position += v;
+		break;
+	case MY_MODEL_LIGHT:
+		return false;
+	}
+	return true;
+}
+
+bool Scene::Switch(uint8_t type, const uint8_t num, const bool isShow)
 {
 	bool old, isSwitch = type & MY_MODEL_SWITCH;
 	switch (type & 0x7f)

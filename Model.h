@@ -37,7 +37,7 @@ private:
 	void reset();
 public:
 	Model(GLuint num = 0) : DrawObject(num) { };
-	~Model();
+	~Model() override;
 	int32_t loadOBJ(const wstring &objname, const wstring &mtlname, uint8_t code = 0x0);
 	virtual HitRes intersect(Ray &ray) override;
 };

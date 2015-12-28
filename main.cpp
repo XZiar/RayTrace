@@ -8,9 +8,7 @@ static bool bMovPOI = false;
 static int sx, sy, mx, my;
 static Scene scene;
 static RayTracer rayt(scene);
-typedef void(*MenuFun)(int);
-static vector<MenuFun> menus;
-static vector<int8_t> objID;
+static int16_t obj_toggle = -1;
 static Light &light = scene.Lights[1];
 static Camera &cam = scene.cam;
 static GLuint dList[8];
@@ -68,9 +66,9 @@ void InitMenu()
 		int ID = glutCreateMenu(onMenu);
 		glutAddMenuEntry("Toggle", base + 0x0);
 		glutAddMenuEntry("Enable/Disable", base + 0x1);
-		Model *model = dynamic_cast<Model*>(get<0>(scene.Objects[a]));
-		if(model != NULL)
-			glutAddMenuEntry("Z-axis Rotate", base + 0x2);
+		glutAddMenuEntry("Delete", base + 0x2);
+		if(dynamic_cast<Model*>(get<0>(scene.Objects[a])) != NULL)
+			glutAddMenuEntry("Z-axis Rotate", base + 0x3);
 		menuID.push_back(ID);
 	}
 	glutCreateMenu(onMenu);
@@ -119,8 +117,7 @@ void init(void)
 	scene.Switch(MY_MODEL_LIGHT, 0, true);
 	scene.Switch(MY_MODEL_LIGHT, 1, true);
 	auto a = scene.AddSphere(1.0);
-	objID.push_back(a);
-	scene.SetPos(a, { 0.0, -5.2, 0.0 });
+	scene.MovePos(MY_MODEL_OBJECT, a, { 0.0, -5.2, 0.0 });
 }
 
 void display(void)
@@ -271,7 +268,7 @@ void onKeyboard(unsigned char key, int x, int y)
 				break;
 			case '2':
 				Mode = false;
-				rayt.start(MY_MODEL_INTERSECTION, 1);
+				rayt.start(MY_MODEL_INTERSECTION, 4);
 				glutTimerFunc(50, onTimer, 1);
 				break;
 			}
@@ -319,9 +316,32 @@ void onKeyboard(unsigned char key, int x, int y)
 	case 's':
 		light.move(3, 0, 0);
 		break;
+	case '2':
+	case '4':
+	case '6':
+	case '8':
+	case 43://+
+	case 45://-
+		if (obj_toggle == -1)
+			return;
+		switch (key)
+		{
+		case '2':
+			scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 0,-1,0 }); break;
+		case '4':
+			scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -1,0,0 }); break;
+		case '6':
+			scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 1,0,0 }); break;
+		case '8':
+			scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 0,1,0 }); break;
+		case 43://+
+			scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 0,0,1 }); break;
+		case 45://-
+			scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 0,0,-1 }); break;
+		}
+		break;
 	default:
 		return;
-	
 	}
 	glutPostRedisplay();
 }
@@ -375,10 +395,18 @@ void onMenu(int val)
 		{
 		default:
 			return;
-		case 1:
+		case 0://toggle
+			obj_toggle = obj;
+			return;
+		case 1://Enable/Disable
 			scene.Switch(MY_MODEL_OBJECT | MY_MODEL_SWITCH, obj, true);
 			break;
-		case 2://z-rotate
+		case 2://Delete
+			scene.Delete(MY_MODEL_OBJECT, obj);
+			obj_toggle = -1;
+			InitMenu();
+			break;
+		case 3://z-rotate
 			bSwitch[0] = !bSwitch[0];
 			code += bSwitch[0] ? MY_MODEL_Z_ROLL : -MY_MODEL_Z_ROLL;
 			Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj]));

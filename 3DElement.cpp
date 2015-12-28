@@ -224,14 +224,14 @@ Color::Color(const bool black)
 		r = g = b = 255;
 }
 
-Color::Color(const double depth, const double maxdepth)
+Color::Color(const double depth, const double mindepth, const double maxdepth)
 {
-	if (depth < 0)
+	if (depth <= mindepth)
 		r = 255, g = b = 0;
-	else if(depth > maxdepth)
+	else if (depth >= maxdepth)
 		r = g = b = 0;
 	else
-		r = g = b = (maxdepth - depth) * 255 / maxdepth;
+		r = g = b = (maxdepth - depth) * 255 / (maxdepth - mindepth);
 }
 
 void Color::put(uint8_t * addr)

@@ -20,11 +20,12 @@ public:
 	~Scene();
 
 	void init();
-	int8_t AddSphere(double radius);
-	int8_t AddModel(const wstring &objname, const wstring &mtlname, uint8_t code = 0x0);
+	uint8_t AddSphere(double radius);
+	uint8_t AddModel(const wstring &objname, const wstring &mtlname, uint8_t code = 0x0);
 
-	bool SetPos(const int8_t &num, const Vertex &v);
-	bool Switch(uint8_t type, const int8_t &num, const bool &isShow);
+	bool Delete(const uint8_t type, const uint8_t num);
+	bool MovePos(const uint8_t type, const uint8_t num, const Vertex &v);
+	bool Switch(const uint8_t type, const uint8_t num, const bool isShow);
 	void DrawScene();
 };
 

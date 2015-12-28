@@ -268,7 +268,7 @@ void Model::reset()
 	glDeleteTextures(texs.size(), texList);
 	memset(texList, 0x0, sizeof(texList));
 
-	mtl_tex.clear();
+	/*mtl_tex.clear();
 	obj_mtl.clear();
 	texs.clear();
 	mtls.clear();
@@ -276,7 +276,18 @@ void Model::reset()
 
 	vers.clear();
 	nors.clear();
-	txcs.clear();
+	txcs.clear();*/
+
+	mtl_tex.swap(vector<int8_t>());
+	obj_mtl.swap(vector<int8_t>());
+	texs.swap(vector<Texture>());
+	mtls.swap(vector<Material>());
+	objs.swap(vector<vector<Triangle>>());
+
+	vers.swap(vector<Vertex>());
+	nors.swap(vector<Normal>());
+	txcs.swap(vector<Vertex>());
+	
 }
 
 Model::~Model()
