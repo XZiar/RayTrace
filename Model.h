@@ -25,7 +25,9 @@ public:
 	vector<Vertex> vers;
 	vector<Normal> nors;
 	vector<Vertex> txcs;
-	vector<vector<Triangle>> objs;
+	vector<vector<Triangle>> parts;
+	vector<Vertex> borders;
+	vector<Vertex> bboxs;
 	vector<Material> mtls;
 	vector<Texture> texs;
 	vector<int8_t> obj_mtl, mtl_tex;

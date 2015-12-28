@@ -6,16 +6,6 @@ static inline int32_t parseStr(string str)
 		str += "****";
 	return str[2] + 256 * str[1] + 65536 * str[0];
 }
-static inline void MinMax(GLdouble *minmax, GLdouble *v)
-{
-	for (auto a = 0, b = 0; a < 3; ++a, b += 2)
-	{
-		if (v[a] > minmax[b])
-			minmax[b] = v[a];
-		else if (v[a] < minmax[b + 1])
-			minmax[b + 1] = v[a];
-	}
-}
 
 int32_t Model::loadobj(const wstring &objname, uint8_t code)
 {
@@ -35,7 +25,7 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 	txcs.reserve(8000);
 	//load
 	vector<Triangle> tris;
-	tris.reserve(40);
+	tris.reserve(4000);
 	Vertex v;
 	Normal n;
 	Vertex tc;
@@ -43,6 +33,9 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 	vers.push_back(v);
 	nors.push_back(n);
 	txcs.push_back(tc);
+
+	VerMin = Vertex(1000, 1000, 1000);
+	VerMax = Vertex(-1000, -1000, -1000);
 
 	auto Border = [](Vertex &Min, Vertex &Max, const Vertex &v)
 	{
@@ -76,7 +69,7 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 				v = Vertex(atof(ele[1].c_str()), atof(ele[3].c_str()), -1 * atof(ele[2].c_str()));
 			else
 				v = Vertex(atof(ele[1].c_str()), atof(ele[2].c_str()), atof(ele[3].c_str()));
-			Border(VerMin, VerMax, v);
+			//Border(VerMin, VerMax, v);
 			vers.push_back(v);
 			break;
 		case pS('v', 'n', '*')://normal
@@ -116,7 +109,10 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 						vers[ti[9]], nors[ti[11]], txcs[ti[10]]);
 					tris.push_back(t);
 				}
-				break;
+				Border(VerMin, VerMax, vers[ti[0]]);
+				Border(VerMin, VerMax, vers[ti[3]]);
+				Border(VerMin, VerMax, vers[ti[6]]);
+				Border(VerMin, VerMax, vers[ti[9]]);
 			}
 			else
 			{
@@ -130,16 +126,22 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 						vers[ti[3]], nors[ti[5]], txcs[ti[4]],
 						vers[ti[6]], nors[ti[8]], txcs[ti[7]]);
 				tris.push_back(t);
-				break;
+				Border(VerMin, VerMax, vers[ti[0]]);
+				Border(VerMin, VerMax, vers[ti[3]]);
+				Border(VerMin, VerMax, vers[ti[6]]);
 			}
-			
+			break;
 		case pS('u', 's', 'e')://object part
 			if (!bFirstO)
 			{
-				objs.push_back(tris);
+				parts.push_back(tris);
 				tris.clear();
-				tris.reserve(4000);
+				borders.push_back(VerMin);
+				borders.push_back(VerMax);
+				//tris.reserve(4000);
 			}
+			VerMin = Vertex(1000, 1000, 1000);
+			VerMax = Vertex(-1000, -1000, -1000);
 			bFirstO = false;
 			int8_t a = mtls.size();
 			while (--a > 0)
@@ -149,24 +151,43 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 			break;
 		}
 	}
-	{
-		Vertex Dif = VerMax - VerMin;
-		double mdif = Dif.x > Dif.y ? Dif.x : Dif.y;
-		mdif = Dif.z > mdif ? Dif.z / 8.0 : mdif / 8.0;
-		VerMax /= mdif, VerMin /= mdif;
-		for (vector<Triangle> &vt : objs)
-		{
-			for(Triangle &t : vt)
-				for(Vertex &v : t.points)
-					v.x /= mdif, v.y /= mdif, v.z /= mdif;
-		}
-	}
 	if (bFirstO)
 	{
 		obj_mtl.push_back(0);
 	}
-	objs.push_back(tris);
-	return objs.size();
+	parts.push_back(tris);
+	tris.swap(vector<Triangle>());
+	borders.push_back(VerMin);
+	borders.push_back(VerMax);
+
+	//Main Border
+	{
+		VerMin = Vertex(1000, 1000, 1000);
+		VerMax = Vertex(-1000, -1000, -1000);
+
+		for (auto a = 0; a < borders.size(); a += 2)
+		{
+			Border(VerMin, VerMax, borders[a]);
+			Border(VerMin, VerMax, borders[a + 1]);
+		}
+
+		Vertex Dif = VerMax - VerMin;
+		double mdif = Dif.x > Dif.y ? Dif.x : Dif.y;
+		mdif = Dif.z > mdif ? Dif.z / 8.0 : mdif / 8.0;
+		VerMax /= mdif, VerMin /= mdif;
+		//resize borders
+		for (Vertex &v : borders)
+			v /= mdif;
+		//resize triangles
+		for (vector<Triangle> &vt : parts)
+		{
+			for(Triangle &t : vt)
+				for(Vertex &v : t.points)
+					v /= mdif;
+		}
+	}
+	
+	return parts.size();
 }
 
 int32_t Model::loadmtl(const wstring &mtlname, uint8_t code)
@@ -288,7 +309,7 @@ void Model::reset()
 	obj_mtl.swap(vector<int8_t>());
 	texs.swap(vector<Texture>());
 	mtls.swap(vector<Material>());
-	objs.swap(vector<vector<Triangle>>());
+	parts.swap(vector<vector<Triangle>>());
 
 	vers.swap(vector<Vertex>());
 	nors.swap(vector<Normal>());
@@ -314,15 +335,28 @@ int32_t Model::loadOBJ(const wstring &objname, const wstring &mtlname, uint8_t c
 void Model::RTPrepare()
 {
 	BorderMin = VerMin + position, BorderMax = VerMax + position;
+	bboxs.clear();
+	for (Vertex &v : borders)
+		bboxs.push_back(v + position);
 }
 
 HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 {
 	double ans = BorderTest(ray, BorderMin, BorderMax);
-	if (ans < 1e20)
-		return ans;
-	else
+	if (ans > 1e15)
 		return hr;
+	else
+	{
+		ans = 1e20;
+		double newans;
+		for (auto a = 0; a < bboxs.size(); a += 2)
+		{
+			newans = BorderTest(ray, bboxs[a], bboxs[a + 1]);
+			if (ans > newans)
+				ans = newans;
+		}
+		return ans;
+	}
 }
 
 void Model::GLPrepare()
@@ -341,7 +375,7 @@ void Model::GLPrepare()
 	}
 
 	glNewList(GLListNum, GL_COMPILE);
-	for (auto a = 0; a < objs.size(); ++a)
+	for (auto a = 0; a < parts.size(); ++a)
 	{
 		int8_t mnum = obj_mtl[a];
 		Material &mat = mtls[mnum];
@@ -357,7 +391,7 @@ void Model::GLPrepare()
 		else
 			glBindTexture(GL_TEXTURE_2D, 0);
 		glBegin(GL_TRIANGLES);
-		for (Triangle &tri : objs[a])
+		for (Triangle &tri : parts[a])
 		{
 			glTexCoord2dv(tri.tcoords[0]);
 			glNormal3dv(tri.norms[0]);

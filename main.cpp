@@ -204,19 +204,15 @@ void onKeyboard(int key, int x, int y)
 	{
 	case GLUT_KEY_LEFT:
 		cam.yaw(-3);
-		//cam.move(0, -3, 0);
 		break;
 	case GLUT_KEY_RIGHT:
 		cam.yaw(3);
-		//cam.move(0, 3, 0);
 		break;
 	case GLUT_KEY_UP:
 		cam.pitch(3);
-		//cam.move(-3, 0, 0);
 		break;
 	case GLUT_KEY_DOWN:
 		cam.pitch(-3);
-		//cam.move(3, 0, 0);
 		break;
 	case GLUT_KEY_F1:
 	case GLUT_KEY_F2:
@@ -284,19 +280,15 @@ void onKeyboard(unsigned char key, int x, int y)
 	{
 	case 'h':
 		cam.move(1, 0, 0);
-		//cam.move(5, 0);
 		break;
 	case 'f':
 		cam.move(-1, 0, 0);
-		//cam.move(-5, 0);
 		break;
 	case 't':
 		cam.move(0, 1, 0);
-		//cam.move(0, -5);
 		break;
 	case 'g':
 		cam.move(0, -1, 0);
-		//cam.move(0, 5);
 		break;
 	case 27:
 		exit(0);
@@ -422,13 +414,13 @@ void onMenu(int val)
 		switch (val & 0xf)
 		{
 		case 0://Add Sphere
-			scene.AddSphere(1.0);
+			obj_toggle = scene.AddSphere(1.0);
 			InitMenu();
 			break;
 		case 1://Add Model
 			if (FileDlg(filename[0], filename[1]) == -1)
 				return;
-			scene.AddModel(filename[0], filename[1]);
+			obj_toggle = scene.AddModel(filename[0], filename[1]);
 			InitMenu();
 			break;
 		default:
