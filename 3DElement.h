@@ -25,7 +25,9 @@ public:
 	GLdouble length_sqr() const;
 
 	Vertex operator+(const Vertex &v);
+	Vertex &operator+=(const Vertex &right);
 	Vertex operator-(const Vertex &v);
+	Vertex &operator-=(const Vertex &right);
 	Vertex operator/(const double &n);
 	Vertex operator*(const double &n);
 	Vertex operator*(const Vertex &v);
@@ -155,21 +157,17 @@ public:
 class Camera
 {
 public:
-	GLdouble rangy, rangz, rdis,
-		angy, angz, dis,
-		tangy, tangz, tdis,
-		oangy, oangz, odis;
-	Vertex position, poi, head;
+	Normal u, v, n;//to right,up,toward
+	Vertex position;
 	GLint width, height;
 	GLdouble fovy, aspect, zNear, zFar;
 	Camera(GLint w = 1120, GLint h = 630);
-	void move(const int8_t &dangy, const int8_t &dangz, const int8_t &ddis);
-	void move(GLdouble x, GLdouble y);//move poi
+	void move(const double &x, const double &y, const double &z);
+	void yaw(const double angz);
+	void pitch(double angy);
 	void resize(GLint w, GLint h);
 };
 
 
-void Coord_sph2car(double &angy, double &angz, double &dis, Vertex &v);
+void Coord_sph2car(double &angy, double &angz, const double dis, Vertex &v);
 void Coord_car2sph(const Vertex &v, double &angy, double &angz, double &dis);
-void Coord_car2xaxis(const Vertex &v, Vertex &xaxis);
-void Coord_car2yaxis(const Vertex &v, Vertex &yaxis);

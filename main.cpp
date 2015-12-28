@@ -206,16 +206,20 @@ void onKeyboard(int key, int x, int y)
 	switch (key)
 	{
 	case GLUT_KEY_LEFT:
-		cam.move(0, -3, 0);
+		cam.yaw(-3);
+		//cam.move(0, -3, 0);
 		break;
 	case GLUT_KEY_RIGHT:
-		cam.move(0, 3, 0);
+		cam.yaw(3);
+		//cam.move(0, 3, 0);
 		break;
 	case GLUT_KEY_UP:
-		cam.move(-3, 0, 0);
+		cam.pitch(3);
+		//cam.move(-3, 0, 0);
 		break;
 	case GLUT_KEY_DOWN:
-		cam.move(3, 0, 0);
+		cam.pitch(-3);
+		//cam.move(3, 0, 0);
 		break;
 	case GLUT_KEY_F1:
 	case GLUT_KEY_F2:
@@ -267,7 +271,7 @@ void onKeyboard(unsigned char key, int x, int y)
 				break;
 			case '2':
 				Mode = false;
-				rayt.start(MY_MODEL_INTERSECTION, 4);
+				rayt.start(MY_MODEL_INTERSECTION, 1);
 				glutTimerFunc(50, onTimer, 1);
 				break;
 			}
@@ -279,16 +283,20 @@ void onKeyboard(unsigned char key, int x, int y)
 	switch (key)
 	{
 	case 'h':
-		cam.move(5, 0);
+		cam.move(1, 0, 0);
+		//cam.move(5, 0);
 		break;
 	case 'f':
-		cam.move(-5, 0);
+		cam.move(-1, 0, 0);
+		//cam.move(-5, 0);
 		break;
 	case 't':
-		cam.move(0, -5);
+		cam.move(0, 1, 0);
+		//cam.move(0, -5);
 		break;
 	case 'g':
-		cam.move(0, 5);
+		cam.move(0, -1, 0);
+		//cam.move(0, 5);
 		break;
 	case 27:
 		exit(0);
@@ -351,8 +359,9 @@ void onMouse(int x, int y)
 	{
 		int dx = x - sx, dy = y - sy;
 		sx = x, sy = y;
-		double pdx = 30.0*dx / cam.width, pdy = 30.0*dy / cam.height;
-		cam.move(pdx, pdy);
+		double pdx = 10.0*dx / cam.width, pdy = 10.0*dy / cam.height;
+		cam.move(-pdx, pdy, 0);
+		//cam.move(pdx, pdy);
 		glutPostRedisplay();
 	}
 }
@@ -408,12 +417,12 @@ DWORD WINAPI showdata(LPVOID lpParam)
 	{
 		SetConsoleCursorPosition(hOut, pos);
 		wprintf(L"方向键移动摄像机，wasd键移动灯，+-号缩放，12键开关灯\n");
-		wprintf(L"相机球实际坐标：\t%4f，%4f，%4f\n", cam.rangy, cam.rangz, cam.rdis);
-		wprintf(L"相机球坐标：\t%4f，%4f，%4f\n", cam.angy, cam.angz, cam.dis);
-		wprintf(L"临时球坐标：\t%4f，%4f，%4f\n", cam.tangy, cam.tangz, cam.tdis);
-		wprintf(L"c2poi球坐标：\t%4f，%4f，%4f\n", cam.oangy, cam.oangz, cam.odis);
-		wprintf(L"相机绝对坐标：\t%4f，%4f，%4f，%4f\n", cam.position.z, cam.position.y, cam.position.z, cam.head.y);
-		wprintf(L"焦点绝对坐标：\t%4f，%4f，%4f\n", cam.poi.x, cam.poi.y, cam.poi.z);
+
+		wprintf(L"相机绝对坐标：\t%4f，%4f，%4f\n", cam.position.x, cam.position.y, cam.position.z);
+		wprintf(L"相机u坐标：\t%4f，%4f，%4f\n", cam.u.x, cam.u.y, cam.u.z);
+		wprintf(L"相机v坐标：\t%4f，%4f，%4f\n", cam.v.x, cam.v.y, cam.v.z);
+		wprintf(L"相机n坐标：\t%4f，%4f，%4f\n", cam.n.x, cam.n.y, cam.n.z);
+
 		wprintf(L"灯球坐标：\t%4f，%4f，%4f\n", light.angy, light.angz, light.dis);
 		wprintf(L"%s\n", rayt.isFinish ? L"finish" : L"runing");
 		Sleep(33);

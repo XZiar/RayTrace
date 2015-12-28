@@ -8,7 +8,14 @@ static double mod(const double &l, const double &r)
 	return l - e;
 }
 
-inline void Coord_sph2car(double &angy, double &angz, double &dis, Vertex &v)
+inline void Coord_sph2car2(double &angy, double &angz, const double dis, Vertex &v)
+{
+	v.z = dis * sin(angy*PI / 180) * cos(angz*PI / 180.0);
+	v.x = dis * sin(angy*PI / 180) * sin(angz*PI / 180);
+	v.y = dis * cos(angy*PI / 180);
+}
+
+inline void Coord_sph2car(double &angy, double &angz, const double dis, Vertex &v)
 {
 	bool fix = false;
 	if (angz >= 180)
@@ -36,39 +43,6 @@ inline void Coord_car2sph(const Vertex &v, double &angy, double &angz, double &d
 		angy = 360;
 }
 
-void Coord_car2xaxis(const Vertex &v, Vertex & xaxis)
-{
-	double dis = v.length(),
-		angy = acos(v.y / dis),
-		angz = atan2(v.x, v.z);
-
-	if (angz == 0.0)
-	{
-		xaxis = Vertex(dis, 0, 0);
-	}
-	angz -= PI / 2;
-
-	bool fix = false;
-	if (angz >= 180)
-		fix = true;
-	xaxis.z = dis * sin(angy) * cos(angz);
-	xaxis.x = dis * sin(angy) * sin(angz);
-	if (fix && mod(angy, 180) < 1e-6)
-		xaxis.z *= -1, xaxis.x *= -1;
-	xaxis.y = dis * cos(angy);
-
-
-	Coord_sph2car(angy, angz, dis, xaxis);//x-axis
-	/*
-	oangy = mod(360 + tangy + 90, 360), oangz = mod(360 + tangz, 360);
-	Coord_sph2car(oangy, oangz, tdis, yaxis);//y-axis
-	*/
-}
-
-void Coord_car2yaxis(const Vertex & v, Vertex & yaxis)
-{
-}
-
 
 
 Vertex::Vertex()
@@ -93,9 +67,19 @@ Vertex Vertex::operator+(const Vertex &v)
 {
 	return Vertex(x + v.x, y + v.y, z + v.z);
 }
+Vertex &Vertex::operator+=(const Vertex & right)
+{
+	x += right.x, y += right.y, z += right.z;
+	return *this;
+}
 Vertex Vertex::operator-(const Vertex &v)
 {
 	return Vertex(x - v.x, y - v.y, z - v.z);
+}
+Vertex &Vertex::operator-=(const Vertex & right)
+{
+	x += right.x, y += right.y, z += right.z;
+	return *this;
 }
 Vertex Vertex::operator/(const double &n)
 {
@@ -300,17 +284,17 @@ void Sphere::GLPrepare()
 HitRes Sphere::intersect(Ray &ray)
 {
 	/*
-	** r2s->vector that ray towards sphere's origin
-	** t = -dir.r2s-sqrt((d.r2s)^2-(r2s^2-r^2))
+	** s2r->vector that sphere's origin towards ray
+	** t = -d.s2r-sqrt[(d.s2r)^2-(s2r^2-r^2)]
 	*/
-	Vertex r2s = ray.origin - position;
-	double rdDOTr2s = ray.direction & r2s;
+	Vertex s2r = position - ray.origin;
+	double rdDOTr2s = ray.direction & s2r;
 	if (rdDOTr2s > 0)
 		return false;
-	double dis = rdDOTr2s * rdDOTr2s - r2s.length_sqr() + radius_sqr;
+	double dis = rdDOTr2s * rdDOTr2s - s2r.length_sqr() + radius_sqr;
 	if (dis < 0)
 		return false;
-	GLdouble t = -((ray.direction&r2s) + sqrt(dis));
+	GLdouble t = -((ray.direction & s2r) + sqrt(dis));
 	return t;
 }
 
@@ -382,69 +366,54 @@ Camera::Camera(GLint w, GLint h)
 	aspect = (GLdouble)w / h;
 	fovy = 55.0, zNear = 1.0, zFar = 100.0;
 
-	position.x = position.y = position.z = 0.0;
-	poi.x = poi.y = poi.z = 0.0;
-	head.x = head.y = head.z = 0.0;
-
-	rangy = 90, rangz = 0, rdis = 15;
-	move(0, 0, 0);
+	position = Vertex(0, 0, 15);
+	u = Vertex(1, 0, 0);
+	v = Vertex(0, 1, 0);
+	n = Vertex(0, 0, -1);
 }
 
-void Camera::move(const int8_t &dangy, const int8_t &dangz, const int8_t &ddis)
+void Camera::move(const double & x, const double & y, const double & z)
 {
-	rdis += ddis;
-	if (rdis < 2.0)
-		rdis = 2.0;
-	else if (rdis > 30.0)
-		rdis = 30.0;
-	rangy = mod(360 + rangy + dangy, 360);
-	rangz = mod(360 + rangz + dangz, 360);
-	angy = rangy, angz = rangz, dis = rdis;
-
-	Coord_sph2car(angy, angz, dis, position);
-
-	//reset to fix distance
-	Vertex pos2poi = poi - position;
-	Coord_car2sph(pos2poi, tangy, tangz, tdis);
-	tdis = rdis;
-	Coord_sph2car(tangy, tangz, tdis, pos2poi);
-	poi = position + pos2poi;
-
-	Vertex poi2pos = pos2poi * -1;
-	Coord_car2sph(poi2pos, oangy, oangz, odis);
-	oangy = mod(tangy + 180, 360), odis = rdis;
-	if (oangz >= 180)
-		oangz = mod(oangz, 180);
-	if (rangz >= 180)
-		oangy = mod(360 - oangy, 360);
-	head.y = (rangy > 180.0 || rangy < 1e-6) && (oangy > 180.0 || oangy < 1e-6) ? -1 : 1;
+	position += u*x;
+	position += v*y;
+	position += n*z;
 }
 
-void Camera::move(GLdouble dangz, GLdouble dangy)//move poi
+void Camera::yaw(const double angz)
 {
-	Vertex pos2poi = poi - position;
-	Coord_car2sph(pos2poi, tangy, tangz, tdis);
+	//rotate n(toward)
+	double oangy = acos(n.y / 1) * 180 / PI,
+	oangz = atan2(n.x, n.z) * 180 / PI;
+	oangz -= angz;
+	Coord_sph2car2(oangy, oangz, n.length(), n);
+	//rotate u(right)
+	oangy = acos(u.y / 1) * 180 / PI;
+	oangz = atan2(u.x, u.z) * 180 / PI;
+	oangz -= angz;
+	Coord_sph2car2(oangy, oangz, u.length(), u);
+}
 
-	/*tangy = mod(360 + tangy + dangy, 360);
-	tangz = mod(360 + tangz + dangz, 360);
-	Coord_sph2car(tangy, tangz, tdis, dpcx, dpcy, dpcz);
-	poi[0] = position[0] + dpcx, poi[1] = position[1] + dpcy, poi[2] = position[2] + dpcz;*/
+void Camera::pitch(double angy)
+{
+	//rotate n(toward)
+	double oangy = acos(n.y / 1) * 180 / PI,
+		oangz = atan2(n.x, n.z) * 180 / PI;
+	if (oangy - angy < 1.0)
+		angy = oangy - 1.0;
+	if (oangy - angy > 179.0)
+		angy = oangy - 179.0;
+	oangy -= angy;
+	Coord_sph2car2(oangy, oangz, n.length(), n);
 
-	double oangy = mod(360 + tangy, 360), oangz = mod(360 + tangz - 90, 360);
-	Vertex xaxis, yaxis;
-	Coord_sph2car(oangy, oangz, tdis, xaxis);//x-axis
-	oangy = mod(360 + tangy + 90, 360), oangz = mod(360 + tangz, 360);
-	Coord_sph2car(oangy, oangz, tdis, yaxis);//y-axis
+	//rotate v(up)
+	oangy = acos(v.y / 1) * 180 / PI,
+	oangz = atan2(v.x, v.z) * 180 / PI;
+	oangy += angy;
+	oangy = abs(oangy);
+	if (oangy > 90.0)
+		oangy = 90.0;
 
-	pos2poi = (xaxis * dangz + yaxis *dangy) / 45;
-	poi = poi - pos2poi;
-
-	//reset to fix distance
-	pos2poi = poi - position;
-	Coord_car2sph(pos2poi, tangy, tangz, tdis);
-	tdis = rdis;
-	Coord_sph2car(tangy, tangz, tdis, pos2poi);
-	poi = position + pos2poi;
+	Coord_sph2car2(oangy, oangz, v.length(), v);
 }
 
 void Camera::resize(GLint w, GLint h)

@@ -38,11 +38,11 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 {
 	int32_t blk_h = height / 64, blk_w = width / 64;
 	Camera &cam = scene->cam;
-	Ray ray;
-	ray.origin = cam.position;
-	ray.direction = cam.poi - cam.position;
-	double dy = tan(cam.fovy * PI / 360),
-		dx = dy * width / height;
+	Ray baseray;
+	baseray.origin = cam.position;
+	baseray.direction = cam.n;
+
+	double dp = tan(cam.fovy * PI / 360) / (height / 2);
 
 	for (int16_t blk_xcur = tID, blk_ycur = 0; blk_ycur < blk_h;)//per unit
 	{
@@ -57,6 +57,8 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 					state[tID] = true;
 					return;
 				}
+				Ray ray = baseray;
+				Vertex dir = cam.n + cam.u*(xcur*dp) + cam.v*(ycur*dp);
 				c.put(out_cur);
 				out_cur += 3;
 			}

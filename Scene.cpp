@@ -105,9 +105,13 @@ bool Scene::Switch(uint8_t type, const int8_t &num, const bool &isShow)
 void Scene::DrawScene()
 {
 	//set camera
-	gluLookAt(cam.position.x, cam.position.y, cam.position.z,
+	/*gluLookAt(cam.position.x, cam.position.y, cam.position.z,
 		cam.poi.x, cam.poi.y, cam.poi.z,
-		cam.head.x, cam.head.y, cam.head.z);
+		cam.head.x, cam.head.y, cam.head.z);*/
+	Vertex poi = cam.position + cam.n;
+	gluLookAt(cam.position.x, cam.position.y, cam.position.z,
+		poi.x, poi.y, poi.z,
+		cam.v.x, cam.v.y, cam.v.z);
 
 	glPushMatrix();
 	glTranslatef(0, -4, 0);
