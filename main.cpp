@@ -14,7 +14,6 @@ static Camera &cam = scene.cam;
 static GLuint dList[8];
 static wstring filename[2];
 static int menu, entry[4];
-static bool bSwitch[4] = { false,false,false,false };
 static uint8_t code = 0x0;
 
 static bool Mode = true;
@@ -403,10 +402,8 @@ void onMenu(int val)
 			InitMenu();
 			break;
 		case 3://z-rotate
-			bSwitch[0] = !bSwitch[0];
-			code += bSwitch[0] ? MY_MODEL_Z_ROLL : -MY_MODEL_Z_ROLL;
 			Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj]));
-			model.loadOBJ(model.objname, model.mtlname, code);
+			model.zRotate();
 			break;
 		}
 	}

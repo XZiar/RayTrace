@@ -14,8 +14,7 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 	int8_t num, pn;
 	int ti[16];
 
-	bool bZroll = (code & MY_MODEL_Z_ROLL),
-		bFirstT = true,
+	bool bFirstT = true,
 		bFirstO = true;
 
 	//clean
@@ -65,18 +64,11 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 		switch (parseStr(ele[0]))
 		{
 		case pS('v', '*', '*')://vertex
-			if (bZroll)
-				v = Vertex(atof(ele[1].c_str()), atof(ele[3].c_str()), -1 * atof(ele[2].c_str()));
-			else
-				v = Vertex(atof(ele[1].c_str()), atof(ele[2].c_str()), atof(ele[3].c_str()));
-			//Border(VerMin, VerMax, v);
+			v = Vertex(atof(ele[1].c_str()), atof(ele[2].c_str()), atof(ele[3].c_str()));
 			vers.push_back(v);
 			break;
 		case pS('v', 'n', '*')://normal
-			if (bZroll)
-				n = Normal(atof(ele[1].c_str()), atof(ele[3].c_str()), -1 * atof(ele[2].c_str()));
-			else
-				n = Normal(atof(ele[1].c_str()), atof(ele[2].c_str()), atof(ele[3].c_str()));
+			n = Normal(atof(ele[1].c_str()), atof(ele[2].c_str()), atof(ele[3].c_str()));
 			nors.push_back(n);
 			break;
 		case pS('v', 't', '*')://texture coord
@@ -333,6 +325,43 @@ int32_t Model::loadOBJ(const wstring &objname, const wstring &mtlname, uint8_t c
 	loadobj(objname, code);
 	GLPrepare();
 	return 1;
+}
+
+void Model::zRotate()
+{
+	//rotate vertexs
+	for (Vertex &v : vers)
+	{
+		swap(v.y, v.z);
+		v.z *= -1;
+	}
+	//rotate normals
+	for (Normal &n : nors)
+	{
+		swap(n.y, n.z);
+		n.z *= -1;
+	}
+	//rotate all parts
+	for (vector<Triangle> &part : parts)
+		for (Triangle &t : part)
+			for (auto a = 0; a < 3; ++a)
+			{
+				swap(t.points[a].y, t.points[a].z);
+				swap(t.norms[a].y, t.norms[a].z);
+				t.points[a].z *= -1;
+				t.norms[a].z *= -1;
+			}
+	//rotate border-box
+	for(Vertex &v : borders)
+	{
+		swap(v.y, v.z);
+		v.z *= -1;
+	}
+	swap(VerMin.y, VerMin.z);
+	VerMin.z *= -1;
+	swap(VerMax.y, VerMax.z);
+	VerMax.z *= -1;
+	GLPrepare();
 }
 
 void Model::RTPrepare()

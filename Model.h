@@ -3,8 +3,6 @@
 #include "rely.h"
 #include "3DElement.h"
 
-#define MY_MODEL_Z_ROLL 0x1
-
 class Model : public DrawObject
 {
 private:
@@ -35,7 +33,6 @@ public:
 	wstring objname, mtlname;
 private:
 	virtual void GLPrepare() override;
-	//double BorderTest(const Ray &ray, const Vertex &Min, const Vertex &Max);
 	double TriangleTest(const Ray &ray, const Triangle &tri);
 	int32_t loadobj(const wstring &objname, uint8_t code);
 	int32_t loadmtl(const wstring &mtlname, uint8_t code);
@@ -45,6 +42,7 @@ public:
 	Model(GLuint num = 0) : DrawObject(num) { };
 	~Model() override;
 	int32_t loadOBJ(const wstring &objname, const wstring &mtlname, uint8_t code = 0x0);
+	void zRotate();
 	virtual void RTPrepare() override;
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr) override;
 };
