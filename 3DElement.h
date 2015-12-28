@@ -24,14 +24,14 @@ public:
 	GLdouble length() const;
 	GLdouble length_sqr() const;
 
-	Vertex operator+(const Vertex &v);
+	Vertex operator+(const Vertex &v) const;
 	Vertex &operator+=(const Vertex &right);
-	Vertex operator-(const Vertex &v);
+	Vertex operator-(const Vertex &v) const;
 	Vertex &operator-=(const Vertex &right);
-	Vertex operator/(const double &n);
-	Vertex operator*(const double &n);
-	Vertex operator*(const Vertex &v);
-	GLdouble operator&(const Vertex &v);//点积
+	Vertex operator/(const double &n) const;
+	Vertex operator*(const double &n) const;
+	Vertex operator*(const Vertex &v) const;
+	GLdouble operator&(const Vertex &v) const;//点积
 	operator GLdouble*();
 	operator GLfloat*();
 };
@@ -106,13 +106,12 @@ public:
 class HitRes
 {
 public:
-	bool isHit;
 	double distance;
 	Vertex position;
 	Normal normal;
 
-	HitRes(bool b = false) : isHit(b) { };
-	HitRes(double dis) : distance(dis), isHit(true) { };
+	HitRes(bool b = false);
+	HitRes(double dis) : distance(dis){ };
 	
 	bool operator<(const HitRes &right);
 	operator bool();
@@ -129,7 +128,7 @@ public:
 	DrawObject(GLuint n) : GLListNum(n) { };
 	virtual ~DrawObject() { };
 	void GLDraw();
-	virtual HitRes intersect(Ray &ray) = 0;
+	virtual HitRes intersect(const Ray &ray, const HitRes &hr) = 0;
 };
 
 class Sphere : public DrawObject
@@ -142,7 +141,7 @@ public:
 
 	void SetMtl(const Material &mtl);
 	virtual void GLPrepare() override;
-	virtual HitRes intersect(Ray &ray) override;
+	virtual HitRes intersect(const Ray &ray, const HitRes &hr) override;
 };
 
 class Light

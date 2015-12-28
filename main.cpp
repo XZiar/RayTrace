@@ -258,20 +258,23 @@ void onKeyboard(unsigned char key, int x, int y)
 			rayt.stop();
 		}
 		//start ray-trace
-		else 
+		else
+		{
+			int tnum = 1;
 			switch (key)
 			{
 			case '1':
 				Mode = false;
-				rayt.start(MY_MODEL_CHECK, 4);
+				rayt.start(MY_MODEL_CHECK, tnum);
 				glutTimerFunc(50, onTimer, 1);
 				break;
 			case '2':
 				Mode = false;
-				rayt.start(MY_MODEL_INTERSECTION, 4);
+				rayt.start(MY_MODEL_INTERSECTION, tnum);
 				glutTimerFunc(50, onTimer, 1);
 				break;
 			}
+		}
 		glutPostRedisplay();
 		return;
 	}

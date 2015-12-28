@@ -41,7 +41,8 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 	Ray baseray(cam.position, cam.n);
 
 	double dp = tan(cam.fovy * PI / 360) / (height / 2);
-	Color c_black(true);
+	Color c_bg(true);
+	c_bg.g = 255;
 
 	for (int16_t blk_xcur = tID, blk_ycur = 0; blk_ycur < blk_h;)//per unit
 	{
@@ -64,19 +65,15 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 				for (auto t : scene->Objects)
 				{
 					if (get<1>(t))
-					{
-						HitRes newhr = get<0>(t)->intersect(ray);
-						if (newhr < hr)
-							hr = newhr;
-					}
+						hr = get<0>(t)->intersect(ray, hr);
 				}
 				if (hr)
 				{
-					Color c(hr.distance, 1, 5);
+					Color c(hr.distance, 1, 2);
 					c.put(out_cur);
 				}
 				else
-					c_black.put(out_cur);
+					c_bg.put(out_cur);
 				out_cur += 3;
 			}
 			out_cur += (width - 64) * 3;

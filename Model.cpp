@@ -305,9 +305,9 @@ int32_t Model::loadOBJ(const wstring &objname, const wstring &mtlname, uint8_t c
 	return 1;
 }
 
-HitRes Model::intersect(Ray &ray)
+HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 {
-	return HitRes();
+	return hr;
 }
 
 void Model::GLPrepare()

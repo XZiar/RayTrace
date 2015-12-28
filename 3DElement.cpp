@@ -56,7 +56,7 @@ GLdouble Vertex::length_sqr() const
 {
 	return x*x + y*y + z*z;
 }
-Vertex Vertex::operator+(const Vertex &v)
+Vertex Vertex::operator+(const Vertex &v) const
 {
 	return Vertex(x + v.x, y + v.y, z + v.z);
 }
@@ -65,7 +65,7 @@ Vertex &Vertex::operator+=(const Vertex & right)
 	x += right.x, y += right.y, z += right.z;
 	return *this;
 }
-Vertex Vertex::operator-(const Vertex &v)
+Vertex Vertex::operator-(const Vertex &v) const
 {
 	return Vertex(x - v.x, y - v.y, z - v.z);
 }
@@ -74,15 +74,15 @@ Vertex &Vertex::operator-=(const Vertex & right)
 	x += right.x, y += right.y, z += right.z;
 	return *this;
 }
-Vertex Vertex::operator/(const double &n)
+Vertex Vertex::operator/(const double &n) const
 {
 	return Vertex(x / n, y / n, z / n);
 }
-Vertex Vertex::operator*(const double &n)
+Vertex Vertex::operator*(const double &n) const
 {
 	return Vertex(x * n, y * n, z * n);
 }
-Vertex Vertex::operator*(const Vertex &v)
+Vertex Vertex::operator*(const Vertex &v) const
 {
 	GLdouble a, b, c;
 	a = y*v.z - z*v.y;
@@ -90,7 +90,7 @@ Vertex Vertex::operator*(const Vertex &v)
 	c = x*v.y - y*v.x;
 	return Vertex(a, b, c);
 }
-GLdouble Vertex::operator&(const Vertex & v)
+GLdouble Vertex::operator&(const Vertex & v) const
 {
 	return x*v.x + y*v.y + z*v.z;
 }
@@ -229,7 +229,7 @@ Color::Color(const double depth, const double mindepth, const double maxdepth)
 	if (depth <= mindepth)
 		r = 255, g = b = 0;
 	else if (depth >= maxdepth)
-		r = g = b = 0;
+		r = g = 0, b = 0;
 	else
 		r = g = b = (maxdepth - depth) * 255 / (maxdepth - mindepth);
 }
@@ -246,17 +246,19 @@ void Color::get(uint8_t * addr)
 
 
 
+HitRes::HitRes(bool b)
+{
+	distance = b ? 1e10 : 1e20;
+}
+
 bool HitRes::operator<(const HitRes & right)
 {
-	if (isHit)
-		if (!right.isHit || distance < right.distance)
-			return true;
-	return false;
+	return distance < right.distance;
 }
 
 HitRes::operator bool()
 {
-	return isHit;
+	return distance < 1e15;
 }
 
 
@@ -292,7 +294,7 @@ void Sphere::GLPrepare()
 	glEndList();
 }
 
-HitRes Sphere::intersect(Ray &ray)
+HitRes Sphere::intersect(const Ray &ray, const HitRes &hr)
 {
 	/*
 	** s2r->vector that sphere's origin towards ray
@@ -301,12 +303,14 @@ HitRes Sphere::intersect(Ray &ray)
 	Vertex s2r = ray.origin - position;
 	double rdDOTr2s = ray.direction & s2r;
 	if (rdDOTr2s > 0)
-		return false;
+		return hr;
 	double dis = rdDOTr2s * rdDOTr2s - s2r.length_sqr() + radius_sqr;
 	if (dis < 0)
-		return false;
+		return hr;
 	GLdouble t = -((ray.direction & s2r) + sqrt(dis));
-	return t;
+	if(t < hr.distance)
+		return t;
+	return hr;
 }
 
 
