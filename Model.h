@@ -33,7 +33,7 @@ public:
 	wstring objname, mtlname;
 private:
 	virtual void GLPrepare() override;
-	double TriangleTest(const Ray &ray, const Triangle &tri);
+	double TriangleTest(const Ray &ray, const Triangle &tri, Vertex &coord);
 	int32_t loadobj(const wstring &objname, uint8_t code);
 	int32_t loadmtl(const wstring &mtlname, uint8_t code);
 	int32_t loadtex(const string &texname, uint8_t code);

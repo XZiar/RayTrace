@@ -390,25 +390,30 @@ void Model::RTPrepare()
 HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 {
 	double ans = BorderTest(ray, BorderMin, BorderMax);
-	if (ans < 1e15)//inside
+	if (ans < hr.distance)//inside and maybe nearer
 	{
-		HitRes newhr = hr;
+		ans = hr.distance;
 		double newans;
-		vector<bool> tpart;
-		for (auto a = 0; a < bboxs.size(); a += 2)
-		{
-			newans = BorderTest(ray, bboxs[a], bboxs[a + 1]);
-			tpart.push_back(newans < hr.distance);
-		}
-		for (auto a = 0; a < tpart.size(); ++a)
-			if(tpart[a])
+		Triangle *objt = nullptr;
+		Vertex coord, tmpc;
+		for (auto a = 0; a < newparts.size(); ++a)
+			if (BorderTest(ray, bboxs[a * 2], bboxs[a * 2 + 1]) < hr.distance)
 				for (Triangle &t : newparts[a])
 				{
-					newans = TriangleTest(ray, t);
-					if (newhr.distance > newans)
-						newhr = HitRes(newans);
+					newans = TriangleTest(ray, t, tmpc);
+					if (ans > newans)
+					{
+						objt = &t;
+						ans = newans;
+						coord = tmpc;
+					}
 				}
-		return newhr;
+		if (ans < hr.distance)
+		{
+			HitRes newhr(ans);
+			newhr.normal = objt->norms[0] * coord.x + objt->norms[1] * coord.y + objt->norms[2] * coord.z;
+			return newhr;
+		}
 	}
 	return hr;
 }
@@ -462,7 +467,7 @@ void Model::GLPrepare()
 	glEndList();
 }
 
-double Model::TriangleTest(const Ray & ray, const Triangle & tri)
+double Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
 {
 	/*
 	** Point(u,v) = (1-u-v)*p0 + u*p1 + v*p2
@@ -486,7 +491,10 @@ double Model::TriangleTest(const Ray & ray, const Triangle & tri)
 		return 1e20;
 	double t = (axisv & tmp2) * f;
 	if (t > 1e-6)
+	{
+		coord = Vertex(1 - u - v, u, v);
 		return t;
+	}
 	else
 		return 1e20;
 }

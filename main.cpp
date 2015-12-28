@@ -119,6 +119,10 @@ void init(void)
 	auto a = scene.AddSphere(1.0);
 	scene.MovePos(MY_MODEL_OBJECT, a, { 0.0, -5.2, 0.0 });
 	obj_toggle = a;
+
+
+	//cam.fovy = 90;
+	//cam.position.z = 5;
 }
 
 void display(void)
