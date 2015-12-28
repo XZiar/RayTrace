@@ -69,7 +69,7 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 				}
 				if (hr)
 				{
-					Color c(hr.distance, 1, 2);
+					Color c(hr.distance, 1, 20);
 					c.put(out_cur);
 				}
 				else
@@ -119,6 +119,11 @@ void RayTracer::start(const uint8_t type, const int8_t tnum)
 	width = scene->cam.width;
 	height = scene->cam.height;
 	memset(output, 127, 2048 * 2048 * 3);
+	for (auto t : scene->Objects)
+	{
+		if (get<1>(t))
+			get<0>(t)->RTPrepare();
+	}
 	for (int8_t a = 0; a < tnum; a++)
 	{
 		state[a] = false;

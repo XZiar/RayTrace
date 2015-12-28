@@ -29,6 +29,7 @@ public:
 	Vertex operator-(const Vertex &v) const;
 	Vertex &operator-=(const Vertex &right);
 	Vertex operator/(const double &n) const;
+	Vertex &operator/=(const double &right);
 	Vertex operator*(const double &n) const;
 	Vertex operator*(const Vertex &v) const;
 	GLdouble operator&(const Vertex &v) const;//µã»ý
@@ -128,6 +129,7 @@ public:
 	DrawObject(GLuint n) : GLListNum(n) { };
 	virtual ~DrawObject() { };
 	void GLDraw();
+	virtual void RTPrepare() { };
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr) = 0;
 };
 

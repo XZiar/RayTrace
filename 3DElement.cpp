@@ -78,6 +78,11 @@ Vertex Vertex::operator/(const double &n) const
 {
 	return Vertex(x / n, y / n, z / n);
 }
+Vertex &Vertex::operator/=(const double & right)
+{
+	x /= right, y /= right, z /= right;
+	return *this;
+}
 Vertex Vertex::operator*(const double &n) const
 {
 	return Vertex(x * n, y * n, z * n);

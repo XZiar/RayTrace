@@ -20,6 +20,7 @@ private:
 		int8_t parseDouble(const string &in, GLdouble out[]);
 		int8_t parseInt(const string &in, int out[]);
 	};
+	Vertex VerMin, VerMax, BorderMin, BorderMax;
 public:
 	vector<Vertex> vers;
 	vector<Normal> nors;
@@ -31,6 +32,7 @@ public:
 	wstring objname, mtlname;
 private:
 	virtual void GLPrepare() override;
+	double BorderTest(const Ray &ray, const Vertex &Min, const Vertex &Max);
 	int32_t loadobj(const wstring &objname, uint8_t code);
 	int32_t loadmtl(const wstring &mtlname, uint8_t code);
 	int32_t loadtex(const string &texname, uint8_t code);
@@ -39,6 +41,7 @@ public:
 	Model(GLuint num = 0) : DrawObject(num) { };
 	~Model() override;
 	int32_t loadOBJ(const wstring &objname, const wstring &mtlname, uint8_t code = 0x0);
+	virtual void RTPrepare() override;
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr) override;
 };
 

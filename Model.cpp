@@ -34,7 +34,6 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 	nors.reserve(8000);
 	txcs.reserve(8000);
 	//load
-	GLdouble minmax[6] = { 0.0,0.0,0.0,0.0,0.0,0.0 };
 	vector<Triangle> tris;
 	tris.reserve(40);
 	Vertex v;
@@ -44,6 +43,25 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 	vers.push_back(v);
 	nors.push_back(n);
 	txcs.push_back(tc);
+
+	auto Border = [](Vertex &Min, Vertex &Max, const Vertex &v)
+	{
+		if (v.x > Max.x)
+			Max.x = v.x;
+		if (v.x < Min.x)
+			Min.x = v.x;
+
+		if (v.y > Max.y)
+			Max.y = v.y;
+		if (v.y < Min.y)
+			Min.y = v.y;
+
+		if (v.z > Max.z)
+			Max.z = v.z;
+		if (v.z < Min.z)
+			Min.z = v.z;
+	};
+
 	while (true)
 	{
 		num = ldr.read(ele);
@@ -58,7 +76,7 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 				v = Vertex(atof(ele[1].c_str()), atof(ele[3].c_str()), -1 * atof(ele[2].c_str()));
 			else
 				v = Vertex(atof(ele[1].c_str()), atof(ele[2].c_str()), atof(ele[3].c_str()));
-			MinMax(minmax, v);
+			Border(VerMin, VerMax, v);
 			vers.push_back(v);
 			break;
 		case pS('v', 'n', '*')://normal
@@ -132,14 +150,10 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 		}
 	}
 	{
-		GLdouble mdif = minmax[0] - minmax[1],
-			mdifa = minmax[2] - minmax[3],
-			mdifb = minmax[4] - minmax[5];
-		if (mdifa > mdif)
-			mdif = mdifa;
-		if (mdifb > mdif)
-			mdif = mdifb;
-		mdif /= 8.0;
+		Vertex Dif = VerMax - VerMin;
+		double mdif = Dif.x > Dif.y ? Dif.x : Dif.y;
+		mdif = Dif.z > mdif ? Dif.z / 8.0 : mdif / 8.0;
+		VerMax /= mdif, VerMin /= mdif;
 		for (vector<Triangle> &vt : objs)
 		{
 			for(Triangle &t : vt)
@@ -268,15 +282,7 @@ void Model::reset()
 	glDeleteTextures(texs.size(), texList);
 	memset(texList, 0x0, sizeof(texList));
 
-	/*mtl_tex.clear();
-	obj_mtl.clear();
-	texs.clear();
-	mtls.clear();
-	objs.clear();
-
-	vers.clear();
-	nors.clear();
-	txcs.clear();*/
+	VerMin = VerMax = Vertex();
 
 	mtl_tex.swap(vector<int8_t>());
 	obj_mtl.swap(vector<int8_t>());
@@ -305,9 +311,18 @@ int32_t Model::loadOBJ(const wstring &objname, const wstring &mtlname, uint8_t c
 	return 1;
 }
 
+void Model::RTPrepare()
+{
+	BorderMin = VerMin + position, BorderMax = VerMax + position;
+}
+
 HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 {
-	return hr;
+	double ans = BorderTest(ray, BorderMin, BorderMax);
+	if (ans < 1e20)
+		return ans;
+	else
+		return hr;
 }
 
 void Model::GLPrepare()
@@ -357,6 +372,61 @@ void Model::GLPrepare()
 		glEnd();
 	}
 	glEndList();
+}
+
+double Model::BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max)
+{
+	Vertex dismin(-1, -1, -1), dismax(-1, -1, -1);
+	//test z
+	if (ray.direction.z != 0.0)
+	{
+		dismin.z = (Min.z - ray.origin.z) / ray.direction.z;
+		dismax.z = (Max.z - ray.origin.z) / ray.direction.z;
+		if (dismin.z > dismax.z)
+			swap(dismin.z, dismax.z);
+	}
+	else
+	{
+		if (ray.origin.z > Max.z || ray.origin.z < Min.z)
+			return 1e20;
+		dismin.z = -1, dismax.z = 1e10;
+	}
+	//test y
+	if (ray.direction.y != 0.0)
+	{
+		dismin.y = (Min.y - ray.origin.y) / ray.direction.y;
+		dismax.y = (Max.y - ray.origin.y) / ray.direction.y;
+		if (dismin.y > dismax.y)
+			swap(dismin.y, dismax.y);
+	}
+	else
+	{
+		if (ray.origin.y > Max.y || ray.origin.y < Min.y)
+			return 1e20;
+		dismin.y = -1, dismax.y = 1e10;
+	}
+	//test x
+	if (ray.direction.x != 0.0)
+	{
+		dismin.x = (Min.x - ray.origin.x) / ray.direction.x;
+		dismax.x = (Max.x - ray.origin.x) / ray.direction.x;
+		if (dismin.x > dismax.x)
+			swap(dismin.x, dismax.x);
+	}
+	else
+	{
+		if (ray.origin.x > Max.x || ray.origin.x < Min.x)
+			return 1e20;
+		dismin.x = -1, dismax.x = 1e10;
+	}
+
+	double dmin = dismin.x < dismin.y ? dismin.y : dismin.x,
+		dmax = dismax.x < dismax.y ? dismax.x : dismax.y;
+	dmin = dmin < dismin.z ? dismin.z : dmin,
+		dmax = dmax < dismax.z ? dmax : dismax.z;
+	if (dmax < 0 || dmax < dmin)
+		return 1e20;
+	return dmin < 0.0 ? 0.0 : dmin;
 }
 
 
