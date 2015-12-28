@@ -73,7 +73,8 @@ void InitMenu()
 	}
 	glutCreateMenu(onMenu);
 	glutAddMenuEntry("Add Sphere", 0x0);
-	glutAddMenuEntry("Add Model", 0x1);
+	glutAddMenuEntry("Add Cube", 0x1);
+	glutAddMenuEntry("Add Model", 0x2);
 	for (auto a = 0; a < menuID.size(); ++a)
 	{
 		char label[50];
@@ -417,7 +418,11 @@ void onMenu(int val)
 			obj_toggle = scene.AddSphere(1.0);
 			InitMenu();
 			break;
-		case 1://Add Model
+		case 1://Add Cube
+			obj_toggle = scene.AddCube(1.0);
+			InitMenu();
+			break;
+		case 2://Add Model
 			if (FileDlg(filename[0], filename[1]) == -1)
 				return;
 			obj_toggle = scene.AddModel(filename[0], filename[1]);

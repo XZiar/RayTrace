@@ -35,7 +35,7 @@ public:
 	wstring objname, mtlname;
 private:
 	virtual void GLPrepare() override;
-	double BorderTest(const Ray &ray, const Vertex &Min, const Vertex &Max);
+	//double BorderTest(const Ray &ray, const Vertex &Min, const Vertex &Max);
 	double TriangleTest(const Ray &ray, const Triangle &tri);
 	int32_t loadobj(const wstring &objname, uint8_t code);
 	int32_t loadmtl(const wstring &mtlname, uint8_t code);

@@ -121,7 +121,7 @@ public:
 class DrawObject
 {
 protected:
-	GLuint GLListNum, texList[32];
+	GLuint GLListNum, texList[30];
 	virtual void GLPrepare() = 0;
 public:
 	Vertex position;
@@ -139,8 +139,22 @@ private:
 	double radius, radius_sqr;
 	Material mtl;
 public:
-	Sphere(double r = 1.0, GLuint lnum = 0);
+	Sphere(const double r = 1.0, GLuint lnum = 0);
 
+	void SetMtl(const Material &mtl);
+	virtual void GLPrepare() override;
+	virtual HitRes intersect(const Ray &ray, const HitRes &hr) override;
+};
+
+class Box : public DrawObject
+{
+private:
+	double width, height, length;
+	Vertex min, max;
+	Material mtl;
+public:
+	Box(const double len = 2.0, GLuint lnum = 0);
+	Box(const double l, const double w, const double h, GLuint lnum = 0);
 	void SetMtl(const Material &mtl);
 	virtual void GLPrepare() override;
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr) override;
@@ -180,3 +194,4 @@ public:
 
 void Coord_sph2car(double &angy, double &angz, const double dis, Vertex &v);
 void Coord_car2sph(const Vertex &v, double &angy, double &angz, double &dis);
+double BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max);

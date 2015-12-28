@@ -433,61 +433,6 @@ void Model::GLPrepare()
 	glEndList();
 }
 
-double Model::BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max)
-{
-	Vertex dismin(-1, -1, -1), dismax(-1, -1, -1);
-	//test z
-	if (ray.direction.z != 0.0)
-	{
-		dismin.z = (Min.z - ray.origin.z) / ray.direction.z;
-		dismax.z = (Max.z - ray.origin.z) / ray.direction.z;
-		if (dismin.z > dismax.z)
-			swap(dismin.z, dismax.z);
-	}
-	else
-	{
-		if (ray.origin.z > Max.z || ray.origin.z < Min.z)
-			return 1e20;
-		dismin.z = -1, dismax.z = 1e10;
-	}
-	//test y
-	if (ray.direction.y != 0.0)
-	{
-		dismin.y = (Min.y - ray.origin.y) / ray.direction.y;
-		dismax.y = (Max.y - ray.origin.y) / ray.direction.y;
-		if (dismin.y > dismax.y)
-			swap(dismin.y, dismax.y);
-	}
-	else
-	{
-		if (ray.origin.y > Max.y || ray.origin.y < Min.y)
-			return 1e20;
-		dismin.y = -1, dismax.y = 1e10;
-	}
-	//test x
-	if (ray.direction.x != 0.0)
-	{
-		dismin.x = (Min.x - ray.origin.x) / ray.direction.x;
-		dismax.x = (Max.x - ray.origin.x) / ray.direction.x;
-		if (dismin.x > dismax.x)
-			swap(dismin.x, dismax.x);
-	}
-	else
-	{
-		if (ray.origin.x > Max.x || ray.origin.x < Min.x)
-			return 1e20;
-		dismin.x = -1, dismax.x = 1e10;
-	}
-
-	double dmin = dismin.x < dismin.y ? dismin.y : dismin.x,
-		dmax = dismax.x < dismax.y ? dismax.x : dismax.y;
-	dmin = dmin < dismin.z ? dismin.z : dmin,
-		dmax = dmax < dismax.z ? dmax : dismax.z;
-	if (dmax < 0 || dmax < dmin)
-		return 1e20;
-	return dmin < 0.0 ? 0.0 : dmin;
-}
-
 double Model::TriangleTest(const Ray & ray, const Triangle & tri)
 {
 	/*
