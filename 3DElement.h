@@ -87,7 +87,8 @@ class Color
 {
 public:
 	uint8_t r, g, b;
-	Color(bool black);
+	Color(const bool black);
+	Color(const double depth, const double maxdepth);
 	void put(uint8_t *addr);
 	void get(uint8_t *addr);
 };
@@ -95,9 +96,11 @@ public:
 class Ray
 {
 public:
-	Vertex origin,
-		direction;
+	Vertex origin;
+	Normal direction;
+	uint8_t type = 0x0;
 
+	Ray(const Vertex &o, const Normal &dir) : origin(o), direction(dir) { };
 };
 
 class HitRes
@@ -110,6 +113,8 @@ public:
 
 	HitRes(bool b = false) : isHit(b) { };
 	HitRes(double dis) : distance(dis), isHit(true) { };
+	
+	bool operator<(const HitRes &right);
 	operator bool();
 };
 
@@ -118,11 +123,11 @@ class DrawObject
 protected:
 	GLuint GLListNum, texList[32];
 	virtual void GLPrepare() = 0;
-	virtual HitRes intersect(Ray &ray) = 0;
 public:
 	Vertex position;
 	DrawObject(GLuint n) : GLListNum(n) { };
 	void GLDraw();
+	virtual HitRes intersect(Ray &ray) = 0;
 };
 
 class Sphere : public DrawObject

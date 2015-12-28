@@ -27,6 +27,8 @@ void Scene::init()
 	glBindTexture(GL_TEXTURE_2D, 0);
 	GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	GLfloat emission[] = { 0.0f, 0.0f, 0.5f, 0.0f };
+	glPushMatrix();
+	glTranslatef(0, -4, 0);
 	glBegin(GL_LINES);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, no_mat);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, no_mat);
@@ -41,6 +43,7 @@ void Scene::init()
 		glVertex3i(1000, 0, a);
 	}
 	glEnd();
+	glPopMatrix();
 	glEndList();
 }
 
@@ -114,7 +117,6 @@ void Scene::DrawScene()
 		cam.v.x, cam.v.y, cam.v.z);
 
 	glPushMatrix();
-	glTranslatef(0, -4, 0);
 
 	//put light
 	for (auto a = 0; a < 8; ++a)

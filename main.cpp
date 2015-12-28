@@ -120,7 +120,7 @@ void init(void)
 	scene.Switch(MY_MODEL_LIGHT, 1, true);
 	auto a = scene.AddSphere(1.0);
 	objID.push_back(a);
-	scene.SetPos(a, { 0.0, -1.2, 0.0 });
+	scene.SetPos(a, { 0.0, -5.2, 0.0 });
 }
 
 void display(void)

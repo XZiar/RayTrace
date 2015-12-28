@@ -38,16 +38,15 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 {
 	int32_t blk_h = height / 64, blk_w = width / 64;
 	Camera &cam = scene->cam;
-	Ray baseray;
-	baseray.origin = cam.position;
-	baseray.direction = cam.n;
+	Ray baseray(cam.position, cam.n);
 
 	double dp = tan(cam.fovy * PI / 360) / (height / 2);
+	Color c_black(true);
 
 	for (int16_t blk_xcur = tID, blk_ycur = 0; blk_ycur < blk_h;)//per unit
 	{
 		uint8_t *out_cur = output + blk_ycur * 64 * (3 * width) + blk_xcur * 64 * 3;
-		Color c((blk_ycur & 0x1) == (blk_xcur & 0x1));
+		
 		for (auto ycur = blk_ycur * 64 - height / 2, ymax = ycur + 64; ycur < ymax; ++ycur)//pur y-line
 		{
 			for (auto xcur = blk_xcur * 64 - width / 2, xmax = xcur + 64; xcur < xmax; ++xcur)//per pixel
@@ -57,9 +56,27 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 					state[tID] = true;
 					return;
 				}
-				Ray ray = baseray;
+				
 				Vertex dir = cam.n + cam.u*(xcur*dp) + cam.v*(ycur*dp);
-				c.put(out_cur);
+				Ray ray(cam.position, dir);
+
+				HitRes hr;
+				for (auto t : scene->Objects)
+				{
+					if (get<1>(t))
+					{
+						HitRes newhr = get<0>(t)->intersect(ray);
+						if (newhr < hr)
+							hr = newhr;
+					}
+				}
+				if (hr)
+				{
+					Color c(hr.distance, 100);
+					c.put(out_cur);
+				}
+				else
+					c_black.put(out_cur);
 				out_cur += 3;
 			}
 			out_cur += (width - 64) * 3;

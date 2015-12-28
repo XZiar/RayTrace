@@ -8,14 +8,14 @@ static double mod(const double &l, const double &r)
 	return l - e;
 }
 
-inline void Coord_sph2car2(double &angy, double &angz, const double dis, Vertex &v)
+inline void Coord_sph2car(double &angy, double &angz, const double dis, Vertex &v)
 {
 	v.z = dis * sin(angy*PI / 180) * cos(angz*PI / 180.0);
 	v.x = dis * sin(angy*PI / 180) * sin(angz*PI / 180);
 	v.y = dis * cos(angy*PI / 180);
 }
 
-inline void Coord_sph2car(double &angy, double &angz, const double dis, Vertex &v)
+inline void Coord_sph2car2(double &angy, double &angz, const double dis, Vertex &v)
 {
 	bool fix = false;
 	if (angz >= 180)
@@ -32,15 +32,8 @@ inline void Coord_sph2car(double &angy, double &angz, const double dis, Vertex &
 inline void Coord_car2sph(const Vertex &v, double &angy, double &angz, double &dis)
 {
 	dis = v.length();
-	//angy = atan2(sqrt(x*x + z*z), y) *180 / PI;
 	angy = acos(v.y / dis) * 180 / PI;
 	angz = atan2(v.x, v.z) * 180 / PI;
-	angy = mod(360 + angy, 360);
-	angz = mod(360 + angz, 360);
-	/*if (angz >= 180)
-		angz = mod(angz, 180), angy = mod(360 - angy, 360);*/
-	if (angy < 1e-6)
-		angy = 360;
 }
 
 
@@ -223,12 +216,22 @@ Triangle::Triangle(Vertex va, Normal na, Vertex ta, Vertex vb, Normal nb, Vertex
 
 
 
-Color::Color(bool black)
+Color::Color(const bool black)
 {
 	if (black)
 		r = g = b = 0;
 	else
 		r = g = b = 255;
+}
+
+Color::Color(const double depth, const double maxdepth)
+{
+	if (depth < 0)
+		r = 255, g = b = 0;
+	else if(depth > maxdepth)
+		r = g = b = 0;
+	else
+		r = g = b = (maxdepth - depth) * 255 / maxdepth;
 }
 
 void Color::put(uint8_t * addr)
@@ -242,6 +245,14 @@ void Color::get(uint8_t * addr)
 }
 
 
+
+bool HitRes::operator<(const HitRes & right)
+{
+	if (isHit)
+		if (!right.isHit || distance < right.distance)
+			return true;
+	return false;
+}
 
 HitRes::operator bool()
 {
@@ -287,7 +298,7 @@ HitRes Sphere::intersect(Ray &ray)
 	** s2r->vector that sphere's origin towards ray
 	** t = -d.s2r-sqrt[(d.s2r)^2-(s2r^2-r^2)]
 	*/
-	Vertex s2r = position - ray.origin;
+	Vertex s2r = ray.origin - position;
 	double rdDOTr2s = ray.direction & s2r;
 	if (rdDOTr2s > 0)
 		return false;
@@ -340,7 +351,7 @@ void Light::move(const int8_t &dangy, const int8_t &dangz, const int8_t &ddis)
 	angy = rangy, angz = rangz, dis = rdis;
 
 	Vertex pos;
-	Coord_sph2car(angy, angz, dis, pos);
+	Coord_sph2car2(angy, angz, dis, pos);
 	position[0] = pos.x, position[1] = pos.y, position[2] = pos.z;
 }
 
@@ -385,12 +396,12 @@ void Camera::yaw(const double angz)
 	double oangy = acos(n.y / 1) * 180 / PI,
 	oangz = atan2(n.x, n.z) * 180 / PI;
 	oangz -= angz;
-	Coord_sph2car2(oangy, oangz, n.length(), n);
+	Coord_sph2car(oangy, oangz, 1, n);
 	//rotate u(right)
 	oangy = acos(u.y / 1) * 180 / PI;
 	oangz = atan2(u.x, u.z) * 180 / PI;
 	oangz -= angz;
-	Coord_sph2car2(oangy, oangz, u.length(), u);
+	Coord_sph2car(oangy, oangz, 1, u);
 }
 
 void Camera::pitch(double angy)
@@ -403,7 +414,7 @@ void Camera::pitch(double angy)
 	if (oangy - angy > 179.0)
 		angy = oangy - 179.0;
 	oangy -= angy;
-	Coord_sph2car2(oangy, oangz, n.length(), n);
+	Coord_sph2car(oangy, oangz, 1, n);
 
 	//rotate v(up)
 	oangy = acos(v.y / 1) * 180 / PI,
@@ -413,7 +424,7 @@ void Camera::pitch(double angy)
 	if (oangy > 90.0)
 		oangy = 90.0;
 
-	Coord_sph2car2(oangy, oangz, v.length(), v);
+	Coord_sph2car(oangy, oangz, 1, v);
 }
 
 void Camera::resize(GLint w, GLint h)
