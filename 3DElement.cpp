@@ -288,11 +288,17 @@ Color::Color(const bool black)
 Color::Color(const double depth, const double mindepth, const double maxdepth)
 {
 	if (depth <= mindepth)
+	{
 		r = 255, g = b = 0;
-	else if (depth >= maxdepth)
+		return;
+	}
+	if (depth >= maxdepth)
+	{
 		r = g = 0, b = 0;
-	else
-		r = g = b = (maxdepth - depth) * 255 / (maxdepth - mindepth);
+		return;
+	}
+	double after = log(depth), max = log(maxdepth);
+	r = g = b = (max - after) * 255 / max;
 }
 
 void Color::put(uint8_t * addr)
@@ -522,7 +528,7 @@ Camera::Camera(GLint w, GLint h)
 {
 	width = w, height = h;
 	aspect = (GLdouble)w / h;
-	fovy = 45.0, zNear = 1.0, zFar = 80.0;
+	fovy = 45.0, zNear = 1.0, zFar = 100.0;
 
 	position = Vertex(0, 0, 15);
 	u = Vertex(1, 0, 0);

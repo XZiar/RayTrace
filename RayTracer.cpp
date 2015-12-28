@@ -38,6 +38,7 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 {
 	int32_t blk_h = height / 64, blk_w = width / 64;
 	Camera &cam = scene->cam;
+	const double zNear = cam.zNear, zFar = cam.zFar;
 	Ray baseray(cam.position, cam.n);
 
 	double dp = tan(cam.fovy * PI / 360) / (height / 2);
@@ -69,7 +70,7 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 				}
 				if (hr)
 				{
-					Color c(hr.distance, 1, 20);
+					Color c(hr.distance, zNear, zFar);
 					c.put(out_cur);
 				}
 				else
@@ -77,7 +78,6 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 				out_cur += 3;
 			}
 			out_cur += (width - 64) * 3;
-			//Sleep(1);
 		}
 		blk_xcur += tNum;
 		if (blk_xcur >= blk_w)
