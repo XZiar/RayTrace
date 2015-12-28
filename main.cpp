@@ -8,15 +8,12 @@ static bool bMovPOI = false;
 static int sx, sy, mx, my;
 static Scene scene;
 static RayTracer rayt(scene);
-typedef void(*MenuFun)(int);
-static vector<MenuFun> menus;
-static vector<int8_t> objID;
+static int16_t obj_toggle = -1;
 static Light &light = scene.Lights[1];
 static Camera &cam = scene.cam;
 static GLuint dList[8];
 static wstring filename[2];
 static int menu, entry[4];
-static bool bSwitch[4] = { false,false,false,false };
 static uint8_t code = 0x0;
 
 static bool Mode = true;
@@ -68,14 +65,15 @@ void InitMenu()
 		int ID = glutCreateMenu(onMenu);
 		glutAddMenuEntry("Toggle", base + 0x0);
 		glutAddMenuEntry("Enable/Disable", base + 0x1);
-		Model *model = dynamic_cast<Model*>(get<0>(scene.Objects[a]));
-		if(model != NULL)
-			glutAddMenuEntry("Z-axis Rotate", base + 0x2);
+		glutAddMenuEntry("Delete", base + 0x2);
+		if(dynamic_cast<Model*>(get<0>(scene.Objects[a])) != NULL)
+			glutAddMenuEntry("Z-axis Rotate", base + 0x3);
 		menuID.push_back(ID);
 	}
 	glutCreateMenu(onMenu);
 	glutAddMenuEntry("Add Sphere", 0x0);
-	glutAddMenuEntry("Add Model", 0x1);
+	glutAddMenuEntry("Add Cube", 0x1);
+	glutAddMenuEntry("Add Model", 0x2);
 	for (auto a = 0; a < menuID.size(); ++a)
 	{
 		char label[50];
@@ -119,8 +117,7 @@ void init(void)
 	scene.Switch(MY_MODEL_LIGHT, 0, true);
 	scene.Switch(MY_MODEL_LIGHT, 1, true);
 	auto a = scene.AddSphere(1.0);
-	objID.push_back(a);
-	scene.SetPos(a, { 0.0, -5.2, 0.0 });
+	scene.MovePos(MY_MODEL_OBJECT, a, { 0.0, -5.2, 0.0 });
 }
 
 void display(void)
@@ -207,19 +204,15 @@ void onKeyboard(int key, int x, int y)
 	{
 	case GLUT_KEY_LEFT:
 		cam.yaw(-3);
-		//cam.move(0, -3, 0);
 		break;
 	case GLUT_KEY_RIGHT:
 		cam.yaw(3);
-		//cam.move(0, 3, 0);
 		break;
 	case GLUT_KEY_UP:
 		cam.pitch(3);
-		//cam.move(-3, 0, 0);
 		break;
 	case GLUT_KEY_DOWN:
 		cam.pitch(-3);
-		//cam.move(3, 0, 0);
 		break;
 	case GLUT_KEY_F1:
 	case GLUT_KEY_F2:
@@ -261,20 +254,23 @@ void onKeyboard(unsigned char key, int x, int y)
 			rayt.stop();
 		}
 		//start ray-trace
-		else 
+		else
+		{
+			int tnum = 8;
 			switch (key)
 			{
 			case '1':
 				Mode = false;
-				rayt.start(MY_MODEL_CHECK, 4);
+				rayt.start(MY_MODEL_CHECK, tnum);
 				glutTimerFunc(50, onTimer, 1);
 				break;
 			case '2':
 				Mode = false;
-				rayt.start(MY_MODEL_INTERSECTION, 1);
+				rayt.start(MY_MODEL_INTERSECTION, tnum);
 				glutTimerFunc(50, onTimer, 1);
 				break;
 			}
+		}
 		glutPostRedisplay();
 		return;
 	}
@@ -284,19 +280,15 @@ void onKeyboard(unsigned char key, int x, int y)
 	{
 	case 'h':
 		cam.move(1, 0, 0);
-		//cam.move(5, 0);
 		break;
 	case 'f':
 		cam.move(-1, 0, 0);
-		//cam.move(-5, 0);
 		break;
 	case 't':
 		cam.move(0, 1, 0);
-		//cam.move(0, -5);
 		break;
 	case 'g':
 		cam.move(0, -1, 0);
-		//cam.move(0, 5);
 		break;
 	case 27:
 		exit(0);
@@ -319,9 +311,32 @@ void onKeyboard(unsigned char key, int x, int y)
 	case 's':
 		light.move(3, 0, 0);
 		break;
+	case '2':
+	case '4':
+	case '6':
+	case '8':
+	case 43://+
+	case 45://-
+		if (obj_toggle == -1)
+			return;
+		switch (key)
+		{
+		case '2':
+			scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 0,-1,0 }); break;
+		case '4':
+			scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -1,0,0 }); break;
+		case '6':
+			scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 1,0,0 }); break;
+		case '8':
+			scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 0,1,0 }); break;
+		case 43://+
+			scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 0,0,1 }); break;
+		case 45://-
+			scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 0,0,-1 }); break;
+		}
+		break;
 	default:
 		return;
-	
 	}
 	glutPostRedisplay();
 }
@@ -375,14 +390,20 @@ void onMenu(int val)
 		{
 		default:
 			return;
-		case 1:
+		case 0://toggle
+			obj_toggle = obj;
+			return;
+		case 1://Enable/Disable
 			scene.Switch(MY_MODEL_OBJECT | MY_MODEL_SWITCH, obj, true);
 			break;
-		case 2://z-rotate
-			bSwitch[0] = !bSwitch[0];
-			code += bSwitch[0] ? MY_MODEL_Z_ROLL : -MY_MODEL_Z_ROLL;
+		case 2://Delete
+			scene.Delete(MY_MODEL_OBJECT, obj);
+			obj_toggle = -1;
+			InitMenu();
+			break;
+		case 3://z-rotate
 			Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj]));
-			model.loadOBJ(model.objname, model.mtlname, code);
+			model.zRotate();
 			break;
 		}
 	}
@@ -391,13 +412,17 @@ void onMenu(int val)
 		switch (val & 0xf)
 		{
 		case 0://Add Sphere
-			scene.AddSphere(1.0);
+			obj_toggle = scene.AddSphere(1.0);
 			InitMenu();
 			break;
-		case 1://Add Model
+		case 1://Add Cube
+			obj_toggle = scene.AddCube(1.0);
+			InitMenu();
+			break;
+		case 2://Add Model
 			if (FileDlg(filename[0], filename[1]) == -1)
 				return;
-			scene.AddModel(filename[0], filename[1]);
+			obj_toggle = scene.AddModel(filename[0], filename[1]);
 			InitMenu();
 			break;
 		default:
@@ -424,6 +449,7 @@ DWORD WINAPI showdata(LPVOID lpParam)
 		wprintf(L"相机n坐标：\t%4f，%4f，%4f\n", cam.n.x, cam.n.y, cam.n.z);
 
 		wprintf(L"灯球坐标：\t%4f，%4f，%4f\n", light.angy, light.angz, light.dis);
+		wprintf(L"Toggle:%3d\n", obj_toggle);
 		wprintf(L"%s\n", rayt.isFinish ? L"finish" : L"runing");
 		Sleep(33);
 	}

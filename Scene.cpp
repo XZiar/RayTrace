@@ -8,7 +8,6 @@ Scene::Scene()
 		light.bLight = false;
 }
 
-
 Scene::~Scene()
 {
 	for (auto &obj : Objects)
@@ -42,12 +41,13 @@ void Scene::init()
 		glVertex3i(-1000, 0, a);
 		glVertex3i(1000, 0, a);
 	}
+	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, no_mat);
 	glEnd();
 	glPopMatrix();
 	glEndList();
 }
 
-int8_t Scene::AddSphere(double radius)
+uint8_t Scene::AddSphere(double radius)
 {
 	Material mtl;
 	mtl.name = "Sphere";
@@ -65,7 +65,25 @@ int8_t Scene::AddSphere(double radius)
 	return Objects.size() - 1;
 }
 
-int8_t Scene::AddModel(const wstring & objname, const wstring & mtlname, uint8_t code)
+uint8_t Scene::AddCube(double len)
+{
+	Material mtl;
+	mtl.name = "Cube";
+	mtl.SetMtl(MY_MODEL_AMBIENT, 0.329412, 0.223529, 0.027451);
+	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.780392, 0.568627, 0.113725);
+	mtl.SetMtl(MY_MODEL_SPECULAR, 0.992157, 0.941176, 0.807843);
+	mtl.SetMtl(MY_MODEL_SHINESS, 27.897400, 27.897400, 27.897400);
+
+	GLuint lnum = glGenLists(1);
+	Box *box = new Box(len, lnum);
+	box->SetMtl(mtl);
+	box->GLPrepare();
+
+	Objects.push_back(make_tuple(box, true));
+	return Objects.size() - 1;
+}
+
+uint8_t Scene::AddModel(const wstring & objname, const wstring & mtlname, uint8_t code)
 {
 	GLuint lnum = glGenLists(1);
 	Model *model = new Model(lnum);
@@ -75,16 +93,38 @@ int8_t Scene::AddModel(const wstring & objname, const wstring & mtlname, uint8_t
 	return Objects.size() - 1;
 }
 
-bool Scene::SetPos(const int8_t &num, const Vertex & v)
+bool Scene::Delete(uint8_t type, const uint8_t num)
 {
-	if (num >= Objects.size())
+	switch (type)
+	{
+	case MY_MODEL_OBJECT:
+		if (num >= Objects.size())
+			return false;
+		delete get<0>(Objects[num]);
+		Objects.erase(Objects.begin() + num);
+		break;
+	case MY_MODEL_LIGHT:
 		return false;
-	get<0>(Objects[num])->position = v;
-
+	}
 	return true;
 }
 
-bool Scene::Switch(uint8_t type, const int8_t &num, const bool &isShow)
+bool Scene::MovePos(const uint8_t type, const uint8_t num, const Vertex & v)
+{
+	switch (type)
+	{
+	case MY_MODEL_OBJECT:
+		if (num >= Objects.size())
+			return false;
+		get<0>(Objects[num])->position += v;
+		break;
+	case MY_MODEL_LIGHT:
+		return false;
+	}
+	return true;
+}
+
+bool Scene::Switch(uint8_t type, const uint8_t num, const bool isShow)
 {
 	bool old, isSwitch = type & MY_MODEL_SWITCH;
 	switch (type & 0x7f)

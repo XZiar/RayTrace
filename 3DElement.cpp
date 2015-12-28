@@ -36,6 +36,62 @@ inline void Coord_car2sph(const Vertex &v, double &angy, double &angz, double &d
 	angz = atan2(v.x, v.z) * 180 / PI;
 }
 
+double BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max)
+{
+	Vertex dismin = Min - ray.origin, dismax = Max - ray.origin;
+	//test z
+	if (ray.direction.z != 0.0)
+	{
+		dismin.z /= ray.direction.z;
+		dismax.z /= ray.direction.z;
+		if (dismin.z > dismax.z)
+			swap(dismin.z, dismax.z);
+	}
+	else
+	{
+		if (ray.origin.z > Max.z || ray.origin.z < Min.z)
+			return 1e20;
+		dismin.z = -1, dismax.z = 1e10;
+	}
+	//test y
+	if (ray.direction.y != 0.0)
+	{
+		dismin.y /= ray.direction.y;
+		dismax.y /= ray.direction.y;
+		if (dismin.y > dismax.y)
+			swap(dismin.y, dismax.y);
+	}
+	else
+	{
+		if (ray.origin.y > Max.y || ray.origin.y < Min.y)
+			return 1e20;
+		dismin.y = -1, dismax.y = 1e10;
+	}
+	//test x
+	if (ray.direction.x != 0.0)
+	{
+		dismin.x /= ray.direction.x;
+		dismax.x /= ray.direction.x;
+		if (dismin.x > dismax.x)
+			swap(dismin.x, dismax.x);
+	}
+	else
+	{
+		if (ray.origin.x > Max.x || ray.origin.x < Min.x)
+			return 1e20;
+		dismin.x = -1, dismax.x = 1e10;
+	}
+
+	double dmin = dismin.x < dismin.y ? dismin.y : dismin.x,
+		dmax = dismax.x < dismax.y ? dismax.x : dismax.y;
+	dmin = dmin < dismin.z ? dismin.z : dmin,
+		dmax = dmax < dismax.z ? dmax : dismax.z;
+	dmin = dmin < 0.0 ? 0.0 : dmin;
+	if (dmax < dmin)
+		return 1e20;
+	return dmin;
+}
+
 
 
 Vertex::Vertex()
@@ -56,7 +112,7 @@ GLdouble Vertex::length_sqr() const
 {
 	return x*x + y*y + z*z;
 }
-Vertex Vertex::operator+(const Vertex &v)
+Vertex Vertex::operator+(const Vertex &v) const
 {
 	return Vertex(x + v.x, y + v.y, z + v.z);
 }
@@ -65,7 +121,7 @@ Vertex &Vertex::operator+=(const Vertex & right)
 	x += right.x, y += right.y, z += right.z;
 	return *this;
 }
-Vertex Vertex::operator-(const Vertex &v)
+Vertex Vertex::operator-(const Vertex &v) const
 {
 	return Vertex(x - v.x, y - v.y, z - v.z);
 }
@@ -74,15 +130,20 @@ Vertex &Vertex::operator-=(const Vertex & right)
 	x += right.x, y += right.y, z += right.z;
 	return *this;
 }
-Vertex Vertex::operator/(const double &n)
+Vertex Vertex::operator/(const double &n) const
 {
 	return Vertex(x / n, y / n, z / n);
 }
-Vertex Vertex::operator*(const double &n)
+Vertex &Vertex::operator/=(const double & right)
+{
+	x /= right, y /= right, z /= right;
+	return *this;
+}
+Vertex Vertex::operator*(const double &n) const
 {
 	return Vertex(x * n, y * n, z * n);
 }
-Vertex Vertex::operator*(const Vertex &v)
+Vertex Vertex::operator*(const Vertex &v) const
 {
 	GLdouble a, b, c;
 	a = y*v.z - z*v.y;
@@ -90,7 +151,7 @@ Vertex Vertex::operator*(const Vertex &v)
 	c = x*v.y - y*v.x;
 	return Vertex(a, b, c);
 }
-GLdouble Vertex::operator&(const Vertex & v)
+GLdouble Vertex::operator&(const Vertex & v) const
 {
 	return x*v.x + y*v.y + z*v.z;
 }
@@ -224,14 +285,20 @@ Color::Color(const bool black)
 		r = g = b = 255;
 }
 
-Color::Color(const double depth, const double maxdepth)
+Color::Color(const double depth, const double mindepth, const double maxdepth)
 {
-	if (depth < 0)
+	if (depth <= mindepth)
+	{
 		r = 255, g = b = 0;
-	else if(depth > maxdepth)
-		r = g = b = 0;
-	else
-		r = g = b = (maxdepth - depth) * 255 / maxdepth;
+		return;
+	}
+	if (depth >= maxdepth)
+	{
+		r = g = 0, b = 0;
+		return;
+	}
+	double after = log(depth), max = log(maxdepth);
+	r = g = b = (max - after) * 255 / max;
 }
 
 void Color::put(uint8_t * addr)
@@ -246,17 +313,19 @@ void Color::get(uint8_t * addr)
 
 
 
+HitRes::HitRes(bool b)
+{
+	distance = b ? 1e10 : 1e20;
+}
+
 bool HitRes::operator<(const HitRes & right)
 {
-	if (isHit)
-		if (!right.isHit || distance < right.distance)
-			return true;
-	return false;
+	return distance < right.distance;
 }
 
 HitRes::operator bool()
 {
-	return isHit;
+	return distance < 1e15;
 }
 
 
@@ -268,7 +337,7 @@ void DrawObject::GLDraw()
 
 
 
-Sphere::Sphere(double r, GLuint lnum) : DrawObject(lnum)
+Sphere::Sphere(const double r, GLuint lnum) : DrawObject(lnum)
 {
 	radius = r;
 	radius_sqr = r * r;
@@ -292,7 +361,7 @@ void Sphere::GLPrepare()
 	glEndList();
 }
 
-HitRes Sphere::intersect(Ray &ray)
+HitRes Sphere::intersect(const Ray &ray, const HitRes &hr)
 {
 	/*
 	** s2r->vector that sphere's origin towards ray
@@ -301,12 +370,96 @@ HitRes Sphere::intersect(Ray &ray)
 	Vertex s2r = ray.origin - position;
 	double rdDOTr2s = ray.direction & s2r;
 	if (rdDOTr2s > 0)
-		return false;
+		return hr;
 	double dis = rdDOTr2s * rdDOTr2s - s2r.length_sqr() + radius_sqr;
 	if (dis < 0)
-		return false;
+		return hr;
 	GLdouble t = -((ray.direction & s2r) + sqrt(dis));
-	return t;
+	if(t < hr.distance)
+		return t;
+	return hr;
+}
+
+
+
+Box::Box(const double len, GLuint lnum) : DrawObject(lnum)
+{
+	width = height = length = len;
+	double l = len / 2;
+	max = Vertex(l, l, l);
+	min = max * -1;
+}
+
+Box::Box(const double l, const double w, const double h, GLuint lnum) : DrawObject(lnum)
+{
+	length = l, width = w, height = h;
+	max = Vertex(l / 2, w / 2, h / 2);
+	max = max * -1;
+}
+
+void Box::SetMtl(const Material & mtl)
+{
+	this->mtl = mtl;
+}
+
+void Box::GLPrepare()
+{
+	glNewList(GLListNum, GL_COMPILE);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, mtl.ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, mtl.diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, mtl.specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, mtl.shiness);
+	glMaterialfv(GL_FRONT, GL_EMISSION, mtl.emission);
+	glBegin(GL_QUADS);
+	//fornt
+	glNormal3d(0, 0, 1);
+	glVertex3d(max.x, min.y, max.z);
+	glVertex3d(max.x, max.y, max.z);
+	glVertex3d(min.x, max.y, max.z);
+	glVertex3d(min.x, min.y, max.z);
+	//right
+	glNormal3d(1, 0, 0);
+	glVertex3d(max.x, min.y, max.z);
+	glVertex3d(max.x, max.y, max.z);
+	glVertex3d(max.x, max.y, min.z);
+	glVertex3d(max.x, min.y, min.z);
+	//back
+	glNormal3d(0, 0, -1);
+	glVertex3d(min.x, min.y, min.z);
+	glVertex3d(min.x, max.y, min.z);
+	glVertex3d(max.x, max.y, min.z);
+	glVertex3d(max.x, min.y, min.z);
+	//left
+	glNormal3d(-1, 0, 0);
+	glVertex3d(min.x, min.y, max.z);
+	glVertex3d(min.x, max.y, max.z);
+	glVertex3d(min.x, max.y, min.z);
+	glVertex3d(min.x, min.y, min.z);
+	//up
+	glNormal3d(0, 1, 0);
+	glVertex3d(max.x, max.y, max.z);
+	glVertex3d(max.x, max.y, min.z);
+	glVertex3d(min.x, max.y, min.z);
+	glVertex3d(min.x, max.y, max.z);
+	//down
+	glNormal3d(0, -1, 0);
+	glVertex3d(max.x, min.y, min.z);
+	glVertex3d(max.x, min.y, max.z);
+	glVertex3d(min.x, min.y, max.z);
+	glVertex3d(min.x, min.y, min.z);
+
+	glEnd();
+	glEndList();
+}
+
+HitRes Box::intersect(const Ray & ray, const HitRes &hr)
+{
+	double res = BorderTest(ray, min + position, max + position);
+	if (hr.distance > res)
+		return res;
+	else
+		return hr;
 }
 
 
@@ -375,7 +528,7 @@ Camera::Camera(GLint w, GLint h)
 {
 	width = w, height = h;
 	aspect = (GLdouble)w / h;
-	fovy = 55.0, zNear = 1.0, zFar = 100.0;
+	fovy = 45.0, zNear = 1.0, zFar = 100.0;
 
 	position = Vertex(0, 0, 15);
 	u = Vertex(1, 0, 0);
@@ -432,3 +585,5 @@ void Camera::resize(GLint w, GLint h)
 	width = w, height = h;
 	aspect = (GLdouble)w / h;
 }
+
+

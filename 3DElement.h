@@ -24,14 +24,15 @@ public:
 	GLdouble length() const;
 	GLdouble length_sqr() const;
 
-	Vertex operator+(const Vertex &v);
+	Vertex operator+(const Vertex &v) const;
 	Vertex &operator+=(const Vertex &right);
-	Vertex operator-(const Vertex &v);
+	Vertex operator-(const Vertex &v) const;
 	Vertex &operator-=(const Vertex &right);
-	Vertex operator/(const double &n);
-	Vertex operator*(const double &n);
-	Vertex operator*(const Vertex &v);
-	GLdouble operator&(const Vertex &v);//点积
+	Vertex operator/(const double &n) const;
+	Vertex &operator/=(const double &right);
+	Vertex operator*(const double &n) const;
+	Vertex operator*(const Vertex &v) const;
+	GLdouble operator&(const Vertex &v) const;//点积
 	operator GLdouble*();
 	operator GLfloat*();
 };
@@ -88,7 +89,7 @@ class Color
 public:
 	uint8_t r, g, b;
 	Color(const bool black);
-	Color(const double depth, const double maxdepth);
+	Color(const double depth, const double mindepth, const double maxdepth);
 	void put(uint8_t *addr);
 	void get(uint8_t *addr);
 };
@@ -106,13 +107,12 @@ public:
 class HitRes
 {
 public:
-	bool isHit;
 	double distance;
 	Vertex position;
 	Normal normal;
 
-	HitRes(bool b = false) : isHit(b) { };
-	HitRes(double dis) : distance(dis), isHit(true) { };
+	HitRes(bool b = false);
+	HitRes(double dis) : distance(dis){ };
 	
 	bool operator<(const HitRes &right);
 	operator bool();
@@ -121,13 +121,16 @@ public:
 class DrawObject
 {
 protected:
-	GLuint GLListNum, texList[32];
+	GLuint GLListNum, texList[30];
 	virtual void GLPrepare() = 0;
 public:
 	Vertex position;
+
 	DrawObject(GLuint n) : GLListNum(n) { };
+	virtual ~DrawObject() { };
 	void GLDraw();
-	virtual HitRes intersect(Ray &ray) = 0;
+	virtual void RTPrepare() { };
+	virtual HitRes intersect(const Ray &ray, const HitRes &hr) = 0;
 };
 
 class Sphere : public DrawObject
@@ -136,10 +139,25 @@ private:
 	double radius, radius_sqr;
 	Material mtl;
 public:
-	Sphere(double r = 1.0, GLuint lnum = 0);
+	Sphere(const double r = 1.0, GLuint lnum = 0);
+
 	void SetMtl(const Material &mtl);
 	virtual void GLPrepare() override;
-	virtual HitRes intersect(Ray &ray) override;
+	virtual HitRes intersect(const Ray &ray, const HitRes &hr) override;
+};
+
+class Box : public DrawObject
+{
+private:
+	double width, height, length;
+	Vertex min, max;
+	Material mtl;
+public:
+	Box(const double len = 2.0, GLuint lnum = 0);
+	Box(const double l, const double w, const double h, GLuint lnum = 0);
+	void SetMtl(const Material &mtl);
+	virtual void GLPrepare() override;
+	virtual HitRes intersect(const Ray &ray, const HitRes &hr) override;
 };
 
 class Light
@@ -176,3 +194,4 @@ public:
 
 void Coord_sph2car(double &angy, double &angz, const double dis, Vertex &v);
 void Coord_car2sph(const Vertex &v, double &angy, double &angz, double &dis);
+double BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max);

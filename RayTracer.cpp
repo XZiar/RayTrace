@@ -38,10 +38,12 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 {
 	int32_t blk_h = height / 64, blk_w = width / 64;
 	Camera &cam = scene->cam;
+	const double zNear = cam.zNear, zFar = cam.zFar;
 	Ray baseray(cam.position, cam.n);
 
 	double dp = tan(cam.fovy * PI / 360) / (height / 2);
-	Color c_black(true);
+	Color c_bg(true);
+	c_bg.g = 255;
 
 	for (int16_t blk_xcur = tID, blk_ycur = 0; blk_ycur < blk_h;)//per unit
 	{
@@ -64,23 +66,18 @@ void RayTracer::RTintersection(int8_t tNum, int8_t tID)
 				for (auto t : scene->Objects)
 				{
 					if (get<1>(t))
-					{
-						HitRes newhr = get<0>(t)->intersect(ray);
-						if (newhr < hr)
-							hr = newhr;
-					}
+						hr = get<0>(t)->intersect(ray, hr);
 				}
 				if (hr)
 				{
-					Color c(hr.distance, 100);
+					Color c(hr.distance, zNear, zFar);
 					c.put(out_cur);
 				}
 				else
-					c_black.put(out_cur);
+					c_bg.put(out_cur);
 				out_cur += 3;
 			}
 			out_cur += (width - 64) * 3;
-			Sleep(tNum);
 		}
 		blk_xcur += tNum;
 		if (blk_xcur >= blk_w)
@@ -122,6 +119,11 @@ void RayTracer::start(const uint8_t type, const int8_t tnum)
 	width = scene->cam.width;
 	height = scene->cam.height;
 	memset(output, 127, 2048 * 2048 * 3);
+	for (auto t : scene->Objects)
+	{
+		if (get<1>(t))
+			get<0>(t)->RTPrepare();
+	}
 	for (int8_t a = 0; a < tnum; a++)
 	{
 		state[a] = false;
