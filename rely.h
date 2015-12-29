@@ -2,9 +2,9 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 #define USING_FREEGLUT
-#define AVX
-#define AVX2
-#define FMA
+//#define AVX
+//#define AVX2
+//#define FMA
 
 #ifndef _DEBUG
 #define NDEBUG

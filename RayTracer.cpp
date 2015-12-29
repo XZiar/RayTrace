@@ -44,7 +44,7 @@ void RayTracer::RTdepth(int8_t tNum, int8_t tID)
 	const double zNear = cam.zNear, zFar = cam.zFar;
 	Ray baseray(cam.position, cam.n);
 
-	double dp = tan(cam.fovy * PI / 360) / (height / 2);
+	float dp = tan(cam.fovy * PI / 360) / (height / 2);
 	Color c_bg(true);
 	c_bg.g = 255;
 
@@ -104,7 +104,7 @@ void RayTracer::RTnorm(int8_t tNum, int8_t tID)
 	const double zNear = cam.zNear, zFar = cam.zFar;
 	Ray baseray(cam.position, cam.n);
 
-	double dp = tan(cam.fovy * PI / 360) / (height / 2);
+	float dp = tan(cam.fovy * PI / 360) / (height / 2);
 	Color c_blk(true), c_wht(false);
 
 	//for (int16_t blk_xcur = tID, blk_ycur = 0; blk_ycur < blk_h;)//per unit
@@ -164,7 +164,7 @@ void RayTracer::RTtex(int8_t tNum, int8_t tID)
 	const double zNear = cam.zNear, zFar = cam.zFar;
 	Ray baseray(cam.position, cam.n);
 
-	double dp = tan(cam.fovy * PI / 360) / (height / 2);
+	float dp = tan(cam.fovy * PI / 360) / (height / 2);
 	Color c_blk(true), c_wht(false);
 
 	int16_t blk_cur = aBlock_Cur.fetch_add(1),

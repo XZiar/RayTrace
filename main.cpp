@@ -391,7 +391,7 @@ void onMouse(int x, int y)
 	{
 		int dx = x - sx, dy = y - sy;
 		sx = x, sy = y;
-		double pdx = 10.0*dx / cam.width, pdy = 10.0*dy / cam.height;
+		float pdx = 10.0*dx / cam.width, pdy = 10.0*dy / cam.height;
 		cam.move(-pdx, pdy, 0);
 		//cam.move(pdx, pdy);
 		glutPostRedisplay();
@@ -542,16 +542,7 @@ int main(int argc, char** argv)
 	glutMouseWheelFunc(onWheel);
 
 	HANDLE th = CreateThread(NULL, 0, showdata, NULL, 0, NULL);
-	/*Vertex a(1, 2, 3);
-	Vertex c = a*a;
 
-	double *s;
-	s = a.dat.m256d_f64;
-	printf("%f\t%f\t%f\t%f\n", s[0], s[1], s[2], s[3]);
-
-	s = c.dat.m256d_f64;
-	printf("%f\t%f\t%f\t%f\n\n", s[0], s[1], s[2], s[3]);
-*/
 	glutMainLoop();
 	return 0;
 }

@@ -167,7 +167,7 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 		}
 
 		Vertex Dif = VerMax - VerMin;
-		double mdif = Dif.x > Dif.y ? Dif.x : Dif.y;
+		float mdif = Dif.x > Dif.y ? Dif.x : Dif.y;
 		mdif = Dif.z > mdif ? Dif.z / 8.0 : mdif / 8.0;
 		VerMax /= mdif, VerMin /= mdif;
 		//resize borders
@@ -393,11 +393,11 @@ void Model::RTPrepare()
 
 HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 {
-	double ans = BorderTest(ray, BorderMin, BorderMax);
+	float ans = BorderTest(ray, BorderMin, BorderMax);
 	if (ans < hr.distance)//inside and maybe nearer
 	{
 		ans = hr.distance;
-		double newans;
+		float newans;
 		int objpart = -1;
 		Triangle *objt = nullptr;
 		Vertex coord, tmpc;
@@ -460,22 +460,22 @@ void Model::GLPrepare()
 		glBegin(GL_TRIANGLES);
 		for (Triangle &tri : parts[a])
 		{
-			glTexCoord2dv(tri.tcoords[0]);
-			glNormal3dv(tri.norms[0]);
-			glVertex3dv(tri.points[0]);
-			glTexCoord2dv(tri.tcoords[1]);
-			glNormal3dv(tri.norms[1]);
-			glVertex3dv(tri.points[1]);
-			glTexCoord2dv(tri.tcoords[2]);
-			glNormal3dv(tri.norms[2]);
-			glVertex3dv(tri.points[2]);
+			glTexCoord2fv(tri.tcoords[0]);
+			glNormal3fv(tri.norms[0]);
+			glVertex3fv(tri.points[0]);
+			glTexCoord2fv(tri.tcoords[1]);
+			glNormal3fv(tri.norms[1]);
+			glVertex3fv(tri.points[1]);
+			glTexCoord2fv(tri.tcoords[2]);
+			glNormal3fv(tri.norms[2]);
+			glVertex3fv(tri.points[2]);
 		}
 		glEnd();
 	}
 	glEndList();
 }
 
-double Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
+float Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
 {
 	/*
 	** Point(u,v) = (1-u-v)*p0 + u*p1 + v*p2
@@ -483,20 +483,20 @@ double Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
 	** o + t*dir = (1-u-v)*p0 + u*p1 + v*p2
 	*/
 	Vertex tmp1 = ray.direction * tri.axisv;
-	double a = tri.axisu & tmp1;
+	float a = tri.axisu & tmp1;
 	if (abs(a) < 1e-6)
 		return 1e20;
-	double f = 1 / a;
+	float f = 1 / a;
 	Vertex t2r = ray.origin - tri.points[0];
-	double u = (t2r & tmp1) * f;
+	float u = (t2r & tmp1) * f;
 	if (u < 0.0 || u > 1.0)
 		return 1e20;
 	Vertex tmp2 = t2r * tri.axisu;
-	double v = (ray.direction & tmp2) * f,
+	float v = (ray.direction & tmp2) * f,
 		duv = 1 - u - v;
 	if (v < 0.0 || duv < 0)
 		return 1e20;
-	double t = (tri.axisv & tmp2) * f;
+	float t = (tri.axisv & tmp2) * f;
 	if (t > 1e-6)
 	{
 		coord = Vertex(duv, u, v);
@@ -538,7 +538,7 @@ int8_t Model::Loader::read(string data[])
 		return INT8_MIN;
 }
 
-int8_t Model::Loader::parseDouble(const string &in, GLdouble out[])
+int8_t Model::Loader::parseFloat(const string &in, float out[])
 {
 	auto a = sscanf(in.c_str(), "%lf/%lf/%lf/%lf", &out[0], &out[1], &out[2], &out[3]);
 	return a;

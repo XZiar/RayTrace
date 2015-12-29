@@ -1,22 +1,22 @@
 #include "rely.h"
 #include "3DElement.h"
 
-static double mod(const double &l, const double &r)
+static float mod(const float &l, const float &r)
 {
-	double t, e;
+	float t, e;
 	modf(l / r, &t);
 	e = t*r;
 	return l - e;
 }
 
-inline void Coord_sph2car(double &angy, double &angz, const double dis, Vertex &v)
+inline void Coord_sph2car(float &angy, float &angz, const float dis, Vertex &v)
 {
 	v.z = dis * sin(angy*PI / 180) * cos(angz*PI / 180.0);
 	v.x = dis * sin(angy*PI / 180) * sin(angz*PI / 180);
 	v.y = dis * cos(angy*PI / 180);
 }
 
-inline void Coord_sph2car2(double &angy, double &angz, const double dis, Vertex &v)
+inline void Coord_sph2car2(float &angy, float &angz, const float dis, Vertex &v)
 {
 	bool fix = false;
 	if (angz >= 180)
@@ -30,14 +30,14 @@ inline void Coord_sph2car2(double &angy, double &angz, const double dis, Vertex 
 	v.y = dis * cos(angy*PI / 180);
 }
 
-inline void Coord_car2sph(const Vertex &v, double &angy, double &angz, double &dis)
+inline void Coord_car2sph(const Vertex &v, float &angy, float &angz, float &dis)
 {
 	dis = v.length();
 	angy = acos(v.y / dis) * 180 / PI;
 	angz = atan2(v.x, v.z) * 180 / PI;
 }
 
-double BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max)
+float BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max)
 {
 	Vertex dismin = Min - ray.origin, dismax = Max - ray.origin;
 	//test z
@@ -83,11 +83,11 @@ double BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max)
 		dismin.x = -1, dismax.x = 1e10;
 	}
 
-	double dmin = dismin.x < dismin.y ? dismin.y : dismin.x,
+	float dmin = dismin.x < dismin.y ? dismin.y : dismin.x,
 		dmax = dismax.x < dismax.y ? dismax.x : dismax.y;
 	dmin = dmin < dismin.z ? dismin.z : dmin,
 		dmax = dmax < dismax.z ? dmax : dismax.z;
-	dmin = dmin < 0.0 ? 0.0 : dmin;
+	dmin = dmin < 0 ? 0 : dmin;
 	if (dmax < dmin)
 		return 1e20;
 	return dmin;
@@ -100,7 +100,7 @@ Coord2D Coord2D::operator+(const Coord2D &c) const
 	return Coord2D(u + c.u, v + c.v);
 }
 
-Coord2D Coord2D::operator*(const double &n) const
+Coord2D Coord2D::operator*(const float &n) const
 {
 	return Coord2D(u*n, v*n);
 }
@@ -115,25 +115,25 @@ Vertex::Vertex()
 	x = y = z = 0;
 #endif
 }
-Vertex::Vertex(const __m256d &idat)
+Vertex::Vertex(const __m128d &idat)
 {
 	dat = idat;
 }
-GLdouble Vertex::length() const
+float Vertex::length() const
 {
 	return sqrt(x*x + y*y + z*z);
 }
-GLdouble Vertex::length_sqr() const
+float Vertex::length_sqr() const
 {
 	//__m256d a1 = _mm256_mul_pd(dat, dat);
 	//a1 = _mm256_hadd_pd(a1, a1);//x+y,x+y,a+z,a+z
 
 	return x*x + y*y + z*z;
 }
-Vertex Vertex::muladd(const double & n, const Vertex & v) const
+Vertex Vertex::muladd(const float & n, const Vertex & v) const
 {
-	__m256d tmp = _mm256_set1_pd(n);
-	return _mm256_fmadd_pd(dat, tmp, v.dat);
+	//__m256d tmp = _mm256_set1_pd(n);
+	//return _mm256_fmadd_pd(dat, tmp, v.dat);
 }
 Vertex Vertex::operator+(const Vertex &v) const
 {
@@ -169,9 +169,9 @@ Vertex &Vertex::operator-=(const Vertex & right)
 #endif
 	return *this;
 }
-Vertex Vertex::operator/(const double &n) const
+Vertex Vertex::operator/(const float &n) const
 {
-	double rec = 1 / n;
+	float rec = 1 / n;
 #ifdef AVX
 	__m256d tmp = _mm256_set1_pd(rec);
 	return _mm256_mul_pd(dat, tmp);
@@ -180,9 +180,9 @@ Vertex Vertex::operator/(const double &n) const
 	//return Vertex(x / n, y / n, z / n);
 #endif
 }
-Vertex &Vertex::operator/=(const double & right)
+Vertex &Vertex::operator/=(const float & right)
 {
-	double rec = 1 / right;
+	float rec = 1 / right;
 #ifdef AVX
 	__m256d tmp = _mm256_set1_pd(rec);
 	dat = _mm256_mul_pd(dat, tmp);
@@ -192,7 +192,7 @@ Vertex &Vertex::operator/=(const double & right)
 #endif
 	return *this;
 }
-Vertex Vertex::operator*(const double &n) const
+Vertex Vertex::operator*(const float &n) const
 {
 #ifdef AVX
 	__m256d tmp = _mm256_set1_pd(n);
@@ -212,14 +212,14 @@ Vertex Vertex::operator*(const Vertex &v) const
 		right = _mm256_mul_pd(t3, t4);
 	return _mm256_sub_pd(left, right);
 #else
-	GLdouble a, b, c;
+	float a, b, c;
 	a = y*v.z - z*v.y;
 	b = z*v.x - x*v.z;
 	c = x*v.y - y*v.x;
 	return Vertex(a, b, c);
 #endif
 }
-GLdouble Vertex::operator&(const Vertex &v) const
+float Vertex::operator&(const Vertex &v) const
 {
 	return x*v.x + y*v.y + z*v.z;
 }
@@ -228,7 +228,7 @@ GLdouble Vertex::operator&(const Vertex &v) const
 
 Normal::Normal(const Vertex &v)//¹éÒ»»¯
 {
-	GLdouble s = v.x*v.x + v.y*v.y + v.z*v.z;
+	float s = v.x*v.x + v.y*v.y + v.z*v.z;
 	s = sqrt(s);
 	x = v.x / s;
 	y = v.y / s;
@@ -291,7 +291,7 @@ Material::~Material()
 {
 }
 
-void Material::SetMtl(int8_t prop, GLfloat r, GLfloat g, GLfloat b, GLfloat a)
+void Material::SetMtl(int8_t prop, float r, float g, float b, float a)
 {
 	if (prop & MY_MODEL_AMBIENT)
 		ambient[0] = r, ambient[1] = g, ambient[2] = b, ambient[3] = a;
@@ -342,7 +342,7 @@ Color::Color(const bool black)
 		r = g = b = 255;
 }
 
-Color::Color(const double depth, const double mindepth, const double maxdepth)
+Color::Color(const float depth, const float mindepth, const float maxdepth)
 {
 	if (depth <= mindepth)
 	{
@@ -354,7 +354,7 @@ Color::Color(const double depth, const double mindepth, const double maxdepth)
 		r = g = 0, b = 0;
 		return;
 	}
-	double after = log(depth), max = log(maxdepth);
+	float after = log(depth), max = log(maxdepth);
 	r = g = b = (max - after) * 255 / max;
 }
 
@@ -415,7 +415,7 @@ void DrawObject::GLDraw()
 
 
 
-Sphere::Sphere(const double r, GLuint lnum) : DrawObject(lnum)
+Sphere::Sphere(const float r, GLuint lnum) : DrawObject(lnum)
 {
 	radius = r;
 	radius_sqr = r * r;
@@ -446,13 +446,13 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr)
 	** t = -d.s2r-sqrt[(d.s2r)^2-(s2r^2-r^2)]
 	*/
 	Vertex s2r = ray.origin - position;
-	double rdDOTr2s = ray.direction & s2r;
+	float rdDOTr2s = ray.direction & s2r;
 	if (rdDOTr2s > 0)
 		return hr;
-	double dis = rdDOTr2s * rdDOTr2s - s2r.length_sqr() + radius_sqr;
+	float dis = rdDOTr2s * rdDOTr2s - s2r.length_sqr() + radius_sqr;
 	if (dis < 0)
 		return hr;
-	GLdouble t = -((ray.direction & s2r) + sqrt(dis));
+	float t = -((ray.direction & s2r) + sqrt(dis));
 	if (t < hr.distance)
 	{
 		HitRes newhr(t);
@@ -465,15 +465,15 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr)
 
 
 
-Box::Box(const double len, GLuint lnum) : DrawObject(lnum)
+Box::Box(const float len, GLuint lnum) : DrawObject(lnum)
 {
 	width = height = length = len;
-	double l = len / 2;
+	float l = len / 2;
 	max = Vertex(l, l, l);
 	min = max * -1;
 }
 
-Box::Box(const double l, const double w, const double h, GLuint lnum) : DrawObject(lnum)
+Box::Box(const float l, const float w, const float h, GLuint lnum) : DrawObject(lnum)
 {
 	length = l, width = w, height = h;
 	max = Vertex(l / 2, w / 2, h / 2);
@@ -497,40 +497,40 @@ void Box::GLPrepare()
 	glBegin(GL_QUADS);
 	//fornt
 	glNormal3d(0, 0, 1);
-	glVertex3d(max.x, min.y, max.z);
-	glVertex3d(max.x, max.y, max.z);
-	glVertex3d(min.x, max.y, max.z);
-	glVertex3d(min.x, min.y, max.z);
+	glVertex3f(max.x, min.y, max.z);
+	glVertex3f(max.x, max.y, max.z);
+	glVertex3f(min.x, max.y, max.z);
+	glVertex3f(min.x, min.y, max.z);
 	//right
 	glNormal3d(1, 0, 0);
-	glVertex3d(max.x, min.y, max.z);
-	glVertex3d(max.x, max.y, max.z);
-	glVertex3d(max.x, max.y, min.z);
-	glVertex3d(max.x, min.y, min.z);
+	glVertex3f(max.x, min.y, max.z);
+	glVertex3f(max.x, max.y, max.z);
+	glVertex3f(max.x, max.y, min.z);
+	glVertex3f(max.x, min.y, min.z);
 	//back
 	glNormal3d(0, 0, -1);
-	glVertex3d(min.x, min.y, min.z);
-	glVertex3d(min.x, max.y, min.z);
-	glVertex3d(max.x, max.y, min.z);
-	glVertex3d(max.x, min.y, min.z);
+	glVertex3f(min.x, min.y, min.z);
+	glVertex3f(min.x, max.y, min.z);
+	glVertex3f(max.x, max.y, min.z);
+	glVertex3f(max.x, min.y, min.z);
 	//left
 	glNormal3d(-1, 0, 0);
-	glVertex3d(min.x, min.y, max.z);
-	glVertex3d(min.x, max.y, max.z);
-	glVertex3d(min.x, max.y, min.z);
-	glVertex3d(min.x, min.y, min.z);
+	glVertex3f(min.x, min.y, max.z);
+	glVertex3f(min.x, max.y, max.z);
+	glVertex3f(min.x, max.y, min.z);
+	glVertex3f(min.x, min.y, min.z);
 	//up
 	glNormal3d(0, 1, 0);
-	glVertex3d(max.x, max.y, max.z);
-	glVertex3d(max.x, max.y, min.z);
-	glVertex3d(min.x, max.y, min.z);
-	glVertex3d(min.x, max.y, max.z);
+	glVertex3f(max.x, max.y, max.z);
+	glVertex3f(max.x, max.y, min.z);
+	glVertex3f(min.x, max.y, min.z);
+	glVertex3f(min.x, max.y, max.z);
 	//down
 	glNormal3d(0, -1, 0);
-	glVertex3d(max.x, min.y, min.z);
-	glVertex3d(max.x, min.y, max.z);
-	glVertex3d(min.x, min.y, max.z);
-	glVertex3d(min.x, min.y, min.z);
+	glVertex3f(max.x, min.y, min.z);
+	glVertex3f(max.x, min.y, max.z);
+	glVertex3f(min.x, min.y, max.z);
+	glVertex3f(min.x, min.y, min.z);
 
 	glEnd();
 	glEndList();
@@ -538,7 +538,7 @@ void Box::GLPrepare()
 
 HitRes Box::intersect(const Ray & ray, const HitRes &hr)
 {
-	double res = BorderTest(ray, min + position, max + position);
+	float res = BorderTest(ray, min + position, max + position);
 	if (hr.distance > res)
 	{
 		HitRes newhr(res);
@@ -604,7 +604,7 @@ void Light::move(const int8_t &dangy, const int8_t &dangz, const int8_t &ddis)
 	position[0] = pos.x, position[1] = pos.y, position[2] = pos.z;
 }
 
-void Light::SetProp(int16_t prop, GLfloat r, GLfloat g, GLfloat b, GLfloat a)
+void Light::SetProp(int16_t prop, float r, float g, float b, float a)
 {
 	if (prop & MY_MODEL_AMBIENT)
 		ambient[0] = r, ambient[1] = g, ambient[2] = b, ambient[3] = a;
@@ -623,7 +623,7 @@ void Light::SetProp(int16_t prop, GLfloat r, GLfloat g, GLfloat b, GLfloat a)
 Camera::Camera(GLint w, GLint h)
 {
 	width = w, height = h;
-	aspect = (GLdouble)w / h;
+	aspect = (float)w / h;
 	fovy = 45.0, zNear = 1.0, zFar = 100.0;
 
 	position = Vertex(0, 0, 15);
@@ -632,17 +632,17 @@ Camera::Camera(GLint w, GLint h)
 	n = Vertex(0, 0, -1);
 }
 
-void Camera::move(const double & x, const double & y, const double & z)
+void Camera::move(const float & x, const float & y, const float & z)
 {
 	position += u*x;
 	position += v*y;
 	position += n*z;
 }
 
-void Camera::yaw(const double angz)
+void Camera::yaw(const float angz)
 {
 	//rotate n(toward)
-	double oangy = acos(n.y / 1) * 180 / PI,
+	float oangy = acos(n.y / 1) * 180 / PI,
 	oangz = atan2(n.x, n.z) * 180 / PI;
 	oangz -= angz;
 	Coord_sph2car(oangy, oangz, 1, n);
@@ -653,10 +653,10 @@ void Camera::yaw(const double angz)
 	Coord_sph2car(oangy, oangz, 1, u);
 }
 
-void Camera::pitch(double angy)
+void Camera::pitch(float angy)
 {
 	//rotate n(toward)
-	double oangy = acos(n.y / 1) * 180 / PI,
+	float oangy = acos(n.y / 1) * 180 / PI,
 		oangz = atan2(n.x, n.z) * 180 / PI;
 	if (oangy - angy < 1.0)
 		angy = oangy - 1.0;
@@ -679,7 +679,7 @@ void Camera::pitch(double angy)
 void Camera::resize(GLint w, GLint h)
 {
 	width = w, height = h;
-	aspect = (GLdouble)w / h;
+	aspect = (float)w / h;
 }
 
 
