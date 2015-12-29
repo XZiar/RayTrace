@@ -10,7 +10,7 @@ static inline int32_t parseStr(string str)
 	return str[2] + 256 * str[1] + 65536 * str[0];
 }
 
-int32_t Model::loadobj(const wstring &objname, uint8_t code)
+int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 {
 	Loader ldr(objname);
 	string ele[5];
@@ -185,7 +185,7 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 	return parts.size();
 }
 
-int32_t Model::loadmtl(const wstring &mtlname, uint8_t code)
+int32_t Model::loadmtl(const wstring &mtlname, const uint8_t code)
 {
 	Loader ldr(mtlname);
 	string ele[5];
@@ -262,7 +262,7 @@ int32_t Model::loadmtl(const wstring &mtlname, uint8_t code)
 	return int32_t();
 }
 
-int32_t Model::loadtex(const string &texname, uint8_t code)
+int32_t Model::loadtex(const string &texname, const uint8_t code)
 {
 	BITMAPFILEHEADER FileHeader;    //接受位图文件头
 	BITMAPINFOHEADER InfoHeader;    //接受位图信息头
@@ -320,7 +320,7 @@ Model::~Model()
 	reset();
 }
 
-int32_t Model::loadOBJ(const wstring &objname, const wstring &mtlname, uint8_t code)
+int32_t Model::loadOBJ(const wstring &objname, const wstring &mtlname, const uint8_t code)
 {
 	this->objname = objname, this->mtlname = mtlname;
 	reset();
@@ -506,8 +506,9 @@ double Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
 
 
 
-Model::Loader::Loader(wstring filename)
+Model::Loader::Loader(const wstring &fname)
 {
+	filename = fname;
 	fp = _wfopen(filename.c_str(), L"r");
 }
 

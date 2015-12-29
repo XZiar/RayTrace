@@ -12,7 +12,7 @@ private:
 		FILE *fp;
 		char tmpdat[8][256];
 	public:
-		Loader(wstring filename);
+		Loader(const wstring &fname);
 		~Loader();
 		int8_t read(string data[]);
 		int8_t parseDouble(const string &in, GLdouble out[]);
@@ -34,14 +34,14 @@ public:
 private:
 	virtual void GLPrepare() override;
 	double TriangleTest(const Ray &ray, const Triangle &tri, Vertex &coord);
-	int32_t loadobj(const wstring &objname, uint8_t code);
-	int32_t loadmtl(const wstring &mtlname, uint8_t code);
-	int32_t loadtex(const string &texname, uint8_t code);
+	int32_t loadobj(const wstring &objname, const uint8_t code);
+	int32_t loadmtl(const wstring &mtlname, const uint8_t code);
+	int32_t loadtex(const string &texname, const uint8_t code);
 	void reset();
 public:
 	Model(GLuint num = 0) : DrawObject(num) { };
 	~Model() override;
-	int32_t loadOBJ(const wstring &objname, const wstring &mtlname, uint8_t code = 0x0);
+	int32_t loadOBJ(const wstring &objname, const wstring &mtlname, const uint8_t code = 0x0);
 	void zRotate();
 	virtual void RTPrepare() override;
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr) override;

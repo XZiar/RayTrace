@@ -19,6 +19,9 @@ static uint8_t code = 0x0;
 static bool Mode = true;
 
 void onMenu(int val);
+void BaseTest();
+
+
 int8_t FileDlg(wstring &filename, wstring &mtlname)
 {
 	OPENFILENAME ofn;      // 公共对话框结构。     
@@ -219,6 +222,9 @@ void onKeyboard(int key, int x, int y)
 	case GLUT_KEY_DOWN:
 		cam.pitch(-3);
 		break;
+	case GLUT_KEY_END:
+		BaseTest();
+		return;
 	case GLUT_KEY_F1:
 	case GLUT_KEY_F2:
 		scene.Switch(MY_MODEL_LIGHT | MY_MODEL_SWITCH, key - GLUT_KEY_F1, true);
@@ -387,6 +393,52 @@ void onMouse(int x, int y)
 		//cam.move(pdx, pdy);
 		glutPostRedisplay();
 	}
+}
+
+void BaseTest()
+{
+	{
+		filename[0] = L"F:\\Project\\RayTrace\\objs\\0.obj";
+		filename[1] = L"F:\\Project\\RayTrace\\objs\\0.mtl";
+		obj_toggle = scene.AddModel(filename[0], filename[1]);
+		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		model.zRotate();
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -9,-3,-2 });
+	}
+	{
+		filename[0] = L"F:\\Project\\RayTrace\\objs\\1.obj";
+		filename[1] = L"F:\\Project\\RayTrace\\objs\\1.mtl";
+		obj_toggle = scene.AddModel(filename[0], filename[1]);
+		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		model.zRotate();
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,-5,4 });
+	}
+	{
+		obj_toggle = scene.AddCube(1.0);
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,-1,10 });
+	}
+	{
+		filename[0] = L"F:\\Project\\RayTrace\\objs\\2.obj";
+		filename[1] = L"F:\\Project\\RayTrace\\objs\\2.mtl";
+		obj_toggle = scene.AddModel(filename[0], filename[1]);
+		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		model.zRotate();
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 3,-3,0 });
+	}
+	{
+		filename[0] = L"F:\\Project\\RayTrace\\objs\\3.obj";
+		filename[1] = L"F:\\Project\\RayTrace\\objs\\3.mtl";
+		obj_toggle = scene.AddModel(filename[0], filename[1]);
+		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		model.zRotate();
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 7,-3,3 });
+	}
+	{
+		obj_toggle = scene.AddCube(1.0);
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 2.5,2,2 });
+	}
+	InitMenu();
+	glutPostRedisplay();
 }
 
 void onMenu(int val)
