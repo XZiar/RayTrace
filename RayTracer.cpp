@@ -36,6 +36,9 @@ void RayTracer::RTcheck(const int8_t tNum, const int8_t tID)
 
 void RayTracer::RTdepth(int8_t tNum, int8_t tID)
 {
+	LARGE_INTEGER t_s, t_e, t_f;
+	QueryPerformanceFrequency(&t_f);
+	QueryPerformanceCounter(&t_s);
 	int32_t blk_h = height / 64, blk_w = width / 64;
 	Camera &cam = scene->cam;
 	const double zNear = cam.zNear, zFar = cam.zFar;
@@ -87,10 +90,15 @@ void RayTracer::RTdepth(int8_t tNum, int8_t tID)
 		}
 	}
 	state[tID] = true;
+	QueryPerformanceCounter(&t_e);
+	costtime[tID] = (t_e.QuadPart - t_s.QuadPart)*1.0 / t_f.QuadPart;
 }
 
 void RayTracer::RTnorm(int8_t tNum, int8_t tID)
 {
+	LARGE_INTEGER t_s, t_e, t_f;
+	QueryPerformanceFrequency(&t_f);
+	QueryPerformanceCounter(&t_s);
 	int32_t blk_h = height / 64, blk_w = width / 64;
 	Camera &cam = scene->cam;
 	const double zNear = cam.zNear, zFar = cam.zFar;
@@ -99,7 +107,10 @@ void RayTracer::RTnorm(int8_t tNum, int8_t tID)
 	double dp = tan(cam.fovy * PI / 360) / (height / 2);
 	Color c_blk(true), c_wht(false);
 
-	for (int16_t blk_xcur = tID, blk_ycur = 0; blk_ycur < blk_h;)//per unit
+	//for (int16_t blk_xcur = tID, blk_ycur = 0; blk_ycur < blk_h;)//per unit
+	int16_t blk_cur = aBlock_Cur.fetch_add(1),
+		blk_xcur = blk_cur % blk_w, blk_ycur = blk_cur / blk_w;
+	while(blk_ycur < blk_h)
 	{
 		uint8_t *out_cur = output + blk_ycur * 64 * (3 * width) + blk_xcur * 64 * 3;
 
@@ -135,14 +146,12 @@ void RayTracer::RTnorm(int8_t tNum, int8_t tID)
 			}
 			out_cur += (width - 64) * 3;
 		}
-		blk_xcur += tNum;
-		if (blk_xcur >= blk_w)
-		{
-			blk_ycur += blk_xcur / blk_w;
-			blk_xcur = blk_xcur % blk_w;
-		}
+		blk_cur = aBlock_Cur.fetch_add(1);
+		blk_xcur = blk_cur % blk_w, blk_ycur = blk_cur / blk_w;
 	}
 	state[tID] = true;
+	QueryPerformanceCounter(&t_e);
+	costtime[tID] = (t_e.QuadPart - t_s.QuadPart)*1.0 / t_f.QuadPart;
 }
 
 void RayTracer::RTthread(const int8_t tNum, const int8_t tID)
@@ -180,9 +189,11 @@ void RayTracer::start(const uint8_t type, const int8_t tnum)
 		if (get<1>(t))
 			get<0>(t)->RTPrepare();
 	}
+	aBlock_Cur = 0;
 	for (int8_t a = 0; a < tnum; a++)
 	{
 		state[a] = false;
+		costtime[a] = 0.0;
 		switch (type)
 		{
 		case MY_MODEL_CHECK:
@@ -204,21 +215,24 @@ void RayTracer::start(const uint8_t type, const int8_t tnum)
 	}
 	auto tmain = thread([&, tnum]
 	{
+		double time;
 		while (true)
 		{
 			bool isOK = true;
-			for (int8_t a = 0; a < tnum; a++)
+			time = 0.0;
+			for (int8_t a = 0;isOK && a < tnum; a++)
+			{
+				time += costtime[a];
 				if (state[a] == false)
-				{
 					isOK = false;
-					break;
-				}
+			}
 			if (isOK)
 				break;
 			Sleep(50);
 		}
 		isFinish = true;
 		isRun = false;
+		useTime = time / tnum;
 	});
 	tmain.detach();
 }

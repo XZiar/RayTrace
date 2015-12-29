@@ -458,7 +458,10 @@ DWORD WINAPI showdata(LPVOID lpParam)
 
 		wprintf(L"µÆÇò×ø±ê£º\t%4f£¬%4f£¬%4f\n", light.angy, light.angz, light.dis);
 		wprintf(L"Toggle:%3d\n", obj_toggle);
-		wprintf(L"%s\n", rayt.isFinish ? L"finish" : L"runing");
+		if (rayt.isFinish)
+			wprintf(L"Finish in %4f s\n", rayt.useTime);
+		else
+			wprintf(L"Running... ...\t\t\n");
 		Sleep(33);
 	}
 	return 0;

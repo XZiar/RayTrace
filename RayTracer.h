@@ -14,6 +14,8 @@ private:
 	volatile bool isRun = false;
 	thread t[32];
 	bool state[32];
+	double costtime[32];
+	atomic_int16_t aBlock_Cur;
 
 	void RTcheck(int8_t tNum, int8_t tID);
 	void RTdepth(int8_t tNum, int8_t tID);
@@ -23,6 +25,7 @@ public:
 	GLuint texID;
 	uint8_t *output;
 	volatile bool isFinish = true;
+	volatile double useTime;
 	int width, height;
 	RayTracer(Scene &scene);
 	~RayTracer();
