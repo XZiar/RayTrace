@@ -120,7 +120,7 @@ void init(void)
 	scene.Switch(MY_MODEL_LIGHT, 0, true);
 	scene.Switch(MY_MODEL_LIGHT, 1, true);
 	auto a = scene.AddSphere(1.0);
-	scene.MovePos(MY_MODEL_OBJECT, a, { 0.0, -5.2, 0.0 , 0.0});
+	scene.MovePos(MY_MODEL_OBJECT, a, { 0.0, -5.2, 0.0 });
 	obj_toggle = a;
 
 
@@ -511,9 +511,10 @@ DWORD WINAPI showdata(LPVOID lpParam)
 		wprintf(L"µÆÇò×ø±ê£º\t%4f£¬%4f£¬%4f\n", light.angy, light.angz, light.dis);
 		wprintf(L"Toggle:%3d\n", obj_toggle);
 		if (rayt.isFinish)
-			wprintf(L"Finish in %4f s\nVertex size=%d", rayt.useTime, sizeof(Triangle));
+			wprintf(L"Finish in %4f s\n", rayt.useTime);
 		else
 			wprintf(L"Running... ...\t\t\n");
+		wprintf(L"Triangle size=%d\n", sizeof(Triangle));
 		Sleep(33);
 	}
 	return 0;

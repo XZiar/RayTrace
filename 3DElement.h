@@ -16,9 +16,12 @@
 
 class Coord2D
 {
+public:
 	GLdouble u, v;
-	Coord2D();
-	Coord2D(const GLdouble iu, const GLdouble iv);
+	Coord2D() { u = v = 0.0; };
+	Coord2D(const GLdouble &iu, const GLdouble &iv) :u(iu), v(iv) { };
+
+	operator GLdouble*() { return &u; };
 };
 
 _MM_ALIGN32 class Vertex
@@ -34,7 +37,7 @@ public:
 	};
 	Vertex();
 	Vertex(const __m256d &idat);
-	Vertex(const GLdouble &ix, const GLdouble &iy, const GLdouble &iz, const GLdouble &ia = 0.0);
+	Vertex(const GLdouble &ix, const GLdouble &iy, const GLdouble &iz) :x(ix), y(iy), z(iz) { };
 	GLdouble length() const;
 	GLdouble length_sqr() const;
 
@@ -47,14 +50,14 @@ public:
 	Vertex operator*(const double &n) const;
 	Vertex operator*(const Vertex &v) const;
 	GLdouble operator&(const Vertex &v) const;//点积
-	operator GLdouble*();
+	operator GLdouble*() { return &x; };
 };
 
 class Normal : public Vertex
 {
 public:
 	Normal() : Vertex() { };
-	Normal(const GLdouble ix, const GLdouble iy, const GLdouble iz) :Vertex(ix, iy, iz) { };
+	Normal(const GLdouble &ix, const GLdouble &iy, const GLdouble &iz) :Vertex(ix, iy, iz) { };
 	Normal(const Vertex &v);//归一化
 };
 
@@ -88,13 +91,14 @@ class Triangle
 {
 public:
 	Vertex points[3];
+	Vertex axisu, axisv;
 	Normal norms[3];
-	Vertex tcoords[3];
+	Coord2D tcoords[3];
 	
 	Triangle();
-	Triangle(Vertex va, Vertex vb, Vertex vc);
-	Triangle(Vertex va, Normal na, Vertex vb, Normal nb, Vertex vc, Normal nc);
-	Triangle(Vertex va, Normal na, Vertex ta, Vertex vb, Normal nb, Vertex tb, Vertex vc, Normal nc, Vertex tc);
+	Triangle(const Vertex &va, const Vertex &vb, const Vertex &vc);
+	Triangle(const Vertex &va, const Normal &na, const Vertex &vb, const Normal &nb, const Vertex &vc, const Normal &nc);
+	Triangle(const Vertex &va, const Normal &na, const Coord2D &ta, const Vertex &vb, const Normal &nb, const Coord2D &tb, const Vertex &vc, const Normal &nc, const Coord2D &tc);
 };
 
 class Color

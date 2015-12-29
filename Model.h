@@ -22,7 +22,7 @@ private:
 public:
 	vector<Vertex> vers;
 	vector<Normal> nors;
-	vector<Vertex> txcs;
+	vector<Coord2D> txcs;
 	vector<vector<Triangle>> parts;
 	vector<vector<Triangle>> newparts;
 	vector<Vertex> borders;

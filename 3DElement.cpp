@@ -95,6 +95,10 @@ double BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max)
 
 
 
+
+
+
+
 Vertex::Vertex()
 {
 #ifdef AVX
@@ -106,12 +110,6 @@ Vertex::Vertex()
 Vertex::Vertex(const __m256d &idat)
 {
 	dat = idat;
-}
-Vertex::Vertex(const GLdouble &ix, const GLdouble &iy, const GLdouble &iz, const GLdouble &ia)
-{
-	x = ix;
-	y = iy;
-	z = iz;
 }
 GLdouble Vertex::length() const
 {
@@ -198,10 +196,6 @@ Vertex Vertex::operator*(const Vertex &v) const
 GLdouble Vertex::operator&(const Vertex &v) const
 {
 	return x*v.x + y*v.y + z*v.z;
-}
-Vertex::operator GLdouble*()
-{
-	return &x;
 }
 
 
@@ -291,21 +285,21 @@ Triangle::Triangle()
 {
 }
 
-Triangle::Triangle(Vertex va, Vertex vb, Vertex vc)
+Triangle::Triangle(const Vertex &va, const Vertex &vb, const Vertex &vc)
 {
 	points[0] = va, points[1] = vb, points[2] = vc;
 	norms[0] = Normal(), norms[1] = Normal(), norms[2] = Normal();
-	tcoords[0] = Vertex(), tcoords[1] = Vertex(), tcoords[2] = Vertex();
+	tcoords[0] = Coord2D(), tcoords[1] = Coord2D(), tcoords[2] = Coord2D();
 }
 
-Triangle::Triangle(Vertex va, Normal na, Vertex vb, Normal nb, Vertex vc, Normal nc)
+Triangle::Triangle(const Vertex &va, const Normal &na, const Vertex &vb, const Normal &nb, const Vertex &vc, const Normal &nc)
 {
 	points[0] = va, points[1] = vb, points[2] = vc;
 	norms[0] = na, norms[1] = nb, norms[2] = nc;
-	tcoords[0] = Vertex(), tcoords[1] = Vertex(), tcoords[2] = Vertex();
+	tcoords[0] = Coord2D(), tcoords[1] = Coord2D(), tcoords[2] = Coord2D();
 }
 
-Triangle::Triangle(Vertex va, Normal na, Vertex ta, Vertex vb, Normal nb, Vertex tb, Vertex vc, Normal nc, Vertex tc)
+Triangle::Triangle(const Vertex &va, const Normal &na, const Coord2D &ta, const Vertex &vb, const Normal &nb, const Coord2D &tb, const Vertex &vc, const Normal &nc, const Coord2D &tc)
 {
 	points[0] = va, points[1] = vb, points[2] = vc;
 	norms[0] = na, norms[1] = nb, norms[2] = nc;

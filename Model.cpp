@@ -30,7 +30,7 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 	tris.reserve(4000);
 	Vertex v;
 	Normal n;
-	Vertex tc;
+	Coord2D tc;
 	Triangle t;
 	vers.push_back(v);
 	nors.push_back(n);
@@ -75,7 +75,7 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 			nors.push_back(n);
 			break;
 		case pS('v', 't', '*')://texture coord
-			tc = Vertex(atof(ele[1].c_str()), atof(ele[2].c_str()), atof(ele[3].c_str()));
+			tc = Coord2D(atof(ele[1].c_str()), atof(ele[2].c_str())/*, atof(ele[3].c_str())*/);
 			txcs.push_back(tc);
 			break;
 		case pS('f', '*', '*')://triangle
@@ -175,11 +175,10 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 			v /= mdif;
 		//resize triangles
 		for (vector<Triangle> &vt : parts)
-		{
-			for(Triangle &t : vt)
-				for(Vertex &v : t.points)
+			for (Triangle &t : vt)
+				for (Vertex &v : t.points)
 					v /= mdif;
-		}
+		//finish resize
 	}
 	
 	return parts.size();
@@ -311,7 +310,7 @@ void Model::reset()
 
 	vers.swap(vector<Vertex>());
 	nors.swap(vector<Normal>());
-	txcs.swap(vector<Vertex>());
+	txcs.swap(vector<Coord2D>());
 	
 }
 
@@ -383,6 +382,8 @@ void Model::RTPrepare()
 			newt.points[0] += position;
 			newt.points[1] += position;
 			newt.points[2] += position;
+			newt.axisu = newt.points[1] - newt.points[0];
+			newt.axisv = newt.points[2] - newt.points[0];
 			tmppart.push_back(newt);
 		}
 		newparts.push_back(tmppart);
@@ -477,10 +478,10 @@ double Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
 	** Ray:Point(t) = o + t*dir
 	** o + t*dir = (1-u-v)*p0 + u*p1 + v*p2
 	*/
-	Vertex axisu = tri.points[1] - tri.points[0],
-		axisv = tri.points[2] - tri.points[0];
-	Vertex tmp1 = ray.direction * axisv;
-	double a = axisu & tmp1;
+	/*Vertex axisu = tri.points[1] - tri.points[0],
+		axisv = tri.points[2] - tri.points[0];*/
+	Vertex tmp1 = ray.direction * tri.axisv;
+	double a = tri.axisu & tmp1;
 	if (abs(a) < 1e-6)
 		return 1e20;
 	double f = 1 / a;
@@ -488,11 +489,11 @@ double Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
 	double u = (t2r & tmp1) * f;
 	if (u < 0.0 || u > 1.0)
 		return 1e20;
-	Vertex tmp2 = t2r * axisu;
+	Vertex tmp2 = t2r * tri.axisu;
 	double v = (ray.direction & tmp2) * f;
 	if (v < 0.0 || u + v>1.0)
 		return 1e20;
-	double t = (axisv & tmp2) * f;
+	double t = (tri.axisv & tmp2) * f;
 	if (t > 1e-6)
 	{
 		coord = Vertex(1 - u - v, u, v);
