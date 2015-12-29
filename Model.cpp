@@ -478,8 +478,6 @@ double Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
 	** Ray:Point(t) = o + t*dir
 	** o + t*dir = (1-u-v)*p0 + u*p1 + v*p2
 	*/
-	/*Vertex axisu = tri.points[1] - tri.points[0],
-		axisv = tri.points[2] - tri.points[0];*/
 	Vertex tmp1 = ray.direction * tri.axisv;
 	double a = tri.axisu & tmp1;
 	if (abs(a) < 1e-6)
@@ -490,13 +488,14 @@ double Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
 	if (u < 0.0 || u > 1.0)
 		return 1e20;
 	Vertex tmp2 = t2r * tri.axisu;
-	double v = (ray.direction & tmp2) * f;
-	if (v < 0.0 || u + v>1.0)
+	double v = (ray.direction & tmp2) * f,
+		duv = 1 - u - v;
+	if (v < 0.0 || duv < 0)
 		return 1e20;
 	double t = (tri.axisv & tmp2) * f;
 	if (t > 1e-6)
 	{
-		coord = Vertex(1 - u - v, u, v);
+		coord = Vertex(duv, u, v);
 		return t;
 	}
 	else

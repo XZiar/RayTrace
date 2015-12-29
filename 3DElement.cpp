@@ -117,7 +117,15 @@ GLdouble Vertex::length() const
 }
 GLdouble Vertex::length_sqr() const
 {
+	//__m256d a1 = _mm256_mul_pd(dat, dat);
+	//a1 = _mm256_hadd_pd(a1, a1);//x+y,x+y,a+z,a+z
+
 	return x*x + y*y + z*z;
+}
+Vertex Vertex::muladd(const double & n, const Vertex & v) const
+{
+	__m256d tmp = _mm256_set1_pd(n);
+	return _mm256_fmadd_pd(dat, tmp, v.dat);
 }
 Vertex Vertex::operator+(const Vertex &v) const
 {
@@ -187,11 +195,21 @@ Vertex Vertex::operator*(const double &n) const
 }
 Vertex Vertex::operator*(const Vertex &v) const
 {
+#ifdef AVX2
+	__m256d t1 = _mm256_permute4x64_pd(dat, _MM_SHUFFLE(3, 0, 2, 1)),
+		t4 = _mm256_permute4x64_pd(v.dat, _MM_SHUFFLE(3, 0, 2, 1)),
+		t2 = _mm256_permute4x64_pd(v.dat, _MM_SHUFFLE(3, 1, 0, 2)),
+		t3 = _mm256_permute4x64_pd(dat, _MM_SHUFFLE(3, 1, 0, 2));
+	__m256d left = _mm256_mul_pd(t1, t2),
+		right = _mm256_mul_pd(t3, t4);
+	return _mm256_sub_pd(left, right);
+#else
 	GLdouble a, b, c;
 	a = y*v.z - z*v.y;
 	b = z*v.x - x*v.z;
 	c = x*v.y - y*v.x;
 	return Vertex(a, b, c);
+#endif
 }
 GLdouble Vertex::operator&(const Vertex &v) const
 {

@@ -495,7 +495,7 @@ void onMenu(int val)
 DWORD WINAPI showdata(LPVOID lpParam)
 {
 	HANDLE hOut;
-	COORD pos = { 0,0 };
+	COORD pos = { 0,5 };
 	hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 	std::locale::global(std::locale(""));
 	while (true)
@@ -539,7 +539,16 @@ int main(int argc, char** argv)
 	glutMouseWheelFunc(onWheel);
 
 	HANDLE th = CreateThread(NULL, 0, showdata, NULL, 0, NULL);
-	
+	/*Vertex a(1, 2, 3);
+	Vertex c = a*a;
+
+	double *s;
+	s = a.dat.m256d_f64;
+	printf("%f\t%f\t%f\t%f\n", s[0], s[1], s[2], s[3]);
+
+	s = c.dat.m256d_f64;
+	printf("%f\t%f\t%f\t%f\n\n", s[0], s[1], s[2], s[3]);
+*/
 	glutMainLoop();
 	return 0;
 }

@@ -40,6 +40,7 @@ public:
 	Vertex(const GLdouble &ix, const GLdouble &iy, const GLdouble &iz) :x(ix), y(iy), z(iz) { };
 	GLdouble length() const;
 	GLdouble length_sqr() const;
+	Vertex muladd(const double &n, const Vertex &v) const;
 
 	Vertex operator+(const Vertex &v) const;
 	Vertex &operator+=(const Vertex &right);

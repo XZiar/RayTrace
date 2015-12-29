@@ -5,6 +5,7 @@
 #define MY_MODEL_CHECK 0x1
 #define MY_MODEL_DEPTHTEST 0x2
 #define MY_MODEL_NORMALTEST 0x3
+#define MY_MODEL_TEXTURETEST 0x4
 #define MY_MODEL_RAYTRACE 0x80
 
 class RayTracer
@@ -20,6 +21,7 @@ private:
 	void RTcheck(int8_t tNum, int8_t tID);
 	void RTdepth(int8_t tNum, int8_t tID);
 	void RTnorm(int8_t tNum, int8_t tID);
+	void RTtex(int8_t tNum, int8_t tID);
 	void RTthread(int8_t tNum, int8_t tID);
 public:
 	GLuint texID;
