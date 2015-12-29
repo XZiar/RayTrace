@@ -1,5 +1,8 @@
+#include "rely.h"
 #include "Model.h"
+
 #define pS(a,b,c) (a)*65536+(b)*256+(c)
+
 static inline int32_t parseStr(string str)
 {
 	if (str.length() < 3)
@@ -7,7 +10,7 @@ static inline int32_t parseStr(string str)
 	return str[2] + 256 * str[1] + 65536 * str[0];
 }
 
-int32_t Model::loadobj(const wstring &objname, uint8_t code)
+int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 {
 	Loader ldr(objname);
 	string ele[5];
@@ -27,7 +30,7 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 	tris.reserve(4000);
 	Vertex v;
 	Normal n;
-	Vertex tc;
+	Coord2D tc;
 	Triangle t;
 	vers.push_back(v);
 	nors.push_back(n);
@@ -72,7 +75,7 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 			nors.push_back(n);
 			break;
 		case pS('v', 't', '*')://texture coord
-			tc = Vertex(atof(ele[1].c_str()), atof(ele[2].c_str()), atof(ele[3].c_str()));
+			tc = Coord2D(atof(ele[1].c_str()), atof(ele[2].c_str())/*, atof(ele[3].c_str())*/);
 			txcs.push_back(tc);
 			break;
 		case pS('f', '*', '*')://triangle
@@ -172,17 +175,16 @@ int32_t Model::loadobj(const wstring &objname, uint8_t code)
 			v /= mdif;
 		//resize triangles
 		for (vector<Triangle> &vt : parts)
-		{
-			for(Triangle &t : vt)
-				for(Vertex &v : t.points)
+			for (Triangle &t : vt)
+				for (Vertex &v : t.points)
 					v /= mdif;
-		}
+		//finish resize
 	}
 	
 	return parts.size();
 }
 
-int32_t Model::loadmtl(const wstring &mtlname, uint8_t code)
+int32_t Model::loadmtl(const wstring &mtlname, const uint8_t code)
 {
 	Loader ldr(mtlname);
 	string ele[5];
@@ -259,7 +261,7 @@ int32_t Model::loadmtl(const wstring &mtlname, uint8_t code)
 	return int32_t();
 }
 
-int32_t Model::loadtex(const string &texname, uint8_t code)
+int32_t Model::loadtex(const string &texname, const uint8_t code)
 {
 	BITMAPFILEHEADER FileHeader;    //接受位图文件头
 	BITMAPINFOHEADER InfoHeader;    //接受位图信息头
@@ -308,7 +310,7 @@ void Model::reset()
 
 	vers.swap(vector<Vertex>());
 	nors.swap(vector<Normal>());
-	txcs.swap(vector<Vertex>());
+	txcs.swap(vector<Coord2D>());
 	
 }
 
@@ -317,7 +319,7 @@ Model::~Model()
 	reset();
 }
 
-int32_t Model::loadOBJ(const wstring &objname, const wstring &mtlname, uint8_t code)
+int32_t Model::loadOBJ(const wstring &objname, const wstring &mtlname, const uint8_t code)
 {
 	this->objname = objname, this->mtlname = mtlname;
 	reset();
@@ -380,6 +382,8 @@ void Model::RTPrepare()
 			newt.points[0] += position;
 			newt.points[1] += position;
 			newt.points[2] += position;
+			newt.axisu = newt.points[1] - newt.points[0];
+			newt.axisv = newt.points[2] - newt.points[0];
 			tmppart.push_back(newt);
 		}
 		newparts.push_back(tmppart);
@@ -390,25 +394,30 @@ void Model::RTPrepare()
 HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 {
 	double ans = BorderTest(ray, BorderMin, BorderMax);
-	if (ans < 1e15)//inside
+	if (ans < hr.distance)//inside and maybe nearer
 	{
-		HitRes newhr = hr;
+		ans = hr.distance;
 		double newans;
-		vector<bool> tpart;
-		for (auto a = 0; a < bboxs.size(); a += 2)
-		{
-			newans = BorderTest(ray, bboxs[a], bboxs[a + 1]);
-			tpart.push_back(newans < hr.distance);
-		}
-		for (auto a = 0; a < tpart.size(); ++a)
-			if(tpart[a])
+		Triangle *objt = nullptr;
+		Vertex coord, tmpc;
+		for (auto a = 0; a < newparts.size(); ++a)
+			if (BorderTest(ray, bboxs[a * 2], bboxs[a * 2 + 1]) < hr.distance)
 				for (Triangle &t : newparts[a])
 				{
-					newans = TriangleTest(ray, t);
-					if (newhr.distance > newans)
-						newhr = HitRes(newans);
+					newans = TriangleTest(ray, t, tmpc);
+					if (ans > newans)
+					{
+						objt = &t;
+						ans = newans;
+						coord = tmpc;
+					}
 				}
-		return newhr;
+		if (ans < hr.distance)
+		{
+			HitRes newhr(ans);
+			newhr.normal = objt->norms[0] * coord.x + objt->norms[1] * coord.y + objt->norms[2] * coord.z;
+			return newhr;
+		}
 	}
 	return hr;
 }
@@ -462,17 +471,17 @@ void Model::GLPrepare()
 	glEndList();
 }
 
-double Model::TriangleTest(const Ray & ray, const Triangle & tri)
+double Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
 {
 	/*
 	** Point(u,v) = (1-u-v)*p0 + u*p1 + v*p2
 	** Ray:Point(t) = o + t*dir
 	** o + t*dir = (1-u-v)*p0 + u*p1 + v*p2
 	*/
-	Vertex axisu = tri.points[1] - tri.points[0],
-		axisv = tri.points[2] - tri.points[0];
-	Vertex tmp1 = ray.direction * axisv;
-	double a = axisu & tmp1;
+	/*Vertex axisu = tri.points[1] - tri.points[0],
+		axisv = tri.points[2] - tri.points[0];*/
+	Vertex tmp1 = ray.direction * tri.axisv;
+	double a = tri.axisu & tmp1;
 	if (abs(a) < 1e-6)
 		return 1e20;
 	double f = 1 / a;
@@ -480,13 +489,16 @@ double Model::TriangleTest(const Ray & ray, const Triangle & tri)
 	double u = (t2r & tmp1) * f;
 	if (u < 0.0 || u > 1.0)
 		return 1e20;
-	Vertex tmp2 = t2r * axisu;
+	Vertex tmp2 = t2r * tri.axisu;
 	double v = (ray.direction & tmp2) * f;
 	if (v < 0.0 || u + v>1.0)
 		return 1e20;
-	double t = (axisv & tmp2) * f;
+	double t = (tri.axisv & tmp2) * f;
 	if (t > 1e-6)
+	{
+		coord = Vertex(1 - u - v, u, v);
 		return t;
+	}
 	else
 		return 1e20;
 }
@@ -495,8 +507,9 @@ double Model::TriangleTest(const Ray & ray, const Triangle & tri)
 
 
 
-Model::Loader::Loader(wstring filename)
+Model::Loader::Loader(const wstring &fname)
 {
+	filename = fname;
 	fp = _wfopen(filename.c_str(), L"r");
 }
 

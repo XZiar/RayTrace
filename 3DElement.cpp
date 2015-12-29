@@ -1,3 +1,4 @@
+#include "rely.h"
 #include "3DElement.h"
 
 static double mod(const double &l, const double &r)
@@ -94,15 +95,21 @@ double BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max)
 
 
 
+
+
+
+
 Vertex::Vertex()
 {
+#ifdef AVX
+	dat = _mm256_setzero_pd();
+#else
 	x = y = z = 0;
+#endif
 }
-Vertex::Vertex(GLdouble ix, GLdouble iy, GLdouble iz)
+Vertex::Vertex(const __m256d &idat)
 {
-	x = ix;
-	y = iy;
-	z = iz;
+	dat = idat;
 }
 GLdouble Vertex::length() const
 {
@@ -114,34 +121,69 @@ GLdouble Vertex::length_sqr() const
 }
 Vertex Vertex::operator+(const Vertex &v) const
 {
+#ifdef AVX
+	return _mm256_add_pd(dat, v.dat);
+#else
 	return Vertex(x + v.x, y + v.y, z + v.z);
+#endif
 }
 Vertex &Vertex::operator+=(const Vertex & right)
 {
+#ifdef AVX
+	dat = _mm256_add_pd(dat, right.dat);
+#else
 	x += right.x, y += right.y, z += right.z;
+#endif
 	return *this;
 }
 Vertex Vertex::operator-(const Vertex &v) const
 {
+#ifdef AVX
+	return _mm256_sub_pd(dat, v.dat);
+#else
 	return Vertex(x - v.x, y - v.y, z - v.z);
+#endif
 }
 Vertex &Vertex::operator-=(const Vertex & right)
 {
+#ifdef AVX
+	dat = _mm256_sub_pd(dat, right.dat);
+#else
 	x += right.x, y += right.y, z += right.z;
+#endif
 	return *this;
 }
 Vertex Vertex::operator/(const double &n) const
 {
-	return Vertex(x / n, y / n, z / n);
+	double rec = 1 / n;
+#ifdef AVX
+	__m256d tmp = _mm256_set1_pd(rec);
+	return _mm256_mul_pd(dat, tmp);
+#else
+	return Vertex(x * rec, y * rec, z * rec);
+	//return Vertex(x / n, y / n, z / n);
+#endif
 }
 Vertex &Vertex::operator/=(const double & right)
 {
-	x /= right, y /= right, z /= right;
+	double rec = 1 / right;
+#ifdef AVX
+	__m256d tmp = _mm256_set1_pd(rec);
+	dat = _mm256_mul_pd(dat, tmp);
+#else
+	x *= rec, y *= rec, z *= rec;
+	//x /= right, y /= right, z /= right;
+#endif
 	return *this;
 }
 Vertex Vertex::operator*(const double &n) const
 {
+#ifdef AVX
+	__m256d tmp = _mm256_set1_pd(n);
+	return _mm256_mul_pd(dat, tmp);
+#else
 	return Vertex(x * n, y * n, z * n);
+#endif
 }
 Vertex Vertex::operator*(const Vertex &v) const
 {
@@ -151,25 +193,14 @@ Vertex Vertex::operator*(const Vertex &v) const
 	c = x*v.y - y*v.x;
 	return Vertex(a, b, c);
 }
-GLdouble Vertex::operator&(const Vertex & v) const
+GLdouble Vertex::operator&(const Vertex &v) const
 {
 	return x*v.x + y*v.y + z*v.z;
 }
-Vertex::operator GLdouble*()
-{
-	return &x;
-}
-Vertex::operator GLfloat*()
-{
-	fx = GLfloat(x);
-	fy = GLfloat(y);
-	fz = GLfloat(z);
-	return &fx;
-}
 
 
 
-Normal::Normal(Vertex v)//归一化
+Normal::Normal(const Vertex &v)//归一化
 {
 	GLdouble s = v.x*v.x + v.y*v.y + v.z*v.z;
 	s = sqrt(s);
@@ -254,21 +285,21 @@ Triangle::Triangle()
 {
 }
 
-Triangle::Triangle(Vertex va, Vertex vb, Vertex vc)
+Triangle::Triangle(const Vertex &va, const Vertex &vb, const Vertex &vc)
 {
 	points[0] = va, points[1] = vb, points[2] = vc;
 	norms[0] = Normal(), norms[1] = Normal(), norms[2] = Normal();
-	tcoords[0] = Vertex(), tcoords[1] = Vertex(), tcoords[2] = Vertex();
+	tcoords[0] = Coord2D(), tcoords[1] = Coord2D(), tcoords[2] = Coord2D();
 }
 
-Triangle::Triangle(Vertex va, Normal na, Vertex vb, Normal nb, Vertex vc, Normal nc)
+Triangle::Triangle(const Vertex &va, const Normal &na, const Vertex &vb, const Normal &nb, const Vertex &vc, const Normal &nc)
 {
 	points[0] = va, points[1] = vb, points[2] = vc;
 	norms[0] = na, norms[1] = nb, norms[2] = nc;
-	tcoords[0] = Vertex(), tcoords[1] = Vertex(), tcoords[2] = Vertex();
+	tcoords[0] = Coord2D(), tcoords[1] = Coord2D(), tcoords[2] = Coord2D();
 }
 
-Triangle::Triangle(Vertex va, Normal na, Vertex ta, Vertex vb, Normal nb, Vertex tb, Vertex vc, Normal nc, Vertex tc)
+Triangle::Triangle(const Vertex &va, const Normal &na, const Coord2D &ta, const Vertex &vb, const Normal &nb, const Coord2D &tb, const Vertex &vc, const Normal &nc, const Coord2D &tc)
 {
 	points[0] = va, points[1] = vb, points[2] = vc;
 	norms[0] = na, norms[1] = nb, norms[2] = nc;
@@ -299,6 +330,13 @@ Color::Color(const double depth, const double mindepth, const double maxdepth)
 	}
 	double after = log(depth), max = log(maxdepth);
 	r = g = b = (max - after) * 255 / max;
+}
+
+Color::Color(const Normal n)
+{
+	r = 127 * (n.x + 1);
+	g = 127 * (n.y + 1);
+	b = 127 * (n.z + 1);
 }
 
 void Color::put(uint8_t * addr)
@@ -375,8 +413,13 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr)
 	if (dis < 0)
 		return hr;
 	GLdouble t = -((ray.direction & s2r) + sqrt(dis));
-	if(t < hr.distance)
-		return t;
+	if (t < hr.distance)
+	{
+		HitRes newhr(t);
+		Vertex point = ray.origin + ray.direction * t;
+		newhr.normal = Normal(point - position);
+		return newhr;
+	}
 	return hr;
 }
 
@@ -457,7 +500,20 @@ HitRes Box::intersect(const Ray & ray, const HitRes &hr)
 {
 	double res = BorderTest(ray, min + position, max + position);
 	if (hr.distance > res)
-		return res;
+	{
+		HitRes newhr(res);
+		Vertex point = ray.origin + ray.direction * res;
+		Vertex b2p = point - position;
+		point.x = point.y = point.z = 0;
+		if (abs(abs(b2p.z) - max.z) < 1e-6)//front or back
+			point.z = b2p.z>0 ? 1 : -1;
+		if (abs(abs(b2p.y) - max.y) < 1e-6)//up or down
+			point.y = b2p.y>0 ? 1 : -1;
+		if (abs(abs(b2p.x) - max.x) < 1e-6)//left or right
+			point.x = b2p.x>0 ? 1 : -1;
+		newhr.normal = Normal(point);
+		return newhr;
+	}
 	else
 		return hr;
 }

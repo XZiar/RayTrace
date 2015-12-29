@@ -19,6 +19,9 @@ static uint8_t code = 0x0;
 static bool Mode = true;
 
 void onMenu(int val);
+void BaseTest();
+
+
 int8_t FileDlg(wstring &filename, wstring &mtlname)
 {
 	OPENFILENAME ofn;      // 公共对话框结构。     
@@ -118,6 +121,11 @@ void init(void)
 	scene.Switch(MY_MODEL_LIGHT, 1, true);
 	auto a = scene.AddSphere(1.0);
 	scene.MovePos(MY_MODEL_OBJECT, a, { 0.0, -5.2, 0.0 });
+	obj_toggle = a;
+
+
+	//cam.fovy = 90;
+	//cam.position.z = 5;
 }
 
 void display(void)
@@ -214,6 +222,9 @@ void onKeyboard(int key, int x, int y)
 	case GLUT_KEY_DOWN:
 		cam.pitch(-3);
 		break;
+	case GLUT_KEY_END:
+		BaseTest();
+		return;
 	case GLUT_KEY_F1:
 	case GLUT_KEY_F2:
 		scene.Switch(MY_MODEL_LIGHT | MY_MODEL_SWITCH, key - GLUT_KEY_F1, true);
@@ -257,16 +268,19 @@ void onKeyboard(unsigned char key, int x, int y)
 		else
 		{
 			int tnum = 8;
+			Mode = false;
 			switch (key)
 			{
 			case '1':
-				Mode = false;
 				rayt.start(MY_MODEL_CHECK, tnum);
 				glutTimerFunc(50, onTimer, 1);
 				break;
 			case '2':
-				Mode = false;
-				rayt.start(MY_MODEL_INTERSECTION, tnum);
+				rayt.start(MY_MODEL_DEPTHTEST, tnum);
+				glutTimerFunc(50, onTimer, 1);
+				break;
+			case '3':
+				rayt.start(MY_MODEL_NORMALTEST, tnum);
 				glutTimerFunc(50, onTimer, 1);
 				break;
 			}
@@ -381,6 +395,52 @@ void onMouse(int x, int y)
 	}
 }
 
+void BaseTest()
+{
+	{
+		filename[0] = L"F:\\Project\\RayTrace\\objs\\0.obj";
+		filename[1] = L"F:\\Project\\RayTrace\\objs\\0.mtl";
+		obj_toggle = scene.AddModel(filename[0], filename[1]);
+		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		model.zRotate();
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -9,-3,-2 });
+	}
+	{
+		filename[0] = L"F:\\Project\\RayTrace\\objs\\1.obj";
+		filename[1] = L"F:\\Project\\RayTrace\\objs\\1.mtl";
+		obj_toggle = scene.AddModel(filename[0], filename[1]);
+		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		model.zRotate();
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,-5,4 });
+	}
+	{
+		obj_toggle = scene.AddCube(1.0);
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,-1,10 });
+	}
+	{
+		filename[0] = L"F:\\Project\\RayTrace\\objs\\2.obj";
+		filename[1] = L"F:\\Project\\RayTrace\\objs\\2.mtl";
+		obj_toggle = scene.AddModel(filename[0], filename[1]);
+		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		model.zRotate();
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 3,-3,0 });
+	}
+	{
+		filename[0] = L"F:\\Project\\RayTrace\\objs\\3.obj";
+		filename[1] = L"F:\\Project\\RayTrace\\objs\\3.mtl";
+		obj_toggle = scene.AddModel(filename[0], filename[1]);
+		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		model.zRotate();
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 7,-3,3 });
+	}
+	{
+		obj_toggle = scene.AddCube(1.0);
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 2.5,2,2 });
+	}
+	InitMenu();
+	glutPostRedisplay();
+}
+
 void onMenu(int val)
 {
 	if (val & 0xf0)
@@ -450,7 +510,11 @@ DWORD WINAPI showdata(LPVOID lpParam)
 
 		wprintf(L"灯球坐标：\t%4f，%4f，%4f\n", light.angy, light.angz, light.dis);
 		wprintf(L"Toggle:%3d\n", obj_toggle);
-		wprintf(L"%s\n", rayt.isFinish ? L"finish" : L"runing");
+		if (rayt.isFinish)
+			wprintf(L"Finish in %4f s\n", rayt.useTime);
+		else
+			wprintf(L"Running... ...\t\t\n");
+		wprintf(L"Triangle size=%d\n", sizeof(Triangle));
 		Sleep(33);
 	}
 	return 0;

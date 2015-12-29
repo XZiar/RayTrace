@@ -1,7 +1,8 @@
 #pragma once
 
 #define _CRT_SECURE_NO_WARNINGS
-#define USING_FREEGLUT true
+#define USING_FREEGLUT
+#define AVX
 
 #ifndef _DEBUG
 #define NDEBUG
@@ -9,7 +10,7 @@
 
 #include <GL/glew.h>
 #pragma comment(lib,"glew32.lib")
-#if USING_FREEGLUT
+#ifdef USING_FREEGLUT
 #define FREEGLUT_STATIC
 #include <GL/freeglut.h>//Free GLUT Header
 #else
@@ -17,7 +18,9 @@
 #endif
 
 #define PI 3.1415926535897932384
+#define _MM_ALIGN32 _VCRT_ALIGN(32)
 
+#include <intrin.h>
 #include <cstdio>
 #include <conio.h>
 #include <cstdlib>
@@ -31,4 +34,5 @@
 #include <tuple>
 #include <memory>
 #include <thread>
+#include <atomic>
 using namespace std;
