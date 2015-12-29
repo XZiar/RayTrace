@@ -1,6 +1,8 @@
 #include "rely.h"
 #include "3DElement.h"
 
+#ifndef AVX
+
 static double mod(const double &l, const double &r)
 {
 	double t, e;
@@ -99,7 +101,7 @@ Vertex::Vertex()
 {
 	x = y = z = 0;
 }
-Vertex::Vertex(GLdouble ix, GLdouble iy, GLdouble iz)
+Vertex::Vertex(GLdouble ix, GLdouble iy, GLdouble iz, GLdouble ia)
 {
 	x = ix;
 	y = iy;
@@ -137,6 +139,7 @@ Vertex Vertex::operator/(const double &n) const
 }
 Vertex &Vertex::operator/=(const double & right)
 {
+	double rec = 1 / right;
 	x /= right, y /= right, z /= right;
 	return *this;
 }
@@ -613,3 +616,5 @@ void Camera::resize(GLint w, GLint h)
 }
 
 
+
+#endif

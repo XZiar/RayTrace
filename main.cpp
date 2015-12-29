@@ -120,7 +120,7 @@ void init(void)
 	scene.Switch(MY_MODEL_LIGHT, 0, true);
 	scene.Switch(MY_MODEL_LIGHT, 1, true);
 	auto a = scene.AddSphere(1.0);
-	scene.MovePos(MY_MODEL_OBJECT, a, { 0.0, -5.2, 0.0 });
+	scene.MovePos(MY_MODEL_OBJECT, a, { 0.0, -5.2, 0.0 , 0.0});
 	obj_toggle = a;
 
 

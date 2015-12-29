@@ -13,6 +13,12 @@
 #define MY_MODEL_POSITION 0x100
 #define MY_MODEL_ATTENUATION 0x200
 
+#ifdef AVX
+
+#include "3DElementAVX.h"
+
+#else
+
 
 class Vertex
 {
@@ -20,7 +26,7 @@ public:
 	GLdouble x, y, z;
 	GLfloat fx, fy, fz;
 	Vertex();
-	Vertex(GLdouble ix, GLdouble iy, GLdouble iz);
+	Vertex(GLdouble ix, GLdouble iy, GLdouble iz, GLdouble ia = 0.0);
 	GLdouble length() const;
 	GLdouble length_sqr() const;
 
@@ -196,3 +202,6 @@ public:
 void Coord_sph2car(double &angy, double &angz, const double dis, Vertex &v);
 void Coord_car2sph(const Vertex &v, double &angy, double &angz, double &dis);
 double BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max);
+
+
+#endif // !AVX
