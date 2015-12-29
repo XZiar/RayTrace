@@ -29,7 +29,7 @@ public:
 	vector<Vertex> bboxs;
 	vector<Material> mtls;
 	vector<Texture> texs;
-	vector<int8_t> obj_mtl, mtl_tex;
+	vector<int8_t> part_mtl, mtl_tex;
 	wstring objname, mtlname;
 private:
 	virtual void GLPrepare() override;

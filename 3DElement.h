@@ -21,6 +21,8 @@ public:
 	Coord2D() { u = v = 0.0; };
 	Coord2D(const GLdouble &iu, const GLdouble &iv) :u(iu), v(iv) { };
 
+	Coord2D operator+(const Coord2D &c) const;
+	Coord2D operator*(const double &n) const;
 	operator GLdouble*() { return &u; };
 };
 
@@ -109,6 +111,7 @@ public:
 	Color(const bool black);
 	Color(const double depth, const double mindepth, const double maxdepth);
 	Color(const Normal n);
+	Color(const int16_t &w, const int16_t &h, const uint8_t *data, const Coord2D &coord);
 	void put(uint8_t *addr);
 	void get(uint8_t *addr);
 };
@@ -126,9 +129,11 @@ public:
 class HitRes
 {
 public:
-	double distance;
 	Vertex position;
 	Normal normal;
+	Coord2D tcoord;
+	double distance;
+	Texture *tex = nullptr;
 
 	HitRes(bool b = false);
 	HitRes(double dis) : distance(dis){ };

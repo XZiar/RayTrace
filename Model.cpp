@@ -142,13 +142,13 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 			while (--a > 0)
 				if (mtls[a].name == ele[1])
 					break;
-			obj_mtl.push_back(a);
+			part_mtl.push_back(a);
 			break;
 		}
 	}
 	if (bFirstO)
 	{
-		obj_mtl.push_back(0);
+		part_mtl.push_back(0);
 	}
 	parts.push_back(tris);
 	tris.swap(vector<Triangle>());
@@ -300,7 +300,7 @@ void Model::reset()
 	VerMin = VerMax = Vertex();
 
 	mtl_tex.swap(vector<int8_t>());
-	obj_mtl.swap(vector<int8_t>());
+	part_mtl.swap(vector<int8_t>());
 	texs.swap(vector<Texture>());
 	mtls.swap(vector<Material>());
 	parts.swap(vector<vector<Triangle>>());
@@ -398,6 +398,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 	{
 		ans = hr.distance;
 		double newans;
+		int objpart = -1;
 		Triangle *objt = nullptr;
 		Vertex coord, tmpc;
 		for (auto a = 0; a < newparts.size(); ++a)
@@ -407,6 +408,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 					newans = TriangleTest(ray, t, tmpc);
 					if (ans > newans)
 					{
+						objpart = a;
 						objt = &t;
 						ans = newans;
 						coord = tmpc;
@@ -416,6 +418,8 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 		{
 			HitRes newhr(ans);
 			newhr.normal = objt->norms[0] * coord.x + objt->norms[1] * coord.y + objt->norms[2] * coord.z;
+			newhr.tcoord = objt->tcoords[0] * coord.x + objt->tcoords[1] * coord.y + objt->tcoords[2] * coord.z;
+			newhr.tex = &texs[mtl_tex[part_mtl[objpart]]];
 			return newhr;
 		}
 	}
@@ -440,7 +444,7 @@ void Model::GLPrepare()
 	glNewList(GLListNum, GL_COMPILE);
 	for (auto a = 0; a < parts.size(); ++a)
 	{
-		int8_t mnum = obj_mtl[a];
+		int8_t mnum = part_mtl[a];
 		Material &mat = mtls[mnum];
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mat.ambient);
 		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat.diffuse);

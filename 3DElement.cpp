@@ -95,7 +95,15 @@ double BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max)
 
 
 
+Coord2D Coord2D::operator+(const Coord2D &c) const
+{
+	return Coord2D(u + c.u, v + c.v);
+}
 
+Coord2D Coord2D::operator*(const double &n) const
+{
+	return Coord2D(u*n, v*n);
+}
 
 
 
@@ -355,6 +363,20 @@ Color::Color(const Normal n)
 	r = 127 * (n.x + 1);
 	g = 127 * (n.y + 1);
 	b = 127 * (n.z + 1);
+}
+
+Color::Color(const int16_t & w, const int16_t & h, const uint8_t *data, const Coord2D &coord)
+{
+	int16_t x = (int16_t)(coord.u * w),
+		y = (int16_t)(coord.v * h);
+	if (x < 0)x = 0;
+	if (y < 0)y = 0;
+	if (x > w)x = w;
+	if (y > h)y = h;
+	int32_t offset = (y * w + x) * 3;
+	b = data[offset];
+	g = data[offset + 1];
+	r = data[offset + 2];
 }
 
 void Color::put(uint8_t * addr)

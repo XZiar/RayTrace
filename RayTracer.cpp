@@ -198,8 +198,23 @@ void RayTracer::RTtex(int8_t tNum, int8_t tID)
 					c_wht.put(out_cur);
 				else
 				{
-					Color c(hr.normal);
-					c.put(out_cur);
+					if (hr.tex != nullptr)//has texture
+					{
+						if (hr.tex->data != nullptr)//has bmp
+						{
+							Color c(hr.tex->w, hr.tex->h, hr.tex->data, hr.tcoord);
+							c.put(out_cur);
+						}
+						else
+						{
+							//do nothing
+						}
+					}
+					else
+					{
+						Color c(hr.normal);
+						c.put(out_cur);
+					}
 				}
 				out_cur += 3;
 			}
@@ -266,10 +281,13 @@ void RayTracer::start(const uint8_t type, const int8_t tnum)
 		case MY_MODEL_NORMALTEST:
 			t[a] = thread(mem_fn(&RayTracer::RTnorm), this, tnum, a);
 			break;
+		case MY_MODEL_TEXTURETEST:
+			t[a] = thread(mem_fn(&RayTracer::RTtex), this, tnum, a);
+			break;
+
 		case MY_MODEL_RAYTRACE:
 			t[a] = thread(mem_fn(&RayTracer::RTthread), this, tnum, a);
 			break;
-		
 		}
 		
 		t[a].detach();
