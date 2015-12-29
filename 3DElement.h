@@ -13,20 +13,28 @@
 #define MY_MODEL_POSITION 0x100
 #define MY_MODEL_ATTENUATION 0x200
 
-#ifdef AVX
 
-#include "3DElementAVX.h"
+class Coord2D
+{
+	GLdouble u, v;
+	Coord2D();
+	Coord2D(const GLdouble iu, const GLdouble iv);
+};
 
-#else
-
-
-class Vertex
+_MM_ALIGN32 class Vertex
 {
 public:
-	GLdouble x, y, z;
-	GLfloat fx, fy, fz;
+	union
+	{
+		__m256d dat;
+		struct
+		{
+			GLdouble x, y, z, alpha;
+		};
+	};
 	Vertex();
-	Vertex(GLdouble ix, GLdouble iy, GLdouble iz, GLdouble ia = 0.0);
+	Vertex(const __m256d &idat);
+	Vertex(const GLdouble &ix, const GLdouble &iy, const GLdouble &iz, const GLdouble &ia = 0.0);
 	GLdouble length() const;
 	GLdouble length_sqr() const;
 
@@ -40,15 +48,14 @@ public:
 	Vertex operator*(const Vertex &v) const;
 	GLdouble operator&(const Vertex &v) const;//点积
 	operator GLdouble*();
-	operator GLfloat*();
 };
 
 class Normal : public Vertex
 {
 public:
 	Normal() : Vertex() { };
-	Normal(GLdouble ix, GLdouble iy, GLdouble iz) :Vertex(ix, iy, iz) { };
-	Normal(Vertex v);//归一化
+	Normal(const GLdouble ix, const GLdouble iy, const GLdouble iz) :Vertex(ix, iy, iz) { };
+	Normal(const Vertex &v);//归一化
 };
 
 class Texture
@@ -204,4 +211,3 @@ void Coord_car2sph(const Vertex &v, double &angy, double &angz, double &dis);
 double BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max);
 
 
-#endif // !AVX

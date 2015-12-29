@@ -2,7 +2,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 #define USING_FREEGLUT
-//#define AVX
+#define AVX
 
 #ifndef _DEBUG
 #define NDEBUG

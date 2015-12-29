@@ -1,8 +1,6 @@
 #include "rely.h"
 #include "3DElement.h"
 
-#ifndef AVX
-
 static double mod(const double &l, const double &r)
 {
 	double t, e;
@@ -99,9 +97,17 @@ double BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max)
 
 Vertex::Vertex()
 {
+#ifdef AVX
+	dat = _mm256_setzero_pd();
+#else
 	x = y = z = 0;
+#endif
 }
-Vertex::Vertex(GLdouble ix, GLdouble iy, GLdouble iz, GLdouble ia)
+Vertex::Vertex(const __m256d &idat)
+{
+	dat = idat;
+}
+Vertex::Vertex(const GLdouble &ix, const GLdouble &iy, const GLdouble &iz, const GLdouble &ia)
 {
 	x = ix;
 	y = iy;
@@ -117,35 +123,69 @@ GLdouble Vertex::length_sqr() const
 }
 Vertex Vertex::operator+(const Vertex &v) const
 {
+#ifdef AVX
+	return _mm256_add_pd(dat, v.dat);
+#else
 	return Vertex(x + v.x, y + v.y, z + v.z);
+#endif
 }
 Vertex &Vertex::operator+=(const Vertex & right)
 {
+#ifdef AVX
+	dat = _mm256_add_pd(dat, right.dat);
+#else
 	x += right.x, y += right.y, z += right.z;
+#endif
 	return *this;
 }
 Vertex Vertex::operator-(const Vertex &v) const
 {
+#ifdef AVX
+	return _mm256_sub_pd(dat, v.dat);
+#else
 	return Vertex(x - v.x, y - v.y, z - v.z);
+#endif
 }
 Vertex &Vertex::operator-=(const Vertex & right)
 {
+#ifdef AVX
+	dat = _mm256_sub_pd(dat, right.dat);
+#else
 	x += right.x, y += right.y, z += right.z;
+#endif
 	return *this;
 }
 Vertex Vertex::operator/(const double &n) const
 {
-	return Vertex(x / n, y / n, z / n);
+	double rec = 1 / n;
+#ifdef AVX
+	__m256d tmp = _mm256_set1_pd(rec);
+	return _mm256_mul_pd(dat, tmp);
+#else
+	return Vertex(x * rec, y * rec, z * rec);
+	//return Vertex(x / n, y / n, z / n);
+#endif
 }
 Vertex &Vertex::operator/=(const double & right)
 {
 	double rec = 1 / right;
-	x /= right, y /= right, z /= right;
+#ifdef AVX
+	__m256d tmp = _mm256_set1_pd(rec);
+	dat = _mm256_mul_pd(dat, tmp);
+#else
+	x *= rec, y *= rec, z *= rec;
+	//x /= right, y /= right, z /= right;
+#endif
 	return *this;
 }
 Vertex Vertex::operator*(const double &n) const
 {
+#ifdef AVX
+	__m256d tmp = _mm256_set1_pd(n);
+	return _mm256_mul_pd(dat, tmp);
+#else
 	return Vertex(x * n, y * n, z * n);
+#endif
 }
 Vertex Vertex::operator*(const Vertex &v) const
 {
@@ -155,7 +195,7 @@ Vertex Vertex::operator*(const Vertex &v) const
 	c = x*v.y - y*v.x;
 	return Vertex(a, b, c);
 }
-GLdouble Vertex::operator&(const Vertex & v) const
+GLdouble Vertex::operator&(const Vertex &v) const
 {
 	return x*v.x + y*v.y + z*v.z;
 }
@@ -163,17 +203,10 @@ Vertex::operator GLdouble*()
 {
 	return &x;
 }
-Vertex::operator GLfloat*()
-{
-	fx = GLfloat(x);
-	fy = GLfloat(y);
-	fz = GLfloat(z);
-	return &fx;
-}
 
 
 
-Normal::Normal(Vertex v)//归一化
+Normal::Normal(const Vertex &v)//归一化
 {
 	GLdouble s = v.x*v.x + v.y*v.y + v.z*v.z;
 	s = sqrt(s);
@@ -616,5 +649,3 @@ void Camera::resize(GLint w, GLint h)
 }
 
 
-
-#endif

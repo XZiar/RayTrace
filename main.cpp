@@ -511,7 +511,7 @@ DWORD WINAPI showdata(LPVOID lpParam)
 		wprintf(L"µÆÇò×ø±ê£º\t%4f£¬%4f£¬%4f\n", light.angy, light.angz, light.dis);
 		wprintf(L"Toggle:%3d\n", obj_toggle);
 		if (rayt.isFinish)
-			wprintf(L"Finish in %4f s\n", rayt.useTime);
+			wprintf(L"Finish in %4f s\nVertex size=%d", rayt.useTime, sizeof(Triangle));
 		else
 			wprintf(L"Running... ...\t\t\n");
 		Sleep(33);
