@@ -15,12 +15,13 @@ private:
 public:
 	Camera cam;
 	Vertex EnvLight;
-	Light Lights[8];
+	vector<Light> Lights;
 	vector<tuple<DrawObject*, bool>> Objects;
 	Scene();
 	~Scene();
 
 	void init();
+	uint8_t AddLight(const uint8_t type, const Vertex &comp, const float lumi = 1.0f, const Vertex &atte = Vertex(1, 0, 0));
 	uint8_t AddSphere(float radius);
 	uint8_t AddCube(float len);
 	uint8_t AddModel(const wstring &objname, const wstring &mtlname, uint8_t code = 0x0);

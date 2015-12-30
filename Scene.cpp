@@ -49,6 +49,22 @@ void Scene::init()
 	glEndList();
 }
 
+uint8_t Scene::AddLight(const uint8_t type, const Vertex &comp, const float lumi, const Vertex &atte)
+{
+	if (Lights.size() == 8)
+		return 0xff;
+	Light light(type);
+	float sum = comp.x + comp.y + comp.z;
+	Vertex nc = comp / sum;
+	light.SetProperty(MY_MODEL_AMBIENT, nc.x, nc.x, nc.x);
+	light.SetProperty(MY_MODEL_DIFFUSE, nc.y, nc.y, nc.y);
+	light.SetProperty(MY_MODEL_SPECULAR, nc.z, nc.z, nc.z);
+	light.SetProperty(MY_MODEL_ATTENUATION, atte.x, atte.y, atte.z);
+	light.SetLumi(lumi);
+	Lights.push_back(light);
+	return Lights.size() - 1;
+}
+
 uint8_t Scene::AddSphere(float radius)
 {
 	Material mtl;
@@ -73,11 +89,10 @@ uint8_t Scene::AddCube(float len)
 {
 	Material mtl;
 	mtl.name = "Cube";
+	//»ÆÍ­²ÄÖÊ
 	mtl.SetMtl(MY_MODEL_AMBIENT, 0.329412, 0.223529, 0.027451);
 	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.780392, 0.568627, 0.113725);
-	//mtl.SetMtl(MY_MODEL_DIFFUSE, 0, 0, 0);
 	mtl.SetMtl(MY_MODEL_SPECULAR, 0.992157, 0.941176, 0.807843);
-	//mtl.SetMtl(MY_MODEL_SPECULAR, 0, 0, 0);
 	mtl.SetMtl(MY_MODEL_SHINESS, 27.897400, 27.897400, 27.897400);
 
 	GLuint lnum = glGenLists(1);
@@ -111,7 +126,9 @@ bool Scene::Delete(uint8_t type, const uint8_t num)
 		Objects.erase(Objects.begin() + num);
 		break;
 	case MY_MODEL_LIGHT:
-		return false;
+		if (num >= Lights.size())
+			return false;
+		Lights.erase(Lights.begin() + num);
 	}
 	return true;
 }
@@ -126,6 +143,11 @@ bool Scene::MovePos(const uint8_t type, const uint8_t num, const Vertex & v)
 		get<0>(Objects[num])->position += v;
 		break;
 	case MY_MODEL_LIGHT:
+		if (num >= Lights.size())
+			return false;
+		Lights[num].move(v.x, v.y, v.z);
+		break;
+	default:
 		return false;
 	}
 	return true;
@@ -137,7 +159,7 @@ bool Scene::Switch(uint8_t type, const uint8_t num, const bool isShow)
 	switch (type & 0x7f)
 	{
 	case MY_MODEL_LIGHT:
-		if (num > 7)
+		if (num >= Lights.size())
 			return false;
 		old = Lights[num].bLight;
 		Lights[num].bLight = isSwitch ? !Lights[num].bLight : isShow;
@@ -166,7 +188,7 @@ void Scene::DrawScene()
 	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, EnvLight);
 	
 	//put light
-	for (auto a = 0; a < 8; ++a)
+	for (auto a = 0; a < Lights.size(); ++a)
 	{
 		GLenum ID = GL_LIGHT0 + a;
 		Light &light = Lights[a];
@@ -211,7 +233,7 @@ void Scene::DrawScene()
 
 void Scene::DrawLight(const uint8_t num)
 {
-	if (num > 7)
+	if (num >= Lights.size())
 		return;
 	Vertex lgt(1, 1, 1);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, lgt);

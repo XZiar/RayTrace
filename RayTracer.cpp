@@ -12,7 +12,7 @@ void RayTracer::parallelRT(const int8_t tNum, const int8_t tID, const PR &worker
 	const Camera &cam = scene->cam;
 	const int32_t blk_h = height / 64, blk_w = width / 64;
 	const float dp = tan(cam.fovy * PI / 360) / (height / 2);
-	const double zNear = cam.zNear, zFar = cam.zFar;
+	const float zNear = cam.zNear, zFar = cam.zFar;
 
 	int16_t blk_cur = tID, blk_xcur = tID % blk_w, blk_ycur = tID / blk_w;
 	while (blk_ycur < blk_h)
@@ -49,7 +49,7 @@ void RayTracer::RTcheck(const int8_t tNum, const int8_t tID)
 	const Camera &cam = scene->cam;
 	const int32_t blk_h = height / 64, blk_w = width / 64;
 	const float dp = tan(cam.fovy * PI / 360) / (height / 2);
-	const double zNear = cam.zNear, zFar = cam.zFar;
+	const float zNear = cam.zNear, zFar = cam.zFar;
 
 	int16_t blk_cur = tID, blk_xcur = tID % blk_w, blk_ycur = tID / blk_w;
 	while (blk_ycur < blk_h)
@@ -77,7 +77,7 @@ void RayTracer::RTcheck(const int8_t tNum, const int8_t tID)
 	state[tID] = true;
 }
 
-Color RayTracer::RTdepth(const double zNear, const double zFar, const Ray &baseray)
+Color RayTracer::RTdepth(const float zNear, const float zFar, const Ray &baseray)
 {
 	HitRes hr;
 	for (auto t : scene->Objects)
@@ -88,7 +88,7 @@ Color RayTracer::RTdepth(const double zNear, const double zFar, const Ray &baser
 	return Color(hr.distance, zNear, zFar);
 }
 
-Color RayTracer::RTnorm(const double zNear, const double zFar, const Ray &baseray)
+Color RayTracer::RTnorm(const float zNear, const float zFar, const Ray &baseray)
 {
 	HitRes hr;
 	for (auto t : scene->Objects)
@@ -103,7 +103,7 @@ Color RayTracer::RTnorm(const double zNear, const double zFar, const Ray &basera
 	return Color(hr.normal);
 }
 
-Color RayTracer::RTtex(const double zNear, const double zFar, const Ray &baseray)
+Color RayTracer::RTtex(const float zNear, const float zFar, const Ray &baseray)
 {
 	HitRes hr;
 	for (auto t : scene->Objects)
@@ -122,12 +122,12 @@ Color RayTracer::RTtex(const double zNear, const double zFar, const Ray &baseray
 	else
 	{
 		Color c(false);
-		c.r = c.g = c.b = 0.588 * 255;
+		c.r = c.g = c.b = 150;
 		return c;
 	}
 }
 
-Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray)
+Color RayTracer::RTmtl(const float zNear, const float zFar, const Ray &baseray)
 {
 	HitRes hr;
 	Color c(false);
@@ -146,9 +146,8 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 	Vertex vc_specular(255, 255, 255),
 		vc(c.r, c.g, c.b),
 		mix_vd, mix_va, mix_vsc;
-	for (auto a = 0; a < 8; ++a)
+	for (auto &lit : scene->Lights)
 	{
-		Light &lit = scene->Lights[a];
 		if (lit.bLight)
 		{
 			float light_lum;

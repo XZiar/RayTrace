@@ -605,8 +605,9 @@ HitRes Box::intersect(const Ray & ray, const HitRes &hr)
 
 
 
-Light::Light(int8_t type)
+Light::Light(const uint8_t type)
 {
+	this->type = type;
 	bLight = true;
 	rangy = 90, rangz = 0, rdis = 16;
 	move(0, 0, 0);
@@ -632,20 +633,18 @@ bool Light::turn()
 	return bLight = !bLight;
 }
 
-void Light::move(const int8_t &dangy, const int8_t &dangz, const int8_t &ddis)
+void Light::move(const float dangy, const float dangz, const float ddis)
 {
 	rdis += ddis;
 	if (rdis < 2)
 		rdis = 2;
 	else if (rdis > 64)
 		rdis = 64;
-	rangy = mod(360 + rangy + dangy, 360);
-	rangz = mod(360 + rangz + dangz, 360);
-	angy = rangy, angz = rangz, dis = rdis;
+	angy = rangy = mod(360 + rangy + dangy, 360);
+	angz = rangz = mod(360 + rangz + dangz, 360);
+	dis = rdis;
 
-	Vertex pos;
-	Coord_sph2car2(angy, angz, dis, pos);
-	position[0] = pos.x, position[1] = pos.y, position[2] = pos.z;
+	Coord_sph2car2(angy, angz, dis, position);
 }
 
 void Light::SetProperty(int16_t prop, float r, float g, float b, float a)

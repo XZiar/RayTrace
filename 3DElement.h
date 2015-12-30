@@ -193,17 +193,19 @@ public:
 class Light
 {
 public:
-	bool bLight;
-	float rangy, rangz, rdis,
-		angy, angz, dis;
 	Vertex position,
 		ambient,
 		diffuse,
 		specular,
 		attenuation;
-	Light(int8_t type = 0x0);
+	float rangy, rangz, rdis,
+		angy, angz, dis;
+	uint8_t type;
+	bool bLight;
+
+	Light(const uint8_t type);
 	bool turn();
-	void move(const int8_t &dangy, const int8_t &dangz, const int8_t &ddis);
+	void move(const float dangy, const float dangz, const float ddis);
 	void SetProperty(const int16_t prop, const float r, const float g, const float b, const float a = 1.0f);
 	void SetLumi(const float lum);
 };
