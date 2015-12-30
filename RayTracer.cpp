@@ -143,27 +143,46 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 		return Color(false);
 	if (hr.tex != nullptr)//has texture
 		c = Color(hr.tex->w, hr.tex->h, hr.tex->data, hr.tcoord);
-	Vertex vc(c.r, c.g, c.b), mix_vdc, mix_vac;
-	double n_n[8];
-	Normal p2l[8];
+	Vertex vc(c.r, c.g, c.b), mix_vdc, mix_vac, mix_vsc;
 	for (auto a = 0; a < 8; ++a)
 	{
 		Light &lit = scene->Lights[a];
 		if (lit.bLight)
 		{
+			/*
+			** ambient_color = base_map (*) mat_ambient (*) light_ambient
+			*/
 			Vertex v_ambient = hr.mtl->ambient.mixmul(lit.ambient);
 			mix_vac += v_ambient;//ambient color
+			/*
+			** diffuse_color = base_map * normal.p2l (*) mat_diffuse (*) light_diffuse
+			** p2l = normal that point towards light
+			*/
 			Normal p2l = Normal(lit.position.alpha>1e-6 ? lit.position - hr.position : lit.position);
-			n_n[a] = hr.normal & p2l;
-			if (n_n[a] > 0)
+			float n_n = hr.normal & p2l;
+			if (n_n > 0)
 			{
 				Vertex v_diffuse = hr.mtl->diffuse.mixmul(lit.diffuse);
-				v_diffuse *= n_n[a];
-				mix_vdc += v_diffuse;//diffuse color
+				mix_vdc += v_diffuse * n_n;//diffuse color
+			}
+			/*
+			** phong model//blinn-phong model
+			** specular_color = (r2p'.p2l)^shiness * mat_diffuse (*) light_diffuse
+			** p2l = normal that point towards light
+			** r2p' = reflect normal that camera towards point
+			** r2p' = r2p - 2 * (r2p.normal) * normal
+			*/
+			n_n = 2 * (baseray.direction & hr.normal);
+			Normal r2p_r = baseray.direction - (hr.normal * n_n);
+			n_n = r2p_r & p2l;
+			if (n_n > 0)
+			{
+				Vertex v_specular = hr.mtl->specular.mixmul(lit.specular);
+				mix_vsc += v_specular * pow(n_n, hr.mtl->shiness.x);
 			}
 		}
 	}
-	return Color(vc.mixmul(mix_vdc + mix_vac));
+	return Color(vc.mixmul(mix_vdc + mix_vac + mix_vsc));
 }
 
 
