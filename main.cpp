@@ -149,6 +149,8 @@ void display(void)
 		
 		//draw scene
 		scene.DrawScene();
+		//draw light
+		scene.DrawLight(1);
 	}
 	else//RayTrace Mode
 	{

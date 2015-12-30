@@ -184,7 +184,7 @@ void Scene::DrawScene()
 		else
 			glDisable(ID);
 	}
-	
+
 	//draw object
 	DrawObject *dobj;
 	bool isDraw;
@@ -207,4 +207,20 @@ void Scene::DrawScene()
 	glPopMatrix();
 
 	glPopMatrix();
+}
+
+void Scene::DrawLight(const uint8_t num)
+{
+	if (num > 7)
+		return;
+	Vertex lgt(1, 1, 1);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, lgt);
+	Light &light = Lights[num];
+	if (light.bLight)
+	{
+		glPushMatrix();
+		glTranslatef(light.position.x, light.position.y, light.position.z);
+		glutWireSphere(0.1, 10, 10);
+		glPopMatrix();
+	}
 }

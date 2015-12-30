@@ -29,5 +29,6 @@ public:
 	bool MovePos(const uint8_t type, const uint8_t num, const Vertex &v);
 	bool Switch(const uint8_t type, const uint8_t num, const bool isShow);
 	void DrawScene();
+	void DrawLight(const uint8_t num);
 };
 
