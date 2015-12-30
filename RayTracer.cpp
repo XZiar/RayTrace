@@ -145,7 +145,6 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 		dc = Color(hr.tex->w, hr.tex->h, hr.tex->data, hr.tcoord);
 	Vertex vdc(dc.r, dc.g, dc.b), mix_vdc;
 	double n_n[8];
-	Vertex v_diffuse[8];
 	Normal p2l[8];
 	for (auto a = 0; a < 8; ++a)
 	{
@@ -156,13 +155,13 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 			n_n[a] = hr.normal & Normal(lit.position - hr.position);
 			if (n_n[a] > 0)
 			{
-				v_diffuse[a] = hr.mtl->diffuse.mixmul(lit.ambient);
-				v_diffuse[a] *= n_n[a];
-				mix_vdc += v_diffuse[a]/*.mixmul(vdc)*/;//final color
+				Vertex v_diffuse = hr.mtl->diffuse.mixmul(lit.diffuse);
+				v_diffuse *= n_n[a];
+				mix_vdc += v_diffuse;//final color
 			}
 		}
 	}
-	return Color(mix_vdc.mixmul(vdc * 16), dc);
+	return Color(mix_vdc.mixmul(vdc), dc);
 }
 
 
