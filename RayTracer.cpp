@@ -143,17 +143,18 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 		return Color(false);
 	if (hr.tex != nullptr)//has texture
 		c = Color(hr.tex->w, hr.tex->h, hr.tex->data, hr.tcoord);
-	Vertex vc(c.r, c.g, c.b), mix_vdc, mix_vac, mix_vsc;
+	Vertex vc(c.r, c.g, c.b), mix_vd, mix_va, mix_vsc;
 	for (auto a = 0; a < 8; ++a)
 	{
 		Light &lit = scene->Lights[a];
 		if (lit.bLight)
 		{
+			float light_lum = 1.0f;
 			/*
 			** ambient_color = base_map (*) mat_ambient (*) light_ambient
 			*/
 			Vertex v_ambient = hr.mtl->ambient.mixmul(lit.ambient);
-			mix_vac += v_ambient;//ambient color
+			mix_va += v_ambient * light_lum;//ambient color
 			/*
 			** diffuse_color = base_map * normal.p2l (*) mat_diffuse (*) light_diffuse
 			** p2l = normal that point towards light
@@ -163,7 +164,7 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 			if (n_n > 0)
 			{
 				Vertex v_diffuse = hr.mtl->diffuse.mixmul(lit.diffuse);
-				mix_vdc += v_diffuse * n_n;//diffuse color
+				mix_vd += v_diffuse * (n_n * light_lum);//diffuse color
 			}
 			/*
 			** phong model//blinn-phong model
@@ -177,12 +178,14 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 			n_n = r2p_r & p2l;
 			if (n_n > 0)
 			{
-				Vertex v_specular = hr.mtl->specular.mixmul(lit.specular);
-				mix_vsc += v_specular * pow(n_n, hr.mtl->shiness.x);
+				Vertex v_specular = hr.mtl->specular.mixmul(lit.specular),
+					vc_specular = lit.specular * 255;
+				Vertex vs = v_specular * pow(n_n, hr.mtl->shiness.x);
+				mix_vsc += vc_specular.mixmul(vs);
 			}
 		}
 	}
-	return Color(vc.mixmul(mix_vdc + mix_vac + mix_vsc));
+	return Color(vc.mixmul(mix_vd + mix_va) + mix_vsc);
 }
 
 
