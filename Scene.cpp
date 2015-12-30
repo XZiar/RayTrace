@@ -48,7 +48,7 @@ void Scene::init()
 	glEndList();
 }
 
-uint8_t Scene::AddSphere(double radius)
+uint8_t Scene::AddSphere(float radius)
 {
 	Material mtl;
 	mtl.name = "Sphere";
@@ -66,7 +66,7 @@ uint8_t Scene::AddSphere(double radius)
 	return Objects.size() - 1;
 }
 
-uint8_t Scene::AddCube(double len)
+uint8_t Scene::AddCube(float len)
 {
 	Material mtl;
 	mtl.name = "Cube";

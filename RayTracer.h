@@ -5,22 +5,25 @@
 #define MY_MODEL_CHECK 0x1
 #define MY_MODEL_DEPTHTEST 0x2
 #define MY_MODEL_NORMALTEST 0x3
+#define MY_MODEL_TEXTURETEST 0x4
 #define MY_MODEL_RAYTRACE 0x80
 
 class RayTracer
 {
 private:
+	using PR = function<Color(const double, const double, const Ray&)>;
 	Scene *scene;
 	volatile bool isRun = false;
 	thread t[32];
 	bool state[32];
-	double costtime[32];
+	volatile double costtime[32];
 	atomic_int16_t aBlock_Cur;
 
-	void RTcheck(int8_t tNum, int8_t tID);
-	void RTdepth(int8_t tNum, int8_t tID);
-	void RTnorm(int8_t tNum, int8_t tID);
-	void RTthread(int8_t tNum, int8_t tID);
+	void parallelRT(const int8_t tNum, const int8_t tID, const PR &worker);
+	void RTcheck(const int8_t tNum, const int8_t tID);
+	Color RTdepth(const double zNear, const double zFar, const Ray &baseray);
+	Color RTnorm(const double zNear, const double zFar, const Ray &baseray);
+	Color RTtex(const double zNear, const double zFar, const Ray &baseray);
 public:
 	GLuint texID;
 	uint8_t *output;

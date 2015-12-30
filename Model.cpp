@@ -41,6 +41,10 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 
 	auto Border = [](Vertex &Min, Vertex &Max, const Vertex &v)
 	{
+	#ifdef SSE2
+		Min.dat = _mm_min_ps(Min.dat, v.dat);
+		Max.dat = _mm_max_ps(Max.dat, v.dat);
+	#else
 		if (v.x > Max.x)
 			Max.x = v.x;
 		if (v.x < Min.x)
@@ -55,6 +59,7 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 			Max.z = v.z;
 		if (v.z < Min.z)
 			Min.z = v.z;
+	#endif
 	};
 
 	while (true)
@@ -121,9 +126,21 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 						vers[ti[3]], nors[ti[5]], txcs[ti[4]],
 						vers[ti[6]], nors[ti[8]], txcs[ti[7]]);
 				tris.push_back(t);
+			#ifdef SSE2
+				__m128 v0dat = _mm_load_ps(vers[ti[0]].dat.m128_f32);
+				__m128 v3dat = _mm_load_ps(vers[ti[3]].dat.m128_f32);
+				__m128 v6dat = _mm_load_ps(vers[ti[6]].dat.m128_f32);
+				__m128 i1dat = _mm_min_ps(v3dat, v0dat);
+				__m128 a1dat = _mm_max_ps(v3dat, v0dat);
+				__m128 i2dat = _mm_min_ps(VerMin.dat, v6dat);
+				__m128 a2dat = _mm_max_ps(VerMax.dat, v6dat);
+				VerMin.dat = _mm_min_ps(i1dat, i2dat);
+				VerMax.dat = _mm_max_ps(a1dat, a2dat);
+			#else
 				Border(VerMin, VerMax, vers[ti[0]]);
 				Border(VerMin, VerMax, vers[ti[3]]);
 				Border(VerMin, VerMax, vers[ti[6]]);
+			#endif
 			}
 			break;
 		case pS('u', 's', 'e')://object part
@@ -142,13 +159,13 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 			while (--a > 0)
 				if (mtls[a].name == ele[1])
 					break;
-			obj_mtl.push_back(a);
+			part_mtl.push_back(a);
 			break;
 		}
 	}
 	if (bFirstO)
 	{
-		obj_mtl.push_back(0);
+		part_mtl.push_back(0);
 	}
 	parts.push_back(tris);
 	tris.swap(vector<Triangle>());
@@ -167,7 +184,7 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 		}
 
 		Vertex Dif = VerMax - VerMin;
-		double mdif = Dif.x > Dif.y ? Dif.x : Dif.y;
+		float mdif = Dif.x > Dif.y ? Dif.x : Dif.y;
 		mdif = Dif.z > mdif ? Dif.z / 8.0 : mdif / 8.0;
 		VerMax /= mdif, VerMin /= mdif;
 		//resize borders
@@ -300,7 +317,7 @@ void Model::reset()
 	VerMin = VerMax = Vertex();
 
 	mtl_tex.swap(vector<int8_t>());
-	obj_mtl.swap(vector<int8_t>());
+	part_mtl.swap(vector<int8_t>());
 	texs.swap(vector<Texture>());
 	mtls.swap(vector<Material>());
 	parts.swap(vector<vector<Triangle>>());
@@ -393,11 +410,12 @@ void Model::RTPrepare()
 
 HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 {
-	double ans = BorderTest(ray, BorderMin, BorderMax);
+	float ans = BorderTest(ray, BorderMin, BorderMax);
 	if (ans < hr.distance)//inside and maybe nearer
 	{
 		ans = hr.distance;
-		double newans;
+		float newans;
+		int objpart = -1;
 		Triangle *objt = nullptr;
 		Vertex coord, tmpc;
 		for (auto a = 0; a < newparts.size(); ++a)
@@ -407,6 +425,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 					newans = TriangleTest(ray, t, tmpc);
 					if (ans > newans)
 					{
+						objpart = a;
 						objt = &t;
 						ans = newans;
 						coord = tmpc;
@@ -416,6 +435,12 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 		{
 			HitRes newhr(ans);
 			newhr.normal = objt->norms[0] * coord.x + objt->norms[1] * coord.y + objt->norms[2] * coord.z;
+			newhr.tcoord = objt->tcoords[0] * coord.x + objt->tcoords[1] * coord.y + objt->tcoords[2] * coord.z;
+			auto mnum = part_mtl[objpart];
+			newhr.mtl = &mtls[mnum];
+			auto tnum = mtl_tex[mnum];
+			if (tnum >= 0)
+				newhr.tex = &texs[tnum];
 			return newhr;
 		}
 	}
@@ -440,7 +465,7 @@ void Model::GLPrepare()
 	glNewList(GLListNum, GL_COMPILE);
 	for (auto a = 0; a < parts.size(); ++a)
 	{
-		int8_t mnum = obj_mtl[a];
+		int8_t mnum = part_mtl[a];
 		Material &mat = mtls[mnum];
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mat.ambient);
 		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat.diffuse);
@@ -456,47 +481,46 @@ void Model::GLPrepare()
 		glBegin(GL_TRIANGLES);
 		for (Triangle &tri : parts[a])
 		{
-			glTexCoord2dv(tri.tcoords[0]);
-			glNormal3dv(tri.norms[0]);
-			glVertex3dv(tri.points[0]);
-			glTexCoord2dv(tri.tcoords[1]);
-			glNormal3dv(tri.norms[1]);
-			glVertex3dv(tri.points[1]);
-			glTexCoord2dv(tri.tcoords[2]);
-			glNormal3dv(tri.norms[2]);
-			glVertex3dv(tri.points[2]);
+			glTexCoord2fv(tri.tcoords[0]);
+			glNormal3fv(tri.norms[0]);
+			glVertex3fv(tri.points[0]);
+			glTexCoord2fv(tri.tcoords[1]);
+			glNormal3fv(tri.norms[1]);
+			glVertex3fv(tri.points[1]);
+			glTexCoord2fv(tri.tcoords[2]);
+			glNormal3fv(tri.norms[2]);
+			glVertex3fv(tri.points[2]);
 		}
 		glEnd();
 	}
 	glEndList();
 }
 
-double Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
+float Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
 {
 	/*
 	** Point(u,v) = (1-u-v)*p0 + u*p1 + v*p2
 	** Ray:Point(t) = o + t*dir
 	** o + t*dir = (1-u-v)*p0 + u*p1 + v*p2
 	*/
-	/*Vertex axisu = tri.points[1] - tri.points[0],
-		axisv = tri.points[2] - tri.points[0];*/
 	Vertex tmp1 = ray.direction * tri.axisv;
-	double a = tri.axisu & tmp1;
+	float a = tri.axisu & tmp1;
 	if (abs(a) < 1e-6)
 		return 1e20;
-	double f = 1 / a;
+	float f = 1 / a;
 	Vertex t2r = ray.origin - tri.points[0];
-	double u = (t2r & tmp1) * f;
+	float u = (t2r & tmp1) * f;
 	if (u < 0.0 || u > 1.0)
 		return 1e20;
 	Vertex tmp2 = t2r * tri.axisu;
-	double v = (ray.direction & tmp2) * f;
-	if (v < 0.0 || u + v>1.0)
+	float v = (ray.direction & tmp2) * f,
+		duv = 1 - u - v;
+	if (v < 0.0 || duv < 0)
 		return 1e20;
-	double t = (tri.axisv & tmp2) * f;
+	float t = (tri.axisv & tmp2) * f;
 	if (t > 1e-6)
 	{
-		coord = Vertex(1 - u - v, u, v);
+		coord = Vertex(duv, u, v);
 		return t;
 	}
 	else
@@ -535,9 +559,9 @@ int8_t Model::Loader::read(string data[])
 		return INT8_MIN;
 }
 
-int8_t Model::Loader::parseDouble(const string &in, GLdouble out[])
+int8_t Model::Loader::parseFloat(const string &in, float out[])
 {
-	auto a = sscanf(in.c_str(), "%lf/%lf/%lf/%lf", &out[0], &out[1], &out[2], &out[3]);
+	auto a = sscanf(in.c_str(), "%f/%f/%f/%f", &out[0], &out[1], &out[2], &out[3]);
 	return a;
 }
 

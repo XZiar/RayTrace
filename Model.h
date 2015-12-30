@@ -15,7 +15,7 @@ private:
 		Loader(const wstring &fname);
 		~Loader();
 		int8_t read(string data[]);
-		int8_t parseDouble(const string &in, GLdouble out[]);
+		int8_t parseFloat(const string &in, float out[]);
 		int8_t parseInt(const string &in, int out[]);
 	};
 	Vertex VerMin, VerMax, BorderMin, BorderMax;
@@ -29,11 +29,11 @@ public:
 	vector<Vertex> bboxs;
 	vector<Material> mtls;
 	vector<Texture> texs;
-	vector<int8_t> obj_mtl, mtl_tex;
+	vector<int8_t> part_mtl, mtl_tex;
 	wstring objname, mtlname;
 private:
 	virtual void GLPrepare() override;
-	double TriangleTest(const Ray &ray, const Triangle &tri, Vertex &coord);
+	float TriangleTest(const Ray &ray, const Triangle &tri, Vertex &coord);
 	int32_t loadobj(const wstring &objname, const uint8_t code);
 	int32_t loadmtl(const wstring &mtlname, const uint8_t code);
 	int32_t loadtex(const string &texname, const uint8_t code);

@@ -20,8 +20,8 @@ public:
 	~Scene();
 
 	void init();
-	uint8_t AddSphere(double radius);
-	uint8_t AddCube(double len);
+	uint8_t AddSphere(float radius);
+	uint8_t AddCube(float len);
 	uint8_t AddModel(const wstring &objname, const wstring &mtlname, uint8_t code = 0x0);
 
 	bool Delete(const uint8_t type, const uint8_t num);

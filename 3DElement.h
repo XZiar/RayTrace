@@ -17,47 +17,50 @@
 class Coord2D
 {
 public:
-	GLdouble u, v;
+	float u, v;
 	Coord2D() { u = v = 0.0; };
-	Coord2D(const GLdouble &iu, const GLdouble &iv) :u(iu), v(iv) { };
+	Coord2D(const float &iu, const float &iv) :u(iu), v(iv) { };
 
-	operator GLdouble*() { return &u; };
+	Coord2D operator+(const Coord2D &c) const;
+	Coord2D operator*(const float &n) const;
+	operator float*() { return &u; };
 };
 
-_MM_ALIGN32 class Vertex
+_MM_ALIGN16 class Vertex
 {
 public:
 	union
 	{
-		__m256d dat;
+		__m128 dat;
 		struct
 		{
-			GLdouble x, y, z, alpha;
+			float x, y, z, alpha;
 		};
 	};
 	Vertex();
-	Vertex(const __m256d &idat);
-	Vertex(const GLdouble &ix, const GLdouble &iy, const GLdouble &iz) :x(ix), y(iy), z(iz) { };
-	GLdouble length() const;
-	GLdouble length_sqr() const;
+	Vertex(const __m128 &idat);
+	Vertex(const float &ix, const float &iy, const float &iz) :x(ix), y(iy), z(iz) { };
+	float length() const;
+	float length_sqr() const;
+	Vertex muladd(const float &n, const Vertex &v) const;
 
 	Vertex operator+(const Vertex &v) const;
 	Vertex &operator+=(const Vertex &right);
 	Vertex operator-(const Vertex &v) const;
 	Vertex &operator-=(const Vertex &right);
-	Vertex operator/(const double &n) const;
-	Vertex &operator/=(const double &right);
-	Vertex operator*(const double &n) const;
+	Vertex operator/(const float &n) const;
+	Vertex &operator/=(const float &right);
+	Vertex operator*(const float &n) const;
 	Vertex operator*(const Vertex &v) const;
-	GLdouble operator&(const Vertex &v) const;//点积
-	operator GLdouble*() { return &x; };
+	float operator&(const Vertex &v) const;//点积
+	operator float*() { return &x; };
 };
 
 class Normal : public Vertex
 {
 public:
 	Normal() : Vertex() { };
-	Normal(const GLdouble &ix, const GLdouble &iy, const GLdouble &iz) :Vertex(ix, iy, iz) { };
+	Normal(const float &ix, const float &iy, const float &iz) :Vertex(ix, iy, iz) { };
 	Normal(const Vertex &v);//归一化
 };
 
@@ -77,14 +80,14 @@ class Material
 public:
 	string name;
 	int16_t w, h;
-	GLfloat ambient[4],
+	float ambient[4],
 		diffuse[4],
 		specular[4],
 		shiness[4],
 		emission[4];
 	Material();
 	~Material();
-	void SetMtl(int8_t prop, GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f);
+	void SetMtl(int8_t prop, float r, float g, float b, float a = 1.0f);
 };
 
 class Triangle
@@ -106,8 +109,9 @@ class Color
 public:
 	uint8_t r, g, b;
 	Color(const bool black);
-	Color(const double depth, const double mindepth, const double maxdepth);
+	Color(const float depth, const float mindepth, const float maxdepth);
 	Color(const Normal n);
+	Color(const int16_t &w, const int16_t &h, const uint8_t *data, const Coord2D &coord);
 	void put(uint8_t *addr);
 	void get(uint8_t *addr);
 };
@@ -125,12 +129,15 @@ public:
 class HitRes
 {
 public:
-	double distance;
 	Vertex position;
 	Normal normal;
+	Coord2D tcoord;
+	float distance;
+	Material *mtl = nullptr;
+	Texture *tex = nullptr;
 
 	HitRes(bool b = false);
-	HitRes(double dis) : distance(dis){ };
+	HitRes(float dis) : distance(dis){ };
 	
 	bool operator<(const HitRes &right);
 	operator bool();
@@ -154,10 +161,10 @@ public:
 class Sphere : public DrawObject
 {
 private:
-	double radius, radius_sqr;
+	float radius, radius_sqr;
 	Material mtl;
 public:
-	Sphere(const double r = 1.0, GLuint lnum = 0);
+	Sphere(const float r = 1.0, GLuint lnum = 0);
 
 	void SetMtl(const Material &mtl);
 	virtual void GLPrepare() override;
@@ -167,12 +174,12 @@ public:
 class Box : public DrawObject
 {
 private:
-	double width, height, length;
+	float width, height, length;
 	Vertex min, max;
 	Material mtl;
 public:
-	Box(const double len = 2.0, GLuint lnum = 0);
-	Box(const double l, const double w, const double h, GLuint lnum = 0);
+	Box(const float len = 2.0, GLuint lnum = 0);
+	Box(const float l, const float w, const float h, GLuint lnum = 0);
 	void SetMtl(const Material &mtl);
 	virtual void GLPrepare() override;
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr) override;
@@ -182,17 +189,17 @@ class Light
 {
 public:
 	bool bLight;
-	GLdouble rangy, rangz, rdis,
+	float rangy, rangz, rdis,
 		angy, angz, dis;
-	GLfloat position[4],
+	float position[4],
 		ambient[4],
 		diffuse[4],
 		specular[4];
-	GLfloat attenuation[3];
+	float attenuation[3];
 	Light(int8_t type = 0x0);
 	bool turn();
 	void move(const int8_t &dangy, const int8_t &dangz, const int8_t &ddis);
-	void SetProp(int16_t prop, GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f);
+	void SetProp(int16_t prop, float r, float g, float b, float a = 1.0f);
 };
 
 class Camera
@@ -201,17 +208,17 @@ public:
 	Normal u, v, n;//to right,up,toward
 	Vertex position;
 	GLint width, height;
-	GLdouble fovy, aspect, zNear, zFar;
+	float fovy, aspect, zNear, zFar;
 	Camera(GLint w = 1120, GLint h = 630);
-	void move(const double &x, const double &y, const double &z);
-	void yaw(const double angz);
-	void pitch(double angy);
+	void move(const float &x, const float &y, const float &z);
+	void yaw(const float angz);
+	void pitch(float angy);
 	void resize(GLint w, GLint h);
 };
 
 
-void Coord_sph2car(double &angy, double &angz, const double dis, Vertex &v);
-void Coord_car2sph(const Vertex &v, double &angy, double &angz, double &dis);
-double BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max);
+void Coord_sph2car(float &angy, float &angz, const float dis, Vertex &v);
+void Coord_car2sph(const Vertex &v, float &angy, float &angz, float &dis);
+float BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max);
 
 
