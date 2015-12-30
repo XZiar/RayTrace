@@ -137,6 +137,7 @@ Vertex Vertex::muladd(const float & n, const Vertex & v) const
 {
 	//__m256d tmp = _mm256_set1_pd(n);
 	//return _mm256_fmadd_pd(dat, tmp, v.dat);
+	return Vertex();
 }
 Vertex Vertex::operator+(const Vertex &v) const
 {
@@ -380,12 +381,16 @@ Color::Color(const Normal n)
 
 Color::Color(const int16_t & w, const int16_t & h, const uint8_t *data, const Coord2D &coord)
 {
-	int16_t x = (int16_t)(coord.u * w),
-		y = (int16_t)(coord.v * h);
-	if (x < 0)x = 0;
-	if (y < 0)y = 0;
-	if (x > w)x = w;
-	if (y > h)y = h;
+
+	float empty,
+		nu = modf(coord.u, &empty),
+		nv = modf(coord.v, &empty);
+	if (nu < 0)
+		nu += 1;
+	if (nv < 0)
+		nv += 1;
+	int16_t x = (int16_t)(nu * w),
+		y = (int16_t)(nv * h);
 	int32_t offset = (y * w + x) * 3;
 	b = data[offset];
 	g = data[offset + 1];
@@ -471,6 +476,7 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr)
 		HitRes newhr(t);
 		Vertex point = ray.origin + ray.direction * t;
 		newhr.normal = Normal(point - position);
+		newhr.mtl = &mtl;
 		return newhr;
 	}
 	return hr;
@@ -565,6 +571,7 @@ HitRes Box::intersect(const Ray & ray, const HitRes &hr)
 		if (abs(abs(b2p.x) - max.x) < 1e-6)//left or right
 			point.x = b2p.x>0 ? 1 : -1;
 		newhr.normal = Normal(point);
+		newhr.mtl = &mtl;
 		return newhr;
 	}
 	else

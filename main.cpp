@@ -224,7 +224,8 @@ void onKeyboard(int key, int x, int y)
 		break;
 	case GLUT_KEY_END:
 		BaseTest();
-		return;
+		InitMenu();
+		break;
 	case GLUT_KEY_F1:
 	case GLUT_KEY_F2:
 		scene.Switch(MY_MODEL_LIGHT | MY_MODEL_SWITCH, key - GLUT_KEY_F1, true);
@@ -296,38 +297,28 @@ void onKeyboard(unsigned char key, int x, int y)
 	switch (key)
 	{
 	case 'h':
-		cam.move(1, 0, 0);
-		break;
+		cam.move(1, 0, 0);break;
 	case 'f':
-		cam.move(-1, 0, 0);
-		break;
+		cam.move(-1, 0, 0);break;
 	case 't':
-		cam.move(0, 1, 0);
-		break;
+		cam.move(0, 1, 0);break;
 	case 'g':
-		cam.move(0, -1, 0);
-		break;
+		cam.move(0, -1, 0);break;
 	case 27:
 		exit(0);
 		return;
 	case 'q'://light near
-		light.move(0, 0, -1);
-		break;
+		light.move(0, 0, -1);break;
 	case 'e'://light far
-		light.move(0, 0, 1);
-		break;
+		light.move(0, 0, 1);break;
 	case 'a':
-		light.move(0, -3, 0);
-		break;
+		light.move(0, -3, 0);break;
 	case 'd':
-		light.move(0, 3, 0);
-		break;
+		light.move(0, 3, 0);break;
 	case 'w':
-		light.move(-3, 0, 0);
-		break;
+		light.move(-3, 0, 0);break;
 	case 's':
-		light.move(3, 0, 0);
-		break;
+		light.move(3, 0, 0);break;
 	case '2':
 	case '4':
 	case '6':
@@ -400,6 +391,7 @@ void onMouse(int x, int y)
 
 void BaseTest()
 {
+	SetCurrentDirectory(L"F:\\Project\\RayTrace\\objs");
 	{
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\0.obj";
 		filename[1] = L"F:\\Project\\RayTrace\\objs\\0.mtl";
@@ -440,8 +432,6 @@ void BaseTest()
 		obj_toggle = scene.AddCube(1.0);
 		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 2.5,2,2 });
 	}
-	InitMenu();
-	glutPostRedisplay();
 }
 
 void onMenu(int val)
@@ -517,7 +507,7 @@ DWORD WINAPI showdata(LPVOID lpParam)
 			wprintf(L"Finish in %4f s\n", rayt.useTime);
 		else
 			wprintf(L"Running... ...\t\t\n");
-		wprintf(L"Triangle size=%d\n", sizeof(Triangle));
+		wprintf(L"Triangle size=%d\tHitRes size=%d\n", sizeof(Triangle), sizeof(HitRes));
 		Sleep(33);
 	}
 	return 0;

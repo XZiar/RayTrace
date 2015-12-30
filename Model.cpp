@@ -436,7 +436,11 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 			HitRes newhr(ans);
 			newhr.normal = objt->norms[0] * coord.x + objt->norms[1] * coord.y + objt->norms[2] * coord.z;
 			newhr.tcoord = objt->tcoords[0] * coord.x + objt->tcoords[1] * coord.y + objt->tcoords[2] * coord.z;
-			newhr.tex = &texs[mtl_tex[part_mtl[objpart]]];
+			auto mnum = part_mtl[objpart];
+			newhr.mtl = &mtls[mnum];
+			auto tnum = mtl_tex[mnum];
+			if (tnum >= 0)
+				newhr.tex = &texs[tnum];
 			return newhr;
 		}
 	}

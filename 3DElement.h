@@ -133,8 +133,8 @@ public:
 	Normal normal;
 	Coord2D tcoord;
 	float distance;
+	Material *mtl = nullptr;
 	Texture *tex = nullptr;
-
 
 	HitRes(bool b = false);
 	HitRes(float dis) : distance(dis){ };

@@ -75,17 +75,14 @@ Color RayTracer::RTtex(const double zNear, const double zFar, const Ray &baseray
 		return Color(false);
 	if (hr.tex != nullptr)//has texture
 	{
-		if (hr.tex->data != nullptr)//has bmp
-		{
-			return Color(hr.tex->w, hr.tex->h, hr.tex->data, hr.tcoord);
-		}
-		else
-		{
-			//do nothing
-		}
+		return Color(hr.tex->w, hr.tex->h, hr.tex->data, hr.tcoord);
 	}
-
-	return Color(hr.normal);
+	else
+	{
+		Color c(false);
+		c.r = c.g = c.b = 0.588 * 255;
+		return c;
+	}
 }
 
 
