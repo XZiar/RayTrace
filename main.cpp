@@ -88,40 +88,46 @@ void InitMenu()
 
 void init(void)
 {
-	glEnable(GL_DEPTH_TEST);
+	//basic setting
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 	//glEnable(GL_NORMALIZE);
-	glClearColor(0.1f, 0.1f, 0.1f, 0.0);
 	glShadeModel(GL_SMOOTH);
+	
+	//set depth test
+	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
+	//set texture environment
 	glEnable(GL_TEXTURE_2D);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
+	//set light environment
+	glEnable(GL_LIGHTING);
+	glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
+	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_FALSE);
+	glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SEPARATE_SPECULAR_COLOR);
+
+	//set light
+	scene.EnvLight = Vertex(0.05f, 0.05f, 0.05f, 1.0f);
 	scene.Lights[0] = Light(MY_MODEL_LIGHT_PARALLEL);
 	Light *lit = &scene.Lights[0];
-	lit->SetProp(MY_MODEL_SPECULAR, 0.3f, 0.3f, 0.3f);
-	lit->SetProp(MY_MODEL_DIFFUSE, 0.15f, 0.15f, 0.15f);
-	lit->SetProp(MY_MODEL_POSITION, 10.0f, 10.0f, 5.0f, 0.0f);
+	lit->SetProperty(MY_MODEL_SPECULAR, 0.3f, 0.3f, 0.3f);
+	lit->SetProperty(MY_MODEL_DIFFUSE, 0.15f, 0.15f, 0.15f);
+	lit->SetProperty(MY_MODEL_POSITION, 10.0f, 10.0f, 5.0f, 0.0f);
 	scene.Lights[1] = Light(MY_MODEL_LIGHT_POINT);
+	lit = &scene.Lights[1];
+	lit->SetProperty(MY_MODEL_ATTENUATION, -0.008f, 0.004f, 0.00005f);
+	lit->SetProperty(MY_MODEL_ATTENUATION, 2.5f, -0.5f, 0.125f);
+	lit->SetLumi(24);
 
-
-	GLfloat lmodel_ambient[] = { 0.4f, 0.4f, 0.4f, 1.0f };
-	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
-	glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
-	glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
-	glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SEPARATE_SPECULAR_COLOR);
-	glEnable(GL_LIGHTING);
-
-	
 	//init scene
 	scene.init();
 	scene.Switch(MY_MODEL_LIGHT, 0, true);
 	scene.Switch(MY_MODEL_LIGHT, 1, true);
-	auto a = scene.AddSphere(1.0);
-	scene.MovePos(MY_MODEL_OBJECT, a, { 0.0, -5.2, 0.0 });
-	obj_toggle = a;
+	obj_toggle = scene.AddSphere(1.0);
+	//scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 0.0, -1.5, 0.0 });
 
 
 	//cam.fovy = 90;
@@ -246,14 +252,18 @@ void onKeyboard(unsigned char key, int x, int y)
 	}
 	if (key == 32)//scape
 	{
-		Mode = false;
+		/*Mode = false;
 		if (rayt.isFinish)
 		{
 			rayt.start(MY_MODEL_RAYTRACE, 4);
 			glutTimerFunc(50, onTimer, 1);
 		}
 		else
-			rayt.stop();
+			rayt.stop();*/
+
+		Sphere &s = dynamic_cast<Sphere&>(*get<0>(scene.Objects[obj_toggle]));
+		s.mtl.shiness -= Vertex(10, 10, 10);
+
 		glutPostRedisplay();
 		return;
 	}
@@ -403,7 +413,7 @@ void BaseTest()
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
 		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
 		model.zRotate();
-		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -9,-3,-2 });
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -9,0,-2 });
 	}
 	{
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\1.obj";
@@ -411,11 +421,11 @@ void BaseTest()
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
 		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
 		model.zRotate();
-		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,-5,4 });
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,-2,4 });
 	}
 	{
 		obj_toggle = scene.AddCube(1.0);
-		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,-1,10 });
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,2,10 });
 	}
 	{
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\2.obj";
@@ -423,7 +433,7 @@ void BaseTest()
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
 		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
 		model.zRotate();
-		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 3,-3,0 });
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 3,0,0 });
 	}
 	{
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\3.obj";
@@ -431,11 +441,11 @@ void BaseTest()
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
 		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
 		model.zRotate();
-		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 7,-3,3 });
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 7,0,3 });
 	}
 	{
 		obj_toggle = scene.AddCube(1.0);
-		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 2.5,2,2 });
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 2.5,5,2 });
 	}
 }
 
@@ -470,11 +480,11 @@ void onMenu(int val)
 		switch (val & 0xf)
 		{
 		case 0://Add Sphere
-			obj_toggle = scene.AddSphere(1.0);
+			obj_toggle = scene.AddSphere(1.0f);
 			InitMenu();
 			break;
 		case 1://Add Cube
-			obj_toggle = scene.AddCube(1.0);
+			obj_toggle = scene.AddCube(1.6f);
 			InitMenu();
 			break;
 		case 2://Add Model

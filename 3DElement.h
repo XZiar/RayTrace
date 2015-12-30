@@ -165,8 +165,9 @@ class Sphere : public DrawObject
 {
 private:
 	float radius, radius_sqr;
-	Material mtl;
+	//Material mtl;
 public:
+	Material mtl;
 	Sphere(const float r = 1.0, GLuint lnum = 0);
 
 	void SetMtl(const Material &mtl);
@@ -181,6 +182,7 @@ private:
 	Vertex min, max;
 	Material mtl;
 public:
+	
 	Box(const float len = 2.0, GLuint lnum = 0);
 	Box(const float l, const float w, const float h, GLuint lnum = 0);
 	void SetMtl(const Material &mtl);
@@ -197,12 +199,13 @@ public:
 	Vertex position,
 		ambient,
 		diffuse,
-		specular;
-	float attenuation[3];
+		specular,
+		attenuation;
 	Light(int8_t type = 0x0);
 	bool turn();
 	void move(const int8_t &dangy, const int8_t &dangz, const int8_t &ddis);
-	void SetProp(int16_t prop, float r, float g, float b, float a = 1.0f);
+	void SetProperty(const int16_t prop, const float r, const float g, const float b, const float a = 1.0f);
+	void SetLumi(const float lum);
 };
 
 class Camera

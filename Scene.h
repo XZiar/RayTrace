@@ -14,6 +14,7 @@ private:
 	GLuint grdList;
 public:
 	Camera cam;
+	Vertex EnvLight;
 	Light Lights[8];
 	vector<tuple<DrawObject*, bool>> Objects;
 	Scene();

@@ -131,7 +131,7 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 {
 	HitRes hr;
 	Color c(false);
-	c.r = c.g = c.b = 0.588 * 255;
+	//c.r = c.g = c.b = 0.588 * 255;
 	for (auto t : scene->Objects)
 	{
 		if (get<1>(t))
@@ -149,42 +149,84 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 		Light &lit = scene->Lights[a];
 		if (lit.bLight)
 		{
-			float light_lum = 1.0f;
+			float light_lum;
+			Normal p2l;
+			Vertex vc_specular;
+			//consider light type
+			if (lit.position.alpha > 1e-6)
+			{//point light
+				Vertex p2l_v = lit.position - hr.position;
+				float dis = p2l_v.length_sqr();
+				float step = lit.attenuation.x
+					+ lit.attenuation.y * sqrt(dis)
+					+ lit.attenuation.z * dis;
+				light_lum = 1 / step;
+				vc_specular = (lit.specular / lit.specular.alpha) * (255 * light_lum);
+				p2l = Normal(p2l_v);
+			}
+			else
+			{//parallel light
+				light_lum = 1.0f;
+				vc_specular = Vertex(255, 255, 255);
+				p2l = Normal(lit.position);
+			}
+			
+			Vertex light_a = lit.ambient * light_lum,
+				light_d = lit.diffuse * light_lum,
+				light_s = lit.specular * light_lum;
+
 			/*
 			** ambient_color = base_map (*) mat_ambient (*) light_ambient
 			*/
-			Vertex v_ambient = hr.mtl->ambient.mixmul(lit.ambient);
-			mix_va += v_ambient * light_lum;//ambient color
+			Vertex v_ambient = hr.mtl->ambient.mixmul(light_a);
+			mix_va += v_ambient;//ambient color
 			/*
 			** diffuse_color = base_map * normal.p2l (*) mat_diffuse (*) light_diffuse
 			** p2l = normal that point towards light
 			*/
-			Normal p2l = Normal(lit.position.alpha>1e-6 ? lit.position - hr.position : lit.position);
+			
 			float n_n = hr.normal & p2l;
 			if (n_n > 0)
 			{
-				Vertex v_diffuse = hr.mtl->diffuse.mixmul(lit.diffuse);
-				mix_vd += v_diffuse * (n_n * light_lum);//diffuse color
+				Vertex v_diffuse = hr.mtl->diffuse.mixmul(light_d);
+				mix_vd += v_diffuse * n_n;//diffuse color
 			}
 			/*
-			** phong model//blinn-phong model
+			** phong model
 			** specular_color = (r2p'.p2l)^shiness * mat_diffuse (*) light_diffuse
 			** p2l = normal that point towards light
 			** r2p' = reflect normal that camera towards point
 			** r2p' = r2p - 2 * (r2p.normal) * normal
 			*/
-			n_n = 2 * (baseray.direction & hr.normal);
+			/*n_n = 2 * (baseray.direction & hr.normal);
 			Normal r2p_r = baseray.direction - (hr.normal * n_n);
 			n_n = r2p_r & p2l;
 			if (n_n > 0)
 			{
-				Vertex v_specular = hr.mtl->specular.mixmul(lit.specular),
-					vc_specular = lit.specular * 255;
-				Vertex vs = v_specular * pow(n_n, hr.mtl->shiness.x);
+				Vertex v_specular = hr.mtl->specular.mixmul(light_s),
+					vc_specular = Vertex(255, 255, 255);
+				Vertex vs = v_specular * pow(n_n, log(hr.mtl->shiness.x) / log(1.28));
+				mix_vsc += vc_specular.mixmul(vs);
+			}*/
+			/*
+			** blinn-phong model
+			** specular_color = (normal.h)^shiness * mat_diffuse (*) light_diffuse
+			** h = Normalized(p2r + p2l)
+			** p2r = normal that point towards camera
+			** p2l = normal that point towards light
+			*/
+			Normal p2r = baseray.direction * -1;
+			Normal h = Normal(p2r + p2l);
+			n_n = hr.normal & h;
+			if (n_n > 0)
+			{
+				Vertex v_specular = hr.mtl->specular.mixmul(light_s);
+				Vertex vs = v_specular * pow(n_n, hr.mtl->shiness.x*1.28);
 				mix_vsc += vc_specular.mixmul(vs);
 			}
 		}
 	}
+	mix_va += hr.mtl->ambient.mixmul(scene->EnvLight);//environment ambient color
 	return Color(vc.mixmul(mix_vd + mix_va) + mix_vsc);
 }
 

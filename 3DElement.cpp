@@ -608,19 +608,18 @@ HitRes Box::intersect(const Ray & ray, const HitRes &hr)
 Light::Light(int8_t type)
 {
 	bLight = true;
-	rangy = 90, rangz = 0, rdis = 8;
+	rangy = 90, rangz = 0, rdis = 16;
 	move(0, 0, 0);
-	SetProp(MY_MODEL_AMBIENT, 0.05f, 0.05f, 0.05f);
-	SetProp(MY_MODEL_DIFFUSE | MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
+	SetProperty(MY_MODEL_AMBIENT, 0.05f, 0.05f, 0.05f);
+	SetProperty(MY_MODEL_DIFFUSE | MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
+	SetProperty(MY_MODEL_ATTENUATION, 1.0f, 0.0f, 0.0f);
 	switch (type)
 	{
 	case MY_MODEL_LIGHT_PARALLEL:
 		position.alpha = 0.0f;
-		attenuation[0] = attenuation[1] = attenuation[2] = 0;
 		break;
 	case MY_MODEL_LIGHT_POINT:
 		position.alpha = 1.0f;
-		SetProp(MY_MODEL_ATTENUATION, -0.008f, 0.004f, 0.00005f);
 		break;
 	case MY_MODEL_LIGHT_SPOT:
 		position.alpha = 1.0f;
@@ -636,10 +635,10 @@ bool Light::turn()
 void Light::move(const int8_t &dangy, const int8_t &dangz, const int8_t &ddis)
 {
 	rdis += ddis;
-	if (rdis < 8)
-		rdis = 8;
-	else if (rdis > 32)
-		rdis = 32;
+	if (rdis < 6)
+		rdis = 6;
+	else if (rdis > 64)
+		rdis = 64;
 	rangy = mod(360 + rangy + dangy, 360);
 	rangz = mod(360 + rangz + dangz, 360);
 	angy = rangy, angz = rangz, dis = rdis;
@@ -649,7 +648,7 @@ void Light::move(const int8_t &dangy, const int8_t &dangz, const int8_t &ddis)
 	position[0] = pos.x, position[1] = pos.y, position[2] = pos.z;
 }
 
-void Light::SetProp(int16_t prop, float r, float g, float b, float a)
+void Light::SetProperty(int16_t prop, float r, float g, float b, float a)
 {
 	Vertex set(r, g, b, a);
 	if (prop & MY_MODEL_AMBIENT)
@@ -659,9 +658,17 @@ void Light::SetProp(int16_t prop, float r, float g, float b, float a)
 	if (prop & MY_MODEL_SPECULAR)
 		specular = set;
 	if (prop & MY_MODEL_ATTENUATION)
-		attenuation[0] = r, attenuation[1] = g, attenuation[2] = b;
+		attenuation = set;
 	if (prop & MY_MODEL_POSITION)
 		position = set;
+}
+
+void Light::SetLumi(const float lum)
+{
+	float ext = lum / ambient.alpha;
+	ambient *= ext;
+	diffuse *= ext;
+	specular *= ext;
 }
 
 
@@ -672,7 +679,7 @@ Camera::Camera(GLint w, GLint h)
 	aspect = (float)w / h;
 	fovy = 45.0, zNear = 1.0, zFar = 100.0;
 
-	position = Vertex(0, 0, 15);
+	position = Vertex(0, 4, 15);
 	u = Vertex(1, 0, 0);
 	v = Vertex(0, 1, 0);
 	n = Vertex(0, 0, -1);
