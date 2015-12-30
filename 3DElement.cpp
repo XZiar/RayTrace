@@ -615,15 +615,15 @@ Light::Light(int8_t type)
 	switch (type)
 	{
 	case MY_MODEL_LIGHT_PARALLEL:
-		position[3] = 0.0f;
+		position.alpha = 0.0f;
 		attenuation[0] = attenuation[1] = attenuation[2] = 0;
 		break;
 	case MY_MODEL_LIGHT_POINT:
-		position[3] = 1.0f;
+		position.alpha = 1.0f;
 		SetProp(MY_MODEL_ATTENUATION, -0.008f, 0.004f, 0.00005f);
 		break;
 	case MY_MODEL_LIGHT_SPOT:
-		position[3] = 1.0f;
+		position.alpha = 1.0f;
 		break;
 	}
 }

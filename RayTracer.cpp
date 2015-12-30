@@ -153,8 +153,8 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 		{
 			Vertex v_ambient = hr.mtl->ambient.mixmul(lit.ambient);
 			mix_vac += v_ambient;//ambient color
-
-			n_n[a] = hr.normal & Normal(lit.position - hr.position);
+			Normal p2l = Normal(lit.position.alpha>1e-6 ? lit.position - hr.position : lit.position);
+			n_n[a] = hr.normal & p2l;
 			if (n_n[a] > 0)
 			{
 				Vertex v_diffuse = hr.mtl->diffuse.mixmul(lit.diffuse);
