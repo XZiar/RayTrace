@@ -109,15 +109,16 @@ Coord2D Coord2D::operator*(const float &n) const
 
 Vertex::Vertex()
 {
-#ifdef AVX
-	dat = _mm256_setzero_pd();
+#ifdef SSE2
+	dat = _mm_setzero_ps();
 #else
 	x = y = z = 0;
 #endif
 }
-Vertex::Vertex(const __m128d &idat)
+Vertex::Vertex(const __m128 &idat)
 {
-	dat = idat;
+	_mm_store_ps((float*)&dat, idat);
+	//dat = idat;
 }
 float Vertex::length() const
 {
@@ -125,10 +126,12 @@ float Vertex::length() const
 }
 float Vertex::length_sqr() const
 {
-	//__m256d a1 = _mm256_mul_pd(dat, dat);
-	//a1 = _mm256_hadd_pd(a1, a1);//x+y,x+y,a+z,a+z
-
+#ifdef SSE2
+	__m128 ans = _mm_dp_ps(dat, dat, 0b01110001);
+	return ans.m128_f32[0];
+#else
 	return x*x + y*y + z*z;
+#endif
 }
 Vertex Vertex::muladd(const float & n, const Vertex & v) const
 {
@@ -137,16 +140,16 @@ Vertex Vertex::muladd(const float & n, const Vertex & v) const
 }
 Vertex Vertex::operator+(const Vertex &v) const
 {
-#ifdef AVX
-	return _mm256_add_pd(dat, v.dat);
+#ifdef SSE2
+	return _mm_add_ps(dat, v.dat);
 #else
 	return Vertex(x + v.x, y + v.y, z + v.z);
 #endif
 }
 Vertex &Vertex::operator+=(const Vertex & right)
 {
-#ifdef AVX
-	dat = _mm256_add_pd(dat, right.dat);
+#ifdef SSE2
+	dat = _mm_add_ps(dat, right.dat);
 #else
 	x += right.x, y += right.y, z += right.z;
 #endif
@@ -154,16 +157,16 @@ Vertex &Vertex::operator+=(const Vertex & right)
 }
 Vertex Vertex::operator-(const Vertex &v) const
 {
-#ifdef AVX
-	return _mm256_sub_pd(dat, v.dat);
+#ifdef SSE2
+	return _mm_sub_ps(dat, v.dat);
 #else
 	return Vertex(x - v.x, y - v.y, z - v.z);
 #endif
 }
 Vertex &Vertex::operator-=(const Vertex & right)
 {
-#ifdef AVX
-	dat = _mm256_sub_pd(dat, right.dat);
+#ifdef SSE2
+	dat = _mm_sub_ps(dat, right.dat);
 #else
 	x += right.x, y += right.y, z += right.z;
 #endif
@@ -172,9 +175,9 @@ Vertex &Vertex::operator-=(const Vertex & right)
 Vertex Vertex::operator/(const float &n) const
 {
 	float rec = 1 / n;
-#ifdef AVX
-	__m256d tmp = _mm256_set1_pd(rec);
-	return _mm256_mul_pd(dat, tmp);
+#ifdef SSE2
+	__m128 tmp = _mm_set1_ps(rec);
+	return _mm_mul_ps(dat, tmp);
 #else
 	return Vertex(x * rec, y * rec, z * rec);
 	//return Vertex(x / n, y / n, z / n);
@@ -183,9 +186,9 @@ Vertex Vertex::operator/(const float &n) const
 Vertex &Vertex::operator/=(const float & right)
 {
 	float rec = 1 / right;
-#ifdef AVX
-	__m256d tmp = _mm256_set1_pd(rec);
-	dat = _mm256_mul_pd(dat, tmp);
+#ifdef SSE2
+	__m128 tmp = _mm_set1_ps(rec);
+	dat = _mm_mul_ps(dat, tmp);
 #else
 	x *= rec, y *= rec, z *= rec;
 	//x /= right, y /= right, z /= right;
@@ -194,16 +197,19 @@ Vertex &Vertex::operator/=(const float & right)
 }
 Vertex Vertex::operator*(const float &n) const
 {
-#ifdef AVX
-	__m256d tmp = _mm256_set1_pd(n);
-	return _mm256_mul_pd(dat, tmp);
+#ifdef SSE2
+	__m128 tmp = _mm_set1_ps(n);
+	return _mm_mul_ps(dat, tmp);
 #else
 	return Vertex(x * n, y * n, z * n);
 #endif
 }
 Vertex Vertex::operator*(const Vertex &v) const
 {
-#ifdef AVX2
+#ifdef SSE2
+	//return _mm_dp_ps(dat, v.dat, 0x55);
+#else
+
 	__m256d t1 = _mm256_permute4x64_pd(dat, _MM_SHUFFLE(3, 0, 2, 1)),
 		t4 = _mm256_permute4x64_pd(v.dat, _MM_SHUFFLE(3, 0, 2, 1)),
 		t2 = _mm256_permute4x64_pd(v.dat, _MM_SHUFFLE(3, 1, 0, 2)),
@@ -211,17 +217,24 @@ Vertex Vertex::operator*(const Vertex &v) const
 	__m256d left = _mm256_mul_pd(t1, t2),
 		right = _mm256_mul_pd(t3, t4);
 	return _mm256_sub_pd(left, right);
-#else
+
+#endif
+
 	float a, b, c;
 	a = y*v.z - z*v.y;
 	b = z*v.x - x*v.z;
 	c = x*v.y - y*v.x;
 	return Vertex(a, b, c);
-#endif
+//#endif
 }
 float Vertex::operator&(const Vertex &v) const
 {
+#ifdef SSE4
+	__m128 ans = _mm_dp_ps(dat, v.dat, 0b01110001);
+	return ans.m128_f32[0];
+#else
 	return x*v.x + y*v.y + z*v.z;
+#endif
 }
 
 

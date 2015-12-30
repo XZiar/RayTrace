@@ -2,7 +2,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 #define USING_FREEGLUT
-//#define AVX
+#define SSE2
 //#define AVX2
 //#define FMA
 
@@ -38,3 +38,4 @@
 #include <thread>
 #include <atomic>
 using namespace std;
+using namespace std::placeholders;

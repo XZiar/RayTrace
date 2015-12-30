@@ -31,14 +31,14 @@ _MM_ALIGN16 class Vertex
 public:
 	union
 	{
-		__m128d dat;
+		__m128 dat;
 		struct
 		{
 			float x, y, z, alpha;
 		};
 	};
 	Vertex();
-	Vertex(const __m128d &idat);
+	Vertex(const __m128 &idat);
 	Vertex(const float &ix, const float &iy, const float &iz) :x(ix), y(iy), z(iz) { };
 	float length() const;
 	float length_sqr() const;

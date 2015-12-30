@@ -41,6 +41,10 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 
 	auto Border = [](Vertex &Min, Vertex &Max, const Vertex &v)
 	{
+	#ifdef SSE2
+		Min.dat = _mm_min_ps(Min.dat, v.dat);
+		Max.dat = _mm_max_ps(Max.dat, v.dat);
+	#else
 		if (v.x > Max.x)
 			Max.x = v.x;
 		if (v.x < Min.x)
@@ -55,6 +59,7 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 			Max.z = v.z;
 		if (v.z < Min.z)
 			Min.z = v.z;
+	#endif
 	};
 
 	while (true)
@@ -121,9 +126,21 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 						vers[ti[3]], nors[ti[5]], txcs[ti[4]],
 						vers[ti[6]], nors[ti[8]], txcs[ti[7]]);
 				tris.push_back(t);
+			#ifdef SSE2
+				__m128 v0dat = _mm_load_ps(vers[ti[0]].dat.m128_f32);
+				__m128 v3dat = _mm_load_ps(vers[ti[3]].dat.m128_f32);
+				__m128 v6dat = _mm_load_ps(vers[ti[6]].dat.m128_f32);
+				__m128 i1dat = _mm_min_ps(v3dat, v0dat);
+				__m128 a1dat = _mm_max_ps(v3dat, v0dat);
+				__m128 i2dat = _mm_min_ps(VerMin.dat, v6dat);
+				__m128 a2dat = _mm_max_ps(VerMax.dat, v6dat);
+				VerMin.dat = _mm_min_ps(i1dat, i2dat);
+				VerMax.dat = _mm_max_ps(a1dat, a2dat);
+			#else
 				Border(VerMin, VerMax, vers[ti[0]]);
 				Border(VerMin, VerMax, vers[ti[3]]);
 				Border(VerMin, VerMax, vers[ti[6]]);
+			#endif
 			}
 			break;
 		case pS('u', 's', 'e')://object part
@@ -540,7 +557,7 @@ int8_t Model::Loader::read(string data[])
 
 int8_t Model::Loader::parseFloat(const string &in, float out[])
 {
-	auto a = sscanf(in.c_str(), "%lf/%lf/%lf/%lf", &out[0], &out[1], &out[2], &out[3]);
+	auto a = sscanf(in.c_str(), "%f/%f/%f/%f", &out[0], &out[1], &out[2], &out[3]);
 	return a;
 }
 
