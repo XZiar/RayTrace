@@ -287,6 +287,11 @@ void onKeyboard(unsigned char key, int x, int y)
 			case '4':
 				rayt.start(MY_MODEL_TEXTURETEST, tnum);
 				glutTimerFunc(50, onTimer, 1);
+				break;
+			case '5':
+				rayt.start(MY_MODEL_MATERIALTEST, tnum);
+				glutTimerFunc(50, onTimer, 1);
+				break;
 			}
 		}
 		glutPostRedisplay();

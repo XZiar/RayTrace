@@ -39,10 +39,11 @@ public:
 	};
 	Vertex();
 	Vertex(const __m128 &idat);
-	Vertex(const float &ix, const float &iy, const float &iz) :x(ix), y(iy), z(iz) { };
+	Vertex(const float ix, const float iy, const float iz, const float ia = 0) :x(ix), y(iy), z(iz), alpha(ia) { };
 	float length() const;
 	float length_sqr() const;
 	Vertex muladd(const float &n, const Vertex &v) const;
+	Vertex mixmul(const Vertex &v) const;
 
 	Vertex operator+(const Vertex &v) const;
 	Vertex &operator+=(const Vertex &right);
@@ -51,6 +52,7 @@ public:
 	Vertex operator/(const float &n) const;
 	Vertex &operator/=(const float &right);
 	Vertex operator*(const float &n) const;
+	Vertex &operator*=(const float &right);
 	Vertex operator*(const Vertex &v) const;
 	float operator&(const Vertex &v) const;//µã»ý
 	operator float*() { return &x; };
@@ -80,11 +82,11 @@ class Material
 public:
 	string name;
 	int16_t w, h;
-	float ambient[4],
-		diffuse[4],
-		specular[4],
-		shiness[4],
-		emission[4];
+	Vertex ambient,
+		diffuse,
+		specular,
+		shiness,
+		emission;
 	Material();
 	~Material();
 	void SetMtl(int8_t prop, float r, float g, float b, float a = 1.0f);
@@ -110,7 +112,8 @@ public:
 	uint8_t r, g, b;
 	Color(const bool black);
 	Color(const float depth, const float mindepth, const float maxdepth);
-	Color(const Normal n);
+	Color(const Vertex &v, const Color &c);
+	Color(const Normal &n);
 	Color(const int16_t &w, const int16_t &h, const uint8_t *data, const Coord2D &coord);
 	void put(uint8_t *addr);
 	void get(uint8_t *addr);
@@ -191,10 +194,10 @@ public:
 	bool bLight;
 	float rangy, rangz, rdis,
 		angy, angz, dis;
-	float position[4],
-		ambient[4],
-		diffuse[4],
-		specular[4];
+	Vertex position,
+		ambient,
+		diffuse,
+		specular;
 	float attenuation[3];
 	Light(int8_t type = 0x0);
 	bool turn();
