@@ -143,7 +143,9 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 		return Color(false);
 	if (hr.tex != nullptr)//has texture
 		c = Color(hr.tex->w, hr.tex->h, hr.tex->data, hr.tcoord);
-	Vertex vc(c.r, c.g, c.b), mix_vd, mix_va, mix_vsc;
+	Vertex vc_specular(255, 255, 255),
+		vc(c.r, c.g, c.b),
+		mix_vd, mix_va, mix_vsc;
 	for (auto a = 0; a < 8; ++a)
 	{
 		Light &lit = scene->Lights[a];
@@ -151,7 +153,6 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 		{
 			float light_lum;
 			Normal p2l;
-			Vertex vc_specular;
 			//consider light type
 			if (lit.position.alpha > 1e-6)
 			{//point light
@@ -161,13 +162,11 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 					+ lit.attenuation.y * sqrt(dis)
 					+ lit.attenuation.z * dis;
 				light_lum = 1 / step;
-				vc_specular = (lit.specular / lit.specular.alpha) * (255 * light_lum);
 				p2l = Normal(p2l_v);
 			}
 			else
 			{//parallel light
 				light_lum = 1.0f;
-				vc_specular = Vertex(255, 255, 255);
 				p2l = Normal(lit.position);
 			}
 			
@@ -184,7 +183,6 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 			** diffuse_color = base_map * normal.p2l (*) mat_diffuse (*) light_diffuse
 			** p2l = normal that point towards light
 			*/
-			
 			float n_n = hr.normal & p2l;
 			if (n_n > 0)
 			{
@@ -212,16 +210,15 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 			** blinn-phong model
 			** specular_color = (normal.h)^shiness * mat_diffuse (*) light_diffuse
 			** h = Normalized(p2r + p2l)
-			** p2r = normal that point towards camera
+			** p2r = normal that point towards camera = -r2p
 			** p2l = normal that point towards light
 			*/
-			Normal p2r = baseray.direction * -1;
-			Normal h = Normal(p2r + p2l);
+			Normal h = Normal(p2l - baseray.direction);
 			n_n = hr.normal & h;
 			if (n_n > 0)
 			{
 				Vertex v_specular = hr.mtl->specular.mixmul(light_s);
-				Vertex vs = v_specular * pow(n_n, hr.mtl->shiness.x*1.28);
+				Vertex vs = v_specular * pow(n_n, hr.mtl->shiness.x);
 				mix_vsc += vc_specular.mixmul(vs);
 			}
 		}

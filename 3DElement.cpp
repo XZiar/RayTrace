@@ -635,8 +635,8 @@ bool Light::turn()
 void Light::move(const int8_t &dangy, const int8_t &dangz, const int8_t &ddis)
 {
 	rdis += ddis;
-	if (rdis < 6)
-		rdis = 6;
+	if (rdis < 2)
+		rdis = 2;
 	else if (rdis > 64)
 		rdis = 64;
 	rangy = mod(360 + rangy + dangy, 360);

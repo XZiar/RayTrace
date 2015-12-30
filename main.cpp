@@ -113,14 +113,15 @@ void init(void)
 	scene.EnvLight = Vertex(0.05f, 0.05f, 0.05f, 1.0f);
 	scene.Lights[0] = Light(MY_MODEL_LIGHT_PARALLEL);
 	Light *lit = &scene.Lights[0];
-	lit->SetProperty(MY_MODEL_SPECULAR, 0.3f, 0.3f, 0.3f);
-	lit->SetProperty(MY_MODEL_DIFFUSE, 0.15f, 0.15f, 0.15f);
+	lit->SetProperty(MY_MODEL_SPECULAR, 0.5f, 0.5f, 0.5f);
+	lit->SetProperty(MY_MODEL_DIFFUSE, 0.5f, 0.5f, 0.5f);
 	lit->SetProperty(MY_MODEL_POSITION, 10.0f, 10.0f, 5.0f, 0.0f);
 	scene.Lights[1] = Light(MY_MODEL_LIGHT_POINT);
 	lit = &scene.Lights[1];
-	lit->SetProperty(MY_MODEL_ATTENUATION, -0.008f, 0.004f, 0.00005f);
-	lit->SetProperty(MY_MODEL_ATTENUATION, 2.5f, -0.5f, 0.125f);
-	lit->SetLumi(24);
+	lit->SetProperty(MY_MODEL_SPECULAR, 0.6f, 0.6f, 0.6f);
+	lit->SetProperty(MY_MODEL_DIFFUSE, 0.4f, 0.4f, 0.4f);
+	lit->SetProperty(MY_MODEL_ATTENUATION, 0.0f, 0.0f, 1.0f);
+	lit->SetLumi(256);
 
 	//init scene
 	scene.init();
@@ -130,8 +131,6 @@ void init(void)
 	//scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 0.0, -1.5, 0.0 });
 
 
-	//cam.fovy = 90;
-	//cam.position.z = 5;
 }
 
 void display(void)
@@ -252,17 +251,14 @@ void onKeyboard(unsigned char key, int x, int y)
 	}
 	if (key == 32)//scape
 	{
-		/*Mode = false;
+		Mode = false;
 		if (rayt.isFinish)
 		{
 			rayt.start(MY_MODEL_RAYTRACE, 4);
 			glutTimerFunc(50, onTimer, 1);
 		}
 		else
-			rayt.stop();*/
-
-		Sphere &s = dynamic_cast<Sphere&>(*get<0>(scene.Objects[obj_toggle]));
-		s.mtl.shiness -= Vertex(10, 10, 10);
+			rayt.stop();
 
 		glutPostRedisplay();
 		return;
