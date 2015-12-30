@@ -112,7 +112,7 @@ public:
 	uint8_t r, g, b;
 	Color(const bool black);
 	Color(const float depth, const float mindepth, const float maxdepth);
-	Color(const Vertex &v, const Color &c);
+	Color(const Vertex &v);
 	Color(const Normal &n);
 	Color(const int16_t &w, const int16_t &h, const uint8_t *data, const Coord2D &coord);
 	void put(uint8_t *addr);

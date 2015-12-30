@@ -130,8 +130,8 @@ Color RayTracer::RTtex(const double zNear, const double zFar, const Ray &baseray
 Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray)
 {
 	HitRes hr;
-	Color dc(false);
-	dc.r = dc.g = dc.b = 0.588 * 255;
+	Color c(false);
+	c.r = c.g = c.b = 0.588 * 255;
 	for (auto t : scene->Objects)
 	{
 		if (get<1>(t))
@@ -142,8 +142,8 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 	if (hr.distance < zNear)
 		return Color(false);
 	if (hr.tex != nullptr)//has texture
-		dc = Color(hr.tex->w, hr.tex->h, hr.tex->data, hr.tcoord);
-	Vertex vdc(dc.r, dc.g, dc.b), mix_vdc;
+		c = Color(hr.tex->w, hr.tex->h, hr.tex->data, hr.tcoord);
+	Vertex vc(c.r, c.g, c.b), mix_vdc, mix_vac;
 	double n_n[8];
 	Normal p2l[8];
 	for (auto a = 0; a < 8; ++a)
@@ -151,17 +151,19 @@ Color RayTracer::RTmtl(const double zNear, const double zFar, const Ray &baseray
 		Light &lit = scene->Lights[a];
 		if (lit.bLight)
 		{
-			//p2l[a] = Normal(hr.position - lit.position);
+			Vertex v_ambient = hr.mtl->ambient.mixmul(lit.ambient);
+			mix_vac += v_ambient;//ambient color
+
 			n_n[a] = hr.normal & Normal(lit.position - hr.position);
 			if (n_n[a] > 0)
 			{
 				Vertex v_diffuse = hr.mtl->diffuse.mixmul(lit.diffuse);
 				v_diffuse *= n_n[a];
-				mix_vdc += v_diffuse;//final color
+				mix_vdc += v_diffuse;//diffuse color
 			}
 		}
 	}
-	return Color(mix_vdc.mixmul(vdc), dc);
+	return Color(vc.mixmul(mix_vdc + mix_vac));
 }
 
 

@@ -390,7 +390,7 @@ Color::Color(const float depth, const float mindepth, const float maxdepth)
 	r = g = b = (max - after) * 255 / max;
 }
 
-Color::Color(const Vertex &v, const Color &c)
+Color::Color(const Vertex &v)
 {
 	r = v.x > 255 ? 255 : (uint8_t)v.x;
 	g = v.y > 255 ? 255 : (uint8_t)v.y;
