@@ -602,7 +602,9 @@ void showdata()
 
 int main(int argc, char** argv)
 {
+	//_CrtSetBreakAlloc(1322268);
 	glutInit(&argc, argv);
+	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(cam.width, cam.height);
 	glutInitWindowPosition(100, 100);
@@ -627,6 +629,7 @@ int main(int argc, char** argv)
 	thread(showdata).detach();
 
 	glutMainLoop();
-	//MessageBox(NULL, L"End CALLBACK", L"END", MB_OK);
+
+	//_CrtDumpMemoryLeaks();
 	return 0;
 }

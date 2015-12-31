@@ -80,7 +80,7 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 			nors.push_back(n);
 			break;
 		case pS('v', 't', '*')://texture coord
-			tc = Coord2D(atof(ele[1].c_str()), atof(ele[2].c_str())/*, atof(ele[3].c_str())*/);
+			tc = Coord2D(atof(ele[1].c_str()), atof(ele[2].c_str()));
 			txcs.push_back(tc);
 			break;
 		case pS('f', '*', '*')://triangle
