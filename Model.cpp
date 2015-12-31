@@ -27,7 +27,7 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 	txcs.reserve(8000);
 	//load
 	vector<Triangle> tris;
-	tris.reserve(4000);
+	tris.reserve(2000);
 	Vertex v;
 	Normal n;
 	Coord2D tc;
@@ -127,13 +127,10 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 						vers[ti[6]], nors[ti[8]], txcs[ti[7]]);
 				tris.push_back(t);
 			#ifdef SSE2
-				__m128 v0dat = _mm_load_ps(vers[ti[0]].dat.m128_f32);
-				__m128 v3dat = _mm_load_ps(vers[ti[3]].dat.m128_f32);
-				__m128 v6dat = _mm_load_ps(vers[ti[6]].dat.m128_f32);
-				__m128 i1dat = _mm_min_ps(v3dat, v0dat);
-				__m128 a1dat = _mm_max_ps(v3dat, v0dat);
-				__m128 i2dat = _mm_min_ps(VerMin.dat, v6dat);
-				__m128 a2dat = _mm_max_ps(VerMax.dat, v6dat);
+				__m128 i1dat = _mm_min_ps(vers[ti[0]].dat, vers[ti[3]].dat);
+				__m128 a1dat = _mm_max_ps(vers[ti[0]].dat, vers[ti[3]].dat);
+				__m128 i2dat = _mm_min_ps(VerMin.dat, vers[ti[6]].dat);
+				__m128 a2dat = _mm_max_ps(VerMax.dat, vers[ti[6]].dat);
 				VerMin.dat = _mm_min_ps(i1dat, i2dat);
 				VerMax.dat = _mm_max_ps(a1dat, a2dat);
 			#else
@@ -146,11 +143,11 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 		case pS('u', 's', 'e')://object part
 			if (!bFirstO)
 			{
-				parts.push_back(tris);
-				tris.clear();
+				tris.shrink_to_fit();
+				parts.push_back(move(tris));
+				tris.reserve(2000);
 				borders.push_back(VerMin);
 				borders.push_back(VerMax);
-				//tris.reserve(4000);
 			}
 			VerMin = Vertex(1000, 1000, 1000);
 			VerMax = Vertex(-1000, -1000, -1000);
@@ -167,8 +164,9 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 	{
 		part_mtl.push_back(0);
 	}
-	parts.push_back(tris);
-	tris.swap(vector<Triangle>());
+	tris.shrink_to_fit();
+	parts.push_back(move(tris));
+
 	borders.push_back(VerMin);
 	borders.push_back(VerMax);
 
@@ -232,7 +230,7 @@ int32_t Model::loadmtl(const wstring &mtlname, const uint8_t code)
 			{
 				mtls.push_back(mtl);
 				mtl_tex.push_back(cur_tex_id);
-				mtl = Material();
+				//mtl = Material();
 			}
 			mtl.name = ele[1];
 			cur_tex_id = -1;
@@ -303,7 +301,7 @@ int32_t Model::loadtex(const string &texname, const uint8_t code)
 	//for (int a = 0; a < size; a += 3)
 		//swap(image[a], image[a + 2]);
 
-	texs.push_back(Texture(texname, width, height, image));
+	texs.push_back(move(Texture(texname, width, height, image)));
 	delete[] image;
 	fclose(fp);
 	return int32_t();
@@ -328,7 +326,6 @@ void Model::reset()
 	vers.swap(vector<Vertex>());
 	nors.swap(vector<Normal>());
 	txcs.swap(vector<Coord2D>());
-	
 }
 
 Model::~Model()
@@ -403,8 +400,8 @@ void Model::RTPrepare()
 			newt.axisv = newt.points[2] - newt.points[0];
 			tmppart.push_back(newt);
 		}
-		newparts.push_back(tmppart);
-		tmppart.clear();
+		newparts.push_back(move(tmppart));
+		tmppart.reserve(2000);
 	}
 }
 
@@ -450,6 +447,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 
 void Model::GLPrepare()
 {
+	glDeleteTextures(texs.size(), texList);
 	glGenTextures(texs.size(), texList);
 	for (auto a = 0; a < texs.size(); ++a)
 	{

@@ -308,6 +308,18 @@ Texture::Texture(const Texture & t)
 	}
 }
 
+Texture::Texture(Texture && t)
+{
+	name = move(t.name);
+	w = t.w, h = t.h;
+	swap(data, t.data);
+	if (t.data != nullptr)
+	{
+		delete[] t.data;
+		t.data = nullptr;
+	}
+}
+
 
 
 Material::Material()

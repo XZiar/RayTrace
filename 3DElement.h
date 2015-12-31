@@ -75,6 +75,7 @@ public:
 	Texture(const string &iname, const int16_t iw, const int16_t ih, const uint8_t *img);
 	~Texture();
 	Texture(const Texture& t);
+	Texture(Texture &&t);
 };
 
 class Material

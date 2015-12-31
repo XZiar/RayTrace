@@ -11,8 +11,7 @@ static RayTracer rayt(scene);
 static volatile uint8_t obj_toggle = 0xff, lgt_toggle = 0xff;
 static Camera &cam = scene.cam;
 static wstring filename[2];
-
-static volatile bool Mode = true;
+static volatile bool Mode = true, isRun = true;
 
 void onMenu(int val);
 void BaseTest();
@@ -88,7 +87,6 @@ void InitMenu()
 	glutAddMenuEntry("Parallel Light", 0x011);
 	glutAddMenuEntry("Point Light", 0x012);
 	glutAddMenuEntry("Spot Light", 0x013);
-	menuID.push_back(ID);
 
 	glutCreateMenu(onMenu);
 	glutAddSubMenu("Add Light", ID);
@@ -561,14 +559,14 @@ void onMenu(int val)
 	glutPostRedisplay();
 }
 
-DWORD WINAPI showdata(LPVOID lpParam)
+void showdata()
 {
 	wprintf(L"Triangle size=%zd\tHitRes size=%zd\n", sizeof(Triangle), sizeof(HitRes));
 	HANDLE hOut;
 	COORD pos = { 0,1 };
 	hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 	std::locale::global(std::locale(""));
-	while (true)
+	while (isRun)
 	{
 		SetConsoleCursorPosition(hOut, pos);
 		wprintf(L"方向键移动摄像机，wasd键移动灯，+-号缩放，12键开关灯\n");
@@ -598,7 +596,7 @@ DWORD WINAPI showdata(LPVOID lpParam)
 			wprintf(L"Running... ...\t\t\n");
 		Sleep(33);
 	}
-	return 0;
+	return;
 }
 
 
@@ -618,9 +616,17 @@ int main(int argc, char** argv)
 	glutMouseFunc(onMouse);
 	glutMotionFunc(onMouse);
 	glutMouseWheelFunc(onWheel);
+	glutCloseFunc([] 
+	{ 
+		isRun = false;
+		rayt.stop();
+		while (!rayt.isFinish)
+			Sleep(10);
+	});
 
-	HANDLE th = CreateThread(NULL, 0, showdata, NULL, 0, NULL);
+	thread(showdata).detach();
 
 	glutMainLoop();
+	//MessageBox(NULL, L"End CALLBACK", L"END", MB_OK);
 	return 0;
 }
