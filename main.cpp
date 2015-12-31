@@ -8,20 +8,21 @@ static bool bMovPOI = false;
 static int sx, sy, mx, my;
 static Scene scene;
 static RayTracer rayt(scene);
-static int16_t obj_toggle = -1;
-static Light &light = scene.Lights[1];
+static volatile uint8_t obj_toggle = 0xff, lgt_toggle = 0xff;
 static Camera &cam = scene.cam;
-static GLuint dList[8];
 static wstring filename[2];
-static int menu, entry[4];
-static uint8_t code = 0x0;
 
-static bool Mode = true;
+static volatile bool Mode = true;
 
 void onMenu(int val);
 void BaseTest();
 
 
+static void ChgMode(const bool b)
+{
+	Mode = b;
+	glutSetWindowTitle(Mode ? "OpenGL" : "RayTracer");
+}
 int8_t FileDlg(wstring &filename, wstring &mtlname)
 {
 	OPENFILENAME ofn;      // 公共对话框结构。     
@@ -62,9 +63,18 @@ void InitMenu()
 		glutRemoveMenuItem(a);
 
 	vector<int> menuID;
+	for (auto a = 0; a < scene.Lights.size(); ++a)
+	{
+		int base = 0x200 + (a << 4);
+		int ID = glutCreateMenu(onMenu);
+		glutAddMenuEntry("Toggle", base + 0x0);
+		glutAddMenuEntry("Enable/Disable", base + 0x1);
+		glutAddMenuEntry("Delete", base + 0x2);
+		menuID.push_back(ID);
+	}
 	for (auto a = 0; a < scene.Objects.size(); ++a)
 	{
-		int base = (a + 1) << 4;
+		int base = 0x100 + (a << 4);
 		int ID = glutCreateMenu(onMenu);
 		glutAddMenuEntry("Toggle", base + 0x0);
 		glutAddMenuEntry("Enable/Disable", base + 0x1);
@@ -73,14 +83,32 @@ void InitMenu()
 			glutAddMenuEntry("Z-axis Rotate", base + 0x3);
 		menuID.push_back(ID);
 	}
+	//Add Light Menu
+	int ID = glutCreateMenu(onMenu);
+	glutAddMenuEntry("Parallel Light", 0x011);
+	glutAddMenuEntry("Point Light", 0x012);
+	glutAddMenuEntry("Spot Light", 0x013);
+	menuID.push_back(ID);
+
 	glutCreateMenu(onMenu);
-	glutAddMenuEntry("Add Sphere", 0x0);
-	glutAddMenuEntry("Add Cube", 0x1);
-	glutAddMenuEntry("Add Model", 0x2);
-	for (auto a = 0; a < menuID.size(); ++a)
+	glutAddSubMenu("Add Light", ID);
+	glutAddMenuEntry("Add Sphere", 0x001);
+	glutAddMenuEntry("Add Cube", 0x002);
+	glutAddMenuEntry("Add Model", 0x003);
+	glutAddMenuEntry("---Lights---", 0x0);
+	int a = 0;
+	for (; a < scene.Lights.size(); ++a)
 	{
-		char label[50];
-		sprintf(label, "Object %d", a);
+		char label[32];
+		sprintf(label, "Light %d", a);
+		glutAddSubMenu(label, menuID[a]);
+			
+	}
+	glutAddMenuEntry("---Objects---", 0x0);
+	for (auto b = 0; a < menuID.size(); ++a, ++b)
+	{
+		char label[32];
+		sprintf(label, "Object %d", b);
 		glutAddSubMenu(label, menuID[a]);
 	}
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
@@ -88,44 +116,50 @@ void InitMenu()
 
 void init(void)
 {
-	glEnable(GL_DEPTH_TEST);
+	//basic setting
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 	//glEnable(GL_NORMALIZE);
-	glClearColor(0.1f, 0.1f, 0.1f, 0.0);
 	glShadeModel(GL_SMOOTH);
+	
+	//set depth test
+	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
+	//set texture environment
 	glEnable(GL_TEXTURE_2D);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
-	scene.Lights[0] = Light(MY_MODEL_LIGHT_PARALLEL);
-	Light *lit = &scene.Lights[0];
-	lit->SetProp(MY_MODEL_SPECULAR, 0.3f, 0.3f, 0.3f);
-	lit->SetProp(MY_MODEL_DIFFUSE, 0.15f, 0.15f, 0.15f);
-	lit->SetProp(MY_MODEL_POSITION, 10.0f, 10.0f, 5.0f, 0.0f);
-	scene.Lights[1] = Light(MY_MODEL_LIGHT_POINT);
-
-
-	GLfloat lmodel_ambient[] = { 0.4f, 0.4f, 0.4f, 1.0f };
-	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
-	glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
-	glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
-	glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SEPARATE_SPECULAR_COLOR);
+	//set light environment
 	glEnable(GL_LIGHTING);
+	glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
+	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_FALSE);
+	glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SEPARATE_SPECULAR_COLOR);
 
-	
+	//set light
+	scene.EnvLight = Vertex(0.05f, 0.05f, 0.05f, 1.0f);
+	lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
+	scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(-45, 45, 0));
+	lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_POINT, Vertex(0.15f, 0.55f, 0.3f), Vertex(0.0f, 0.0f, 1.0f, 256));
+	/*scene.Lights[0] = Light();
+	Light *lit = &scene.Lights[0];
+	lit->SetProperty(MY_MODEL_SPECULAR, 0.5f, 0.5f, 0.5f);
+	lit->SetProperty(MY_MODEL_DIFFUSE, 0.5f, 0.5f, 0.5f);
+	lit->SetProperty(MY_MODEL_POSITION, 10.0f, 10.0f, 5.0f, 0.0f);
+	scene.Lights[1] = Light(MY_MODEL_LIGHT_POINT);
+	lit = &scene.Lights[1];
+	lit->SetProperty(MY_MODEL_SPECULAR, 0.6f, 0.6f, 0.6f);
+	lit->SetProperty(MY_MODEL_DIFFUSE, 0.4f, 0.4f, 0.4f);
+	lit->SetProperty(MY_MODEL_ATTENUATION, 0.0f, 0.0f, 1.0f);
+	lit->SetLumi(256);*/
+
 	//init scene
 	scene.init();
 	scene.Switch(MY_MODEL_LIGHT, 0, true);
 	scene.Switch(MY_MODEL_LIGHT, 1, true);
-	auto a = scene.AddSphere(1.0);
-	scene.MovePos(MY_MODEL_OBJECT, a, { 0.0, -5.2, 0.0 });
-	obj_toggle = a;
+	obj_toggle = scene.AddSphere(1.0);
 
-
-	//cam.fovy = 90;
-	//cam.position.z = 5;
 }
 
 void display(void)
@@ -144,6 +178,8 @@ void display(void)
 		
 		//draw scene
 		scene.DrawScene();
+		//draw light
+		scene.DrawLight(1);
 	}
 	else//RayTrace Mode
 	{
@@ -211,23 +247,24 @@ void onKeyboard(int key, int x, int y)
 	switch (key)
 	{
 	case GLUT_KEY_LEFT:
-		cam.yaw(-3);
-		break;
+		cam.yaw(-3);break;
 	case GLUT_KEY_RIGHT:
-		cam.yaw(3);
-		break;
+		cam.yaw(3);break;
 	case GLUT_KEY_UP:
-		cam.pitch(3);
-		break;
+		cam.pitch(3);break;
 	case GLUT_KEY_DOWN:
-		cam.pitch(-3);
-		break;
+		cam.pitch(-3);break;
 	case GLUT_KEY_END:
 		BaseTest();
-		InitMenu();
-		break;
+		InitMenu();break;
 	case GLUT_KEY_F1:
 	case GLUT_KEY_F2:
+	case GLUT_KEY_F3:
+	case GLUT_KEY_F4:
+	case GLUT_KEY_F5:
+	case GLUT_KEY_F6:
+	case GLUT_KEY_F7:
+	case GLUT_KEY_F8:
 		scene.Switch(MY_MODEL_LIGHT | MY_MODEL_SWITCH, key - GLUT_KEY_F1, true);
 		break;
 	default:
@@ -240,13 +277,13 @@ void onKeyboard(unsigned char key, int x, int y)
 {
 	if (key == 13)//enter
 	{
-		Mode = !Mode;
+		ChgMode(!Mode);
 		glutPostRedisplay();
 		return;
 	}
 	if (key == 32)//scape
 	{
-		Mode = false;
+		ChgMode(false);
 		if (rayt.isFinish)
 		{
 			rayt.start(MY_MODEL_RAYTRACE, 4);
@@ -254,40 +291,34 @@ void onKeyboard(unsigned char key, int x, int y)
 		}
 		else
 			rayt.stop();
+
 		glutPostRedisplay();
 		return;
 	}
 	if (glutGetModifiers() == GLUT_ACTIVE_ALT && key >= '0' && key <= '9')
 	{
+		ChgMode(false);
 		//ray trace render
 		if (!rayt.isFinish)
-		{
-			Mode = false;
 			rayt.stop();
-		}
 		//start ray-trace
 		else
 		{
 			int tnum = 8;
-			Mode = false;
 			switch (key)
 			{
 			case '1':
-				rayt.start(MY_MODEL_CHECK, tnum);
-				glutTimerFunc(50, onTimer, 1);
-				break;
+				rayt.start(MY_MODEL_CHECK, tnum);break;
 			case '2':
-				rayt.start(MY_MODEL_DEPTHTEST, tnum);
-				glutTimerFunc(50, onTimer, 1);
-				break;
+				rayt.start(MY_MODEL_DEPTHTEST, tnum);break;
 			case '3':
-				rayt.start(MY_MODEL_NORMALTEST, tnum);
-				glutTimerFunc(50, onTimer, 1);
-				break;
+				rayt.start(MY_MODEL_NORMALTEST, tnum);break;
 			case '4':
-				rayt.start(MY_MODEL_TEXTURETEST, tnum);
-				glutTimerFunc(50, onTimer, 1);
+				rayt.start(MY_MODEL_TEXTURETEST, tnum);break;
+			case '5':
+				rayt.start(MY_MODEL_MATERIALTEST, tnum);break;
 			}
+			glutTimerFunc(50, onTimer, 1);
 		}
 		glutPostRedisplay();
 		return;
@@ -296,6 +327,7 @@ void onKeyboard(unsigned char key, int x, int y)
 		return;
 	switch (key)
 	{
+	//move camera
 	case 'h':
 		cam.move(1, 0, 0);break;
 	case 'f':
@@ -307,26 +339,43 @@ void onKeyboard(unsigned char key, int x, int y)
 	case 27:
 		exit(0);
 		return;
+	//move light
 	case 'q'://light near
-		light.move(0, 0, -1);break;
+		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(0, 0, -1)); break;
 	case 'e'://light far
-		light.move(0, 0, 1);break;
+		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(0, 0, 1)); break;
 	case 'a':
-		light.move(0, -3, 0);break;
+		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(0, -3, 0)); break;
 	case 'd':
-		light.move(0, 3, 0);break;
+		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(0, 3, 0)); break;
 	case 'w':
-		light.move(-3, 0, 0);break;
+		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(-3, 0, 0)); break;
 	case 's':
-		light.move(3, 0, 0);break;
+		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(3, 0, 0)); break;
+	//set light component
+	case 'z':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1.5, 1, 1)); break;
+	case 'Z':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(0.67, 1, 1)); break;
+	case 'x':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1.5, 1)); break;
+	case 'X':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 0.67, 1)); break;
+	case 'c':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1, 1.5)); break;
+	case 'C':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1, 0.67)); break;
+	case 'v':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1, 1, 2)); break;
+	case 'V':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1, 1, 0.5)); break;
+	//move object
 	case '2':
 	case '4':
 	case '6':
 	case '8':
 	case 43://+
 	case 45://-
-		if (obj_toggle == -1)
-			return;
 		switch (key)
 		{
 		case '2':
@@ -398,7 +447,7 @@ void BaseTest()
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
 		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
 		model.zRotate();
-		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -9,-3,-2 });
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -9,0,-2 });
 	}
 	{
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\1.obj";
@@ -406,11 +455,11 @@ void BaseTest()
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
 		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
 		model.zRotate();
-		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,-5,4 });
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,-2,4 });
 	}
 	{
 		obj_toggle = scene.AddCube(1.0);
-		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,-1,10 });
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,2,10 });
 	}
 	{
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\2.obj";
@@ -418,7 +467,7 @@ void BaseTest()
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
 		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
 		model.zRotate();
-		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 3,-3,0 });
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 3,0,0 });
 	}
 	{
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\3.obj";
@@ -426,19 +475,49 @@ void BaseTest()
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
 		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
 		model.zRotate();
-		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 7,-3,3 });
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 7,0,3 });
 	}
 	{
 		obj_toggle = scene.AddCube(1.0);
-		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 2.5,2,2 });
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 2.5,5,2 });
 	}
 }
 
 void onMenu(int val)
 {
-	if (val & 0xf0)
-	{//object
-		int obj = (val >> 4) - 1;
+	uint8_t obj = (val & 0xf0) >> 4;
+	switch (val & 0xf00)
+	{
+	case 0x000://system
+		switch (val)
+		{
+		case 0x01://Add Sphere
+			obj_toggle = scene.AddSphere(1.0f);
+			InitMenu();
+			break;
+		case 0x02://Add Cube
+			obj_toggle = scene.AddCube(1.6f);
+			InitMenu();
+			break;
+		case 0x03://Add Model
+			if (FileDlg(filename[0], filename[1]) == -1)
+				return;
+			obj_toggle = scene.AddModel(filename[0], filename[1]);
+			InitMenu();
+			break;
+		case 0x11://Parallel Light
+			lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
+			break;
+		case 0x12://Point Light
+			lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_POINT, Vertex(0.15f, 0.55f, 0.3f), Vertex(0.0f, 0.0f, 1.0f, 256));
+			break;
+		case 0x13://Spot Light
+			break;
+		default:
+			return;
+		}
+		break;
+	case 0x100://objects
 		switch (val & 0xf)
 		{
 		default:
@@ -451,7 +530,7 @@ void onMenu(int val)
 			break;
 		case 2://Delete
 			scene.Delete(MY_MODEL_OBJECT, obj);
-			obj_toggle = -1;
+			obj_toggle = 0xff;
 			InitMenu();
 			break;
 		case 3://z-rotate
@@ -459,36 +538,34 @@ void onMenu(int val)
 			model.zRotate();
 			break;
 		}
-	}
-	else
-	{//system
+		break;
+	case 0x200://lights
 		switch (val & 0xf)
 		{
-		case 0://Add Sphere
-			obj_toggle = scene.AddSphere(1.0);
-			InitMenu();
-			break;
-		case 1://Add Cube
-			obj_toggle = scene.AddCube(1.0);
-			InitMenu();
-			break;
-		case 2://Add Model
-			if (FileDlg(filename[0], filename[1]) == -1)
-				return;
-			obj_toggle = scene.AddModel(filename[0], filename[1]);
-			InitMenu();
-			break;
 		default:
 			return;
+		case 0://toggle
+			lgt_toggle = obj;
+			return;
+		case 1://Enable/Disable
+			scene.Switch(MY_MODEL_LIGHT | MY_MODEL_SWITCH, obj, true);
+			break;
+		case 2://Delete
+			scene.Delete(MY_MODEL_LIGHT, obj);
+			obj_toggle = 0xff;
+			InitMenu();
+			break;
 		}
+		break;
 	}
 	glutPostRedisplay();
 }
 
 DWORD WINAPI showdata(LPVOID lpParam)
 {
+	wprintf(L"Triangle size=%zd\tHitRes size=%zd\n", sizeof(Triangle), sizeof(HitRes));
 	HANDLE hOut;
-	COORD pos = { 0,5 };
+	COORD pos = { 0,1 };
 	hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 	std::locale::global(std::locale(""));
 	while (true)
@@ -497,17 +574,28 @@ DWORD WINAPI showdata(LPVOID lpParam)
 		wprintf(L"方向键移动摄像机，wasd键移动灯，+-号缩放，12键开关灯\n");
 
 		wprintf(L"相机绝对坐标：\t%4f，%4f，%4f\n", cam.position.x, cam.position.y, cam.position.z);
-		wprintf(L"相机u坐标：\t%4f，%4f，%4f\n", cam.u.x, cam.u.y, cam.u.z);
-		wprintf(L"相机v坐标：\t%4f，%4f，%4f\n", cam.v.x, cam.v.y, cam.v.z);
-		wprintf(L"相机n坐标：\t%4f，%4f，%4f\n", cam.n.x, cam.n.y, cam.n.z);
-
-		wprintf(L"灯球坐标：\t%4f，%4f，%4f\n", light.angy, light.angz, light.dis);
-		wprintf(L"Toggle:%3d\n", obj_toggle);
+		wprintf(L"相机u向量坐标：\t%4f，%4f，%4f\n", cam.u.x, cam.u.y, cam.u.z);
+		wprintf(L"相机v向量坐标：\t%4f，%4f，%4f\n", cam.v.x, cam.v.y, cam.v.z);
+		wprintf(L"相机n向量坐标：\t%4f，%4f，%4f\n", cam.n.x, cam.n.y, cam.n.z);
+		if (lgt_toggle != 0xff)
+		{
+			Light &light = scene.Lights[lgt_toggle];
+			wprintf(L"%d号灯球坐标：\t%4f，%4f，%4f\n", lgt_toggle, light.angy, light.angz, light.dis);
+			wprintf(L"%d号灯参数：\t%4f，%4f，%4f，%4f\n", lgt_toggle, light.ambient.x, light.diffuse.x, light.specular.x, light.attenuation.alpha);
+		}
+		else
+			wprintf(L"目前未选中任何灯\n无该灯光的详细信息");
+		if (obj_toggle != 0xff)
+		{
+			Vertex &pos = get<0>(scene.Objects[obj_toggle])->position;
+			wprintf(L"%d号物体坐标：\t%4f，%4f，%4f\n", obj_toggle, pos.x, pos.y, pos.z);
+		}
+		else
+			wprintf(L"目前未选中任何物体\n");
 		if (rayt.isFinish)
 			wprintf(L"Finish in %4f s\n", rayt.useTime);
 		else
 			wprintf(L"Running... ...\t\t\n");
-		wprintf(L"Triangle size=%d\tHitRes size=%d\n", sizeof(Triangle), sizeof(HitRes));
 		Sleep(33);
 	}
 	return 0;

@@ -434,6 +434,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 		if (ans < hr.distance)
 		{
 			HitRes newhr(ans);
+			newhr.position = ray.origin + ray.direction * ans;
 			newhr.normal = objt->norms[0] * coord.x + objt->norms[1] * coord.y + objt->norms[2] * coord.z;
 			newhr.tcoord = objt->tcoords[0] * coord.x + objt->tcoords[1] * coord.y + objt->tcoords[2] * coord.z;
 			auto mnum = part_mtl[objpart];

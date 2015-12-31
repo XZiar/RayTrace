@@ -7,9 +7,9 @@
 
 #define MY_MODEL_AMBIENT 0x1
 #define MY_MODEL_DIFFUSE 0x2
-#define MY_MODEL_SHINESS 0x4
-#define MY_MODEL_EMISSION 0x8
-#define MY_MODEL_SPECULAR 0x10
+#define MY_MODEL_SPECULAR 0x4
+#define MY_MODEL_SHINESS 0x8
+#define MY_MODEL_EMISSION 0x10
 #define MY_MODEL_POSITION 0x100
 #define MY_MODEL_ATTENUATION 0x200
 
@@ -39,10 +39,11 @@ public:
 	};
 	Vertex();
 	Vertex(const __m128 &idat);
-	Vertex(const float &ix, const float &iy, const float &iz) :x(ix), y(iy), z(iz) { };
+	Vertex(const float ix, const float iy, const float iz, const float ia = 0) :x(ix), y(iy), z(iz), alpha(ia) { };
 	float length() const;
 	float length_sqr() const;
 	Vertex muladd(const float &n, const Vertex &v) const;
+	Vertex mixmul(const Vertex &v) const;
 
 	Vertex operator+(const Vertex &v) const;
 	Vertex &operator+=(const Vertex &right);
@@ -51,6 +52,7 @@ public:
 	Vertex operator/(const float &n) const;
 	Vertex &operator/=(const float &right);
 	Vertex operator*(const float &n) const;
+	Vertex &operator*=(const float &right);
 	Vertex operator*(const Vertex &v) const;
 	float operator&(const Vertex &v) const;//µã»ý
 	operator float*() { return &x; };
@@ -80,11 +82,11 @@ class Material
 public:
 	string name;
 	int16_t w, h;
-	float ambient[4],
-		diffuse[4],
-		specular[4],
-		shiness[4],
-		emission[4];
+	Vertex ambient,
+		diffuse,
+		specular,
+		shiness,
+		emission;
 	Material();
 	~Material();
 	void SetMtl(int8_t prop, float r, float g, float b, float a = 1.0f);
@@ -110,7 +112,8 @@ public:
 	uint8_t r, g, b;
 	Color(const bool black);
 	Color(const float depth, const float mindepth, const float maxdepth);
-	Color(const Normal n);
+	Color(const Vertex &v);
+	Color(const Normal &n);
 	Color(const int16_t &w, const int16_t &h, const uint8_t *data, const Coord2D &coord);
 	void put(uint8_t *addr);
 	void get(uint8_t *addr);
@@ -162,8 +165,9 @@ class Sphere : public DrawObject
 {
 private:
 	float radius, radius_sqr;
-	Material mtl;
+	//Material mtl;
 public:
+	Material mtl;
 	Sphere(const float r = 1.0, GLuint lnum = 0);
 
 	void SetMtl(const Material &mtl);
@@ -178,6 +182,7 @@ private:
 	Vertex min, max;
 	Material mtl;
 public:
+	
 	Box(const float len = 2.0, GLuint lnum = 0);
 	Box(const float l, const float w, const float h, GLuint lnum = 0);
 	void SetMtl(const Material &mtl);
@@ -188,18 +193,21 @@ public:
 class Light
 {
 public:
-	bool bLight;
+	Vertex position,
+		ambient,
+		diffuse,
+		specular,
+		attenuation;
 	float rangy, rangz, rdis,
 		angy, angz, dis;
-	float position[4],
-		ambient[4],
-		diffuse[4],
-		specular[4];
-	float attenuation[3];
-	Light(int8_t type = 0x0);
+	uint8_t type;
+	bool bLight;
+
+	Light(const uint8_t type);
 	bool turn();
-	void move(const int8_t &dangy, const int8_t &dangz, const int8_t &ddis);
-	void SetProp(int16_t prop, float r, float g, float b, float a = 1.0f);
+	void move(const float dangy, const float dangz, const float ddis);
+	void SetProperty(const int16_t prop, const float r, const float g, const float b, const float a = 1.0f);
+	void SetLumi(const float lum);
 };
 
 class Camera

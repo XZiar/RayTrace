@@ -3,8 +3,15 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define USING_FREEGLUT
 #define SSE2
-//#define AVX2
-//#define FMA
+#ifdef SSE2
+  //#define SSE4
+  #ifdef SSE4
+    //#define AVX
+    #ifdef AVX
+      //#define FMA
+    #endif
+  #endif
+#endif
 
 #ifndef _DEBUG
 #define NDEBUG

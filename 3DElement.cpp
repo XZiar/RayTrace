@@ -139,6 +139,14 @@ Vertex Vertex::muladd(const float & n, const Vertex & v) const
 	//return _mm256_fmadd_pd(dat, tmp, v.dat);
 	return Vertex();
 }
+Vertex Vertex::mixmul(const Vertex & v) const
+{
+#ifdef SSE2
+	return _mm_mul_ps(dat, v.dat);
+#else
+	return Vertex(x * v.x, y * v.y, z * v.z);
+#endif
+}
 Vertex Vertex::operator+(const Vertex &v) const
 {
 #ifdef SSE2
@@ -192,7 +200,6 @@ Vertex &Vertex::operator/=(const float & right)
 	dat = _mm_mul_ps(dat, tmp);
 #else
 	x *= rec, y *= rec, z *= rec;
-	//x /= right, y /= right, z /= right;
 #endif
 	return *this;
 }
@@ -204,6 +211,16 @@ Vertex Vertex::operator*(const float &n) const
 #else
 	return Vertex(x * n, y * n, z * n);
 #endif
+}
+Vertex &Vertex::operator*=(const float & right)
+{
+#ifdef SSE2
+	__m128 tmp = _mm_set1_ps(right);
+	dat = _mm_mul_ps(dat, tmp);
+#else
+	x *= right, y *= right, z *= right;
+#endif
+	return *this;
 }
 Vertex Vertex::operator*(const Vertex &v) const
 {
@@ -307,16 +324,17 @@ Material::~Material()
 
 void Material::SetMtl(int8_t prop, float r, float g, float b, float a)
 {
+	Vertex set(r, g, b, a);
 	if (prop & MY_MODEL_AMBIENT)
-		ambient[0] = r, ambient[1] = g, ambient[2] = b, ambient[3] = a;
+		ambient = set;
 	if (prop & MY_MODEL_DIFFUSE)
-		diffuse[0] = r, diffuse[1] = g, diffuse[2] = b, diffuse[3] = a;
+		diffuse = set;
 	if (prop & MY_MODEL_SHINESS)
-		shiness[0] = r, shiness[1] = g, shiness[2] = b, shiness[3] = a;
+		shiness = set;
 	if (prop & MY_MODEL_EMISSION)
-		emission[0] = r, emission[1] = g, emission[2] = b, emission[3] = a;
+		emission = set;
 	if (prop & MY_MODEL_SPECULAR)
-		specular[0] = r, specular[1] = g, specular[2] = b, specular[3] = a;
+		specular = set;
 }
 
 
@@ -372,7 +390,14 @@ Color::Color(const float depth, const float mindepth, const float maxdepth)
 	r = g = b = (max - after) * 255 / max;
 }
 
-Color::Color(const Normal n)
+Color::Color(const Vertex &v)
+{
+	r = v.x > 255 ? 255 : (uint8_t)v.x;
+	g = v.y > 255 ? 255 : (uint8_t)v.y;
+	b = v.z > 255 ? 255 : (uint8_t)v.z;
+}
+
+Color::Color(const Normal &n)
 {
 	r = 127 * (n.x + 1);
 	g = 127 * (n.y + 1);
@@ -474,8 +499,8 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr)
 	if (t < hr.distance)
 	{
 		HitRes newhr(t);
-		Vertex point = ray.origin + ray.direction * t;
-		newhr.normal = Normal(point - position);
+		newhr.position = ray.origin + ray.direction * t;
+		newhr.normal = Normal(newhr.position - position);
 		newhr.mtl = &mtl;
 		return newhr;
 	}
@@ -561,9 +586,9 @@ HitRes Box::intersect(const Ray & ray, const HitRes &hr)
 	if (hr.distance > res)
 	{
 		HitRes newhr(res);
-		Vertex point = ray.origin + ray.direction * res;
-		Vertex b2p = point - position;
-		point.x = point.y = point.z = 0;
+		newhr.position = ray.origin + ray.direction * res;
+		Vertex b2p = newhr.position - position;
+		Vertex point;
 		if (abs(abs(b2p.z) - max.z) < 1e-6)//front or back
 			point.z = b2p.z>0 ? 1 : -1;
 		if (abs(abs(b2p.y) - max.y) < 1e-6)//up or down
@@ -580,25 +605,25 @@ HitRes Box::intersect(const Ray & ray, const HitRes &hr)
 
 
 
-Light::Light(int8_t type)
+Light::Light(const uint8_t type)
 {
+	this->type = type;
 	bLight = true;
-	rangy = 90, rangz = 0, rdis = 8;
+	rangy = 90, rangz = 0, rdis = 16;
 	move(0, 0, 0);
-	SetProp(MY_MODEL_AMBIENT, 0.05f, 0.05f, 0.05f);
-	SetProp(MY_MODEL_DIFFUSE | MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
+	SetProperty(MY_MODEL_AMBIENT, 0.05f, 0.05f, 0.05f);
+	SetProperty(MY_MODEL_DIFFUSE | MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
+	SetProperty(MY_MODEL_ATTENUATION, 1.0f, 0.0f, 0.0f);
 	switch (type)
 	{
 	case MY_MODEL_LIGHT_PARALLEL:
-		position[3] = 0.0f;
-		attenuation[0] = attenuation[1] = attenuation[2] = 0;
+		position.alpha = 0.0f;
 		break;
 	case MY_MODEL_LIGHT_POINT:
-		position[3] = 1.0f;
-		SetProp(MY_MODEL_ATTENUATION, -0.008f, 0.004f, 0.00005f);
+		position.alpha = 1.0f;
 		break;
 	case MY_MODEL_LIGHT_SPOT:
-		position[3] = 1.0f;
+		position.alpha = 1.0f;
 		break;
 	}
 }
@@ -608,34 +633,42 @@ bool Light::turn()
 	return bLight = !bLight;
 }
 
-void Light::move(const int8_t &dangy, const int8_t &dangz, const int8_t &ddis)
+void Light::move(const float dangy, const float dangz, const float ddis)
 {
 	rdis += ddis;
-	if (rdis < 8)
-		rdis = 8;
-	else if (rdis > 32)
-		rdis = 32;
-	rangy = mod(360 + rangy + dangy, 360);
-	rangz = mod(360 + rangz + dangz, 360);
-	angy = rangy, angz = rangz, dis = rdis;
+	if (rdis < 2)
+		rdis = 2;
+	else if (rdis > 64)
+		rdis = 64;
+	angy = rangy = mod(360 + rangy + dangy, 360);
+	angz = rangz = mod(360 + rangz + dangz, 360);
+	dis = rdis;
 
-	Vertex pos;
-	Coord_sph2car2(angy, angz, dis, pos);
-	position[0] = pos.x, position[1] = pos.y, position[2] = pos.z;
+	Coord_sph2car2(angy, angz, dis, position);
 }
 
-void Light::SetProp(int16_t prop, float r, float g, float b, float a)
+void Light::SetProperty(int16_t prop, float r, float g, float b, float a)
 {
+	Vertex set(r, g, b, a);
 	if (prop & MY_MODEL_AMBIENT)
-		ambient[0] = r, ambient[1] = g, ambient[2] = b, ambient[3] = a;
+		ambient = set;
 	if (prop & MY_MODEL_DIFFUSE)
-		diffuse[0] = r, diffuse[1] = g, diffuse[2] = b, diffuse[3] = a;
+		diffuse = set;
 	if (prop & MY_MODEL_SPECULAR)
-		specular[0] = r, specular[1] = g, specular[2] = b, specular[3] = a;
+		specular = set;
 	if (prop & MY_MODEL_ATTENUATION)
-		attenuation[0] = r, attenuation[1] = g, attenuation[2] = b;
+		attenuation = set;
 	if (prop & MY_MODEL_POSITION)
-		position[0] = r, position[1] = g, position[2] = b, position[3] = a;
+		position = set;
+}
+
+void Light::SetLumi(const float lum)
+{
+	float ext = lum / attenuation.alpha;
+	attenuation.alpha = lum;
+	ambient *= ext;
+	diffuse *= ext;
+	specular *= ext;
 }
 
 
@@ -646,7 +679,7 @@ Camera::Camera(GLint w, GLint h)
 	aspect = (float)w / h;
 	fovy = 45.0, zNear = 1.0, zFar = 100.0;
 
-	position = Vertex(0, 0, 15);
+	position = Vertex(0, 4, 15);
 	u = Vertex(1, 0, 0);
 	v = Vertex(0, 1, 0);
 	n = Vertex(0, 0, -1);

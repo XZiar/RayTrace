@@ -6,12 +6,13 @@
 #define MY_MODEL_DEPTHTEST 0x2
 #define MY_MODEL_NORMALTEST 0x3
 #define MY_MODEL_TEXTURETEST 0x4
+#define MY_MODEL_MATERIALTEST 0x5
 #define MY_MODEL_RAYTRACE 0x80
 
 class RayTracer
 {
 private:
-	using PR = function<Color(const double, const double, const Ray&)>;
+	using PR = function<Color(const float, const float, const Ray&)>;
 	Scene *scene;
 	volatile bool isRun = false;
 	thread t[32];
@@ -21,9 +22,10 @@ private:
 
 	void parallelRT(const int8_t tNum, const int8_t tID, const PR &worker);
 	void RTcheck(const int8_t tNum, const int8_t tID);
-	Color RTdepth(const double zNear, const double zFar, const Ray &baseray);
-	Color RTnorm(const double zNear, const double zFar, const Ray &baseray);
-	Color RTtex(const double zNear, const double zFar, const Ray &baseray);
+	Color RTdepth(const float zNear, const float zFar, const Ray &baseray);
+	Color RTnorm(const float zNear, const float zFar, const Ray &baseray);
+	Color RTtex(const float zNear, const float zFar, const Ray &baseray);
+	Color RTmtl(const float zNear, const float zFar, const Ray &baseray);
 public:
 	GLuint texID;
 	uint8_t *output;
