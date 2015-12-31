@@ -1,16 +1,28 @@
 #pragma once
 #include "rely.h"
 
-#define MY_MODEL_LIGHT_PARALLEL 0x1
-#define MY_MODEL_LIGHT_POINT 0x2
-#define MY_MODEL_LIGHT_SPOT 0x4
+#define MY_OBJECT_SPHERE 0x1
+#define MY_OBJECT_CUBE   0x2
+#define MY_OBJECT_MODEL  0x3
+#define MY_OBJECT_PLANE  0x4
 
-#define MY_MODEL_AMBIENT 0x1
-#define MY_MODEL_DIFFUSE 0x2
-#define MY_MODEL_SPECULAR 0x4
-#define MY_MODEL_SHINESS 0x8
-#define MY_MODEL_EMISSION 0x10
-#define MY_MODEL_POSITION 0x100
+#define MY_OBJECT_PLANE_FRONT 0x1
+#define MY_OBJECT_PLANE_RIGHT 0x2
+#define MY_OBJECT_PLANE_BACK  0x3
+#define MY_OBJECT_PLANE_LEFT  0x4
+#define MY_OBJECT_PLANE_UP    0x5
+#define MY_OBJECT_PLANE_DOWN  0x6
+
+#define MY_MODEL_LIGHT_PARALLEL 0x1
+#define MY_MODEL_LIGHT_POINT    0x2
+#define MY_MODEL_LIGHT_SPOT     0x4
+
+#define MY_MODEL_AMBIENT     0x1
+#define MY_MODEL_DIFFUSE     0x2
+#define MY_MODEL_SPECULAR    0x4
+#define MY_MODEL_SHINESS     0x8
+#define MY_MODEL_EMISSION    0x10
+#define MY_MODEL_POSITION    0x100
 #define MY_MODEL_ATTENUATION 0x200
 
 
@@ -151,15 +163,15 @@ class DrawObject
 {
 protected:
 	GLuint GLListNum, texList[30];
-	virtual void GLPrepare() = 0;
 public:
 	Vertex position;
-	char type[10];
+	uint8_t type;
 	bool bShow = true;
 
 	DrawObject(GLuint n) : GLListNum(n) { };
 	virtual ~DrawObject() { };
 	void GLDraw();
+	virtual void GLPrepare() = 0;
 	virtual void RTPrepare() { };
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float min = 0) = 0;
 };
@@ -195,9 +207,11 @@ public:
 class Plane : public DrawObject
 {
 private:
-	Normal normal;
+	Vertex edges[4];
 public:
-	Plane(const Vertex& v, GLuint lnum = 0);
+	Normal normal;
+
+	Plane(const Vertex *edg, const Normal n, GLuint lnum = 0);
 	virtual void GLPrepare() override;
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float dmin = 0) override;
 };

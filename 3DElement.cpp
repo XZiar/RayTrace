@@ -527,7 +527,7 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr, const float min)
 
 Box::Box(const float len, GLuint lnum) : DrawObject(lnum)
 {
-	sprintf(type, "Cube");
+	type = MY_OBJECT_CUBE;
 	width = height = length = len;
 	float l = len / 2;
 	max = Vertex(l, l, l);
@@ -536,7 +536,7 @@ Box::Box(const float len, GLuint lnum) : DrawObject(lnum)
 
 Box::Box(const float l, const float w, const float h, GLuint lnum) : DrawObject(lnum)
 {
-	sprintf(type, "Box");
+	type = MY_OBJECT_CUBE;
 	length = l, width = w, height = h;
 	max = Vertex(l / 2, w / 2, h / 2);
 	max = max * -1;
@@ -625,15 +625,32 @@ HitRes Box::intersect(const Ray & ray, const HitRes &hr, const float dmin)
 
 
 
-Plane::Plane(const Vertex & v, GLuint lnum) : DrawObject(lnum)
+Plane::Plane(const Vertex *edg, const Normal n, GLuint lnum) : DrawObject(lnum)
 {
-	sprintf(type, "Plane");
-	position = v;
-	normal = v * -1;
+	type = MY_OBJECT_PLANE;
+	memcpy(edges, edg, sizeof(edges));
+	normal = n;
 }
 
 void Plane::GLPrepare()
 {
+	Material mtl;
+	glNewList(GLListNum, GL_COMPILE);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, mtl.ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, mtl.diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, mtl.specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, mtl.shiness);
+	glMaterialfv(GL_FRONT, GL_EMISSION, mtl.emission);
+
+	glBegin(GL_QUADS);
+	glNormal3fv(normal);
+	glVertex3fv(edges[0]);
+	glVertex3fv(edges[1]);
+	glVertex3fv(edges[2]);
+	glVertex3fv(edges[3]);
+	glEnd();
+	glEndList();
 }
 
 HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float dmin)
@@ -647,7 +664,7 @@ HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float dmin)
 	if (dis < hr.distance)
 	{
 		HitRes newhr(dis);
-
+		return hr;
 		return newhr;
 	}
 	else

@@ -62,7 +62,7 @@ uint8_t Scene::AddLight(const uint8_t type, const Vertex &comp, const Vertex &at
 	return Lights.size() - 1;
 }
 
-uint8_t Scene::AddSphere(float radius)
+uint8_t Scene::AddSphere(const float radius)
 {
 	Material mtl;
 	mtl.name = "Sphere";
@@ -82,7 +82,7 @@ uint8_t Scene::AddSphere(float radius)
 	return Objects.size() - 1;
 }
 
-uint8_t Scene::AddCube(float len)
+uint8_t Scene::AddCube(const float len)
 {
 	Material mtl;
 	mtl.name = "Cube";
@@ -109,6 +109,64 @@ uint8_t Scene::AddModel(const wstring & objname, const wstring & mtlname, uint8_
 	model->loadOBJ(objname, mtlname, code);
 
 	Objects.push_back(model);
+	return Objects.size() - 1;
+}
+
+uint8_t Scene::AddPlane(const uint8_t type, const float dis)
+{
+	GLuint lnum = glGenLists(1);
+	Normal norm;
+	Vertex edges[4];
+	float mins = -500, maxs = 500;
+	switch (type)
+	{
+	case MY_OBJECT_PLANE_FRONT:
+		norm = Normal(0, 0, -1);
+		edges[0] = Vertex(maxs, mins, dis);
+		edges[1] = Vertex(maxs, maxs, dis);
+		edges[2] = Vertex(mins, maxs, dis);
+		edges[3] = Vertex(mins, mins, dis);
+		break;
+	case MY_OBJECT_PLANE_RIGHT:
+		norm = Normal(-1, 0, 0);
+		edges[0] = Vertex(dis, mins, maxs);
+		edges[1] = Vertex(dis, maxs, maxs);
+		edges[2] = Vertex(dis, maxs, mins);
+		edges[3] = Vertex(dis, mins, mins);
+		break;
+	case MY_OBJECT_PLANE_BACK:
+		norm = Normal(0, 0, 1);
+		edges[0] = Vertex(mins, mins, -dis);
+		edges[1] = Vertex(mins, maxs, -dis);
+		edges[2] = Vertex(maxs, maxs, -dis);
+		edges[3] = Vertex(maxs, mins, -dis);
+		break;
+	case MY_OBJECT_PLANE_LEFT:
+		norm = Normal(1, 0, 0);
+		edges[0] = Vertex(-dis, mins, maxs);
+		edges[1] = Vertex(-dis, maxs, maxs);
+		edges[2] = Vertex(-dis, maxs, mins);
+		edges[3] = Vertex(-dis, mins, mins);
+		break;
+	case MY_OBJECT_PLANE_UP:
+		norm = Normal(0, -1, 0);
+		edges[0] = Vertex(maxs, dis, maxs);
+		edges[1] = Vertex(maxs, dis, mins);
+		edges[2] = Vertex(mins, dis, mins);
+		edges[3] = Vertex(mins, dis, maxs);
+		break;
+	case MY_OBJECT_PLANE_DOWN:
+		norm = Normal(0, 1, 0);
+		edges[0] = Vertex(maxs, -dis, mins);
+		edges[1] = Vertex(maxs, -dis, maxs);
+		edges[2] = Vertex(mins, -dis, maxs);
+		edges[3] = Vertex(mins, -dis, mins);
+		break;
+	}
+	Plane *plane = new Plane(edges, norm, lnum);
+	plane->GLPrepare();
+
+	Objects.push_back(plane);
 	return Objects.size() - 1;
 }
 
@@ -165,12 +223,20 @@ bool Scene::Delete(uint8_t type, const uint8_t num)
 
 bool Scene::MovePos(const uint8_t type, const uint8_t num, const Vertex & v)
 {
+	Normal tmpn;
 	switch (type)
 	{
 	case MY_MODEL_OBJECT:
 		if (num >= Objects.size())
 			return false;
-		Objects[num]->position += v;
+		if (Objects[num]->type == MY_OBJECT_PLANE)
+		{
+			Plane &p = dynamic_cast<Plane&>(*Objects[num]);
+			Objects[num]->position += p.normal * -v.z;
+			//Objects[num]->GLPrepare();
+		}
+		else
+			Objects[num]->position += v;
 		break;
 	case MY_MODEL_LIGHT:
 		if (num >= Lights.size())

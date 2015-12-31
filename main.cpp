@@ -94,6 +94,7 @@ void InitMenu()
 	glutAddMenuEntry("Add Sphere", 0x001);
 	glutAddMenuEntry("Add Cube", 0x002);
 	glutAddMenuEntry("Add Model", 0x003);
+	glutAddMenuEntry("Add Plane", 0x004);
 	glutAddMenuEntry("---Lights---", 0x0);
 	int a = 0;
 	for (; a < scene.Lights.size(); ++a)
@@ -504,6 +505,10 @@ void onMenu(int val)
 			if (FileDlg(filename[0], filename[1]) == -1)
 				return;
 			obj_toggle = scene.AddModel(filename[0], filename[1]);
+			InitMenu();
+			break;
+		case 0x04:
+			obj_toggle = scene.AddPlane(MY_OBJECT_PLANE_DOWN, 4.0f);
 			InitMenu();
 			break;
 		case 0x11://Parallel Light

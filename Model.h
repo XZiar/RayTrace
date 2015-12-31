@@ -39,7 +39,7 @@ private:
 	int32_t loadtex(const string &texname, const uint8_t code);
 	void reset();
 public:
-	Model(GLuint num = 0) : DrawObject(num) { sprintf(type, "Model"); };
+	Model(GLuint num = 0) : DrawObject(num) { type = MY_OBJECT_MODEL; };
 	~Model() override;
 	int32_t loadOBJ(const wstring &objname, const wstring &mtlname, const uint8_t code = 0x0);
 	void zRotate();
