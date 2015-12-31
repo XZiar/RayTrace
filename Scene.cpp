@@ -49,7 +49,7 @@ void Scene::init()
 	glEndList();
 }
 
-uint8_t Scene::AddLight(const uint8_t type, const Vertex &comp, const float lumi, const Vertex &atte)
+uint8_t Scene::AddLight(const uint8_t type, const Vertex &comp, const Vertex &atte)
 {
 	if (Lights.size() == 8)
 		return 0xff;
@@ -60,7 +60,7 @@ uint8_t Scene::AddLight(const uint8_t type, const Vertex &comp, const float lumi
 	light.SetProperty(MY_MODEL_DIFFUSE, nc.y, nc.y, nc.y);
 	light.SetProperty(MY_MODEL_SPECULAR, nc.z, nc.z, nc.z);
 	light.SetProperty(MY_MODEL_ATTENUATION, atte.x, atte.y, atte.z);
-	light.SetLumi(lumi);
+	light.SetLumi(atte.alpha);
 	Lights.push_back(light);
 	return Lights.size() - 1;
 }
@@ -113,6 +113,39 @@ uint8_t Scene::AddModel(const wstring & objname, const wstring & mtlname, uint8_
 
 	Objects.push_back(make_tuple(model, true));
 	return Objects.size() - 1;
+}
+
+bool Scene::ChgLightComp(const uint8_t type, const uint8_t num, const Vertex & v)
+{
+	if (num >= Lights.size())
+		return false;
+	Light &light = Lights[num];
+	Vertex ta, td, ts;
+	float tmp;
+	switch (type)
+	{
+	case MY_MODEL_SWITCH:
+		ta = light.ambient * v.x;
+		td = light.diffuse * v.y;
+		ts = light.specular * v.z;
+		tmp = (ta.x + td.x + ts.x) / light.attenuation.alpha;
+		ta.x /= tmp, ts.x /= tmp, td.x /= tmp;
+		tmp = (ta.y + td.y + ts.y) / light.attenuation.alpha;
+		ta.y /= tmp, ts.y /= tmp, td.y /= tmp;
+		tmp = (ta.z + td.z + ts.z) / light.attenuation.alpha;
+		ta.z /= tmp, ts.z /= tmp, td.z /= tmp;
+		light.SetProperty(MY_MODEL_AMBIENT, ta.x, ta.y, ta.z);
+		light.SetProperty(MY_MODEL_DIFFUSE, td.x, td.y, td.z);
+		light.SetProperty(MY_MODEL_SPECULAR, ts.x, ts.y, ts.z);
+		break;
+	case MY_MODEL_ATTENUATION:
+		tmp = light.attenuation.alpha * v.alpha;
+		light.SetLumi(tmp);
+		break;
+	default:
+		return false;
+	}
+	return true;
 }
 
 bool Scene::Delete(uint8_t type, const uint8_t num)

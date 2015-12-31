@@ -664,7 +664,8 @@ void Light::SetProperty(int16_t prop, float r, float g, float b, float a)
 
 void Light::SetLumi(const float lum)
 {
-	float ext = lum / ambient.alpha;
+	float ext = lum / attenuation.alpha;
+	attenuation.alpha = lum;
 	ambient *= ext;
 	diffuse *= ext;
 	specular *= ext;

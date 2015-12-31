@@ -12,12 +12,17 @@ static volatile uint8_t obj_toggle = 0xff, lgt_toggle = 0xff;
 static Camera &cam = scene.cam;
 static wstring filename[2];
 
-static bool Mode = true;
+static volatile bool Mode = true;
 
 void onMenu(int val);
 void BaseTest();
 
 
+static void ChgMode(const bool b)
+{
+	Mode = b;
+	glutSetWindowTitle(Mode ? "OpenGL" : "RayTracer");
+}
 int8_t FileDlg(wstring &filename, wstring &mtlname)
 {
 	OPENFILENAME ofn;      // 公共对话框结构。     
@@ -134,9 +139,9 @@ void init(void)
 
 	//set light
 	scene.EnvLight = Vertex(0.05f, 0.05f, 0.05f, 1.0f);
-	lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_PARALLEL, Vertex(0.0f, 0.5f, 0.5f));
+	lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
 	scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(-45, 45, 0));
-	lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_POINT, Vertex(0.0f, 0.4f, 0.6f), 256, Vertex(0.0f, 0.0f, 1.0f));
+	lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_POINT, Vertex(0.15f, 0.55f, 0.3f), Vertex(0.0f, 0.0f, 1.0f, 256));
 	/*scene.Lights[0] = Light();
 	Light *lit = &scene.Lights[0];
 	lit->SetProperty(MY_MODEL_SPECULAR, 0.5f, 0.5f, 0.5f);
@@ -254,6 +259,12 @@ void onKeyboard(int key, int x, int y)
 		InitMenu();break;
 	case GLUT_KEY_F1:
 	case GLUT_KEY_F2:
+	case GLUT_KEY_F3:
+	case GLUT_KEY_F4:
+	case GLUT_KEY_F5:
+	case GLUT_KEY_F6:
+	case GLUT_KEY_F7:
+	case GLUT_KEY_F8:
 		scene.Switch(MY_MODEL_LIGHT | MY_MODEL_SWITCH, key - GLUT_KEY_F1, true);
 		break;
 	default:
@@ -266,13 +277,13 @@ void onKeyboard(unsigned char key, int x, int y)
 {
 	if (key == 13)//enter
 	{
-		Mode = !Mode;
+		ChgMode(!Mode);
 		glutPostRedisplay();
 		return;
 	}
 	if (key == 32)//scape
 	{
-		Mode = false;
+		ChgMode(false);
 		if (rayt.isFinish)
 		{
 			rayt.start(MY_MODEL_RAYTRACE, 4);
@@ -286,17 +297,14 @@ void onKeyboard(unsigned char key, int x, int y)
 	}
 	if (glutGetModifiers() == GLUT_ACTIVE_ALT && key >= '0' && key <= '9')
 	{
+		ChgMode(false);
 		//ray trace render
 		if (!rayt.isFinish)
-		{
-			Mode = false;
 			rayt.stop();
-		}
 		//start ray-trace
 		else
 		{
 			int tnum = 8;
-			Mode = false;
 			switch (key)
 			{
 			case '1':
@@ -319,6 +327,7 @@ void onKeyboard(unsigned char key, int x, int y)
 		return;
 	switch (key)
 	{
+	//move camera
 	case 'h':
 		cam.move(1, 0, 0);break;
 	case 'f':
@@ -330,18 +339,37 @@ void onKeyboard(unsigned char key, int x, int y)
 	case 27:
 		exit(0);
 		return;
+	//move light
 	case 'q'://light near
-		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(0, 0, -1));break;
+		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(0, 0, -1)); break;
 	case 'e'://light far
-		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(0, 0, 1));break;
+		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(0, 0, 1)); break;
 	case 'a':
-		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(0, -3, 0));break;
+		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(0, -3, 0)); break;
 	case 'd':
-		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(0, 3, 0));break;
+		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(0, 3, 0)); break;
 	case 'w':
-		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(-3, 0, 0));break;
+		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(-3, 0, 0)); break;
 	case 's':
-		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(3, 0, 0));break;
+		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(3, 0, 0)); break;
+	//set light component
+	case 'z':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1.5, 1, 1)); break;
+	case 'Z':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(0.67, 1, 1)); break;
+	case 'x':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1.5, 1)); break;
+	case 'X':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 0.67, 1)); break;
+	case 'c':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1, 1.5)); break;
+	case 'C':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1, 0.67)); break;
+	case 'v':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1, 1, 2)); break;
+	case 'V':
+		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1, 1, 0.5)); break;
+	//move object
 	case '2':
 	case '4':
 	case '6':
@@ -478,8 +506,10 @@ void onMenu(int val)
 			InitMenu();
 			break;
 		case 0x11://Parallel Light
+			lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
 			break;
 		case 0x12://Point Light
+			lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_POINT, Vertex(0.15f, 0.55f, 0.3f), Vertex(0.0f, 0.0f, 1.0f, 256));
 			break;
 		case 0x13://Spot Light
 			break;
@@ -551,9 +581,10 @@ DWORD WINAPI showdata(LPVOID lpParam)
 		{
 			Light &light = scene.Lights[lgt_toggle];
 			wprintf(L"%d号灯球坐标：\t%4f，%4f，%4f\n", lgt_toggle, light.angy, light.angz, light.dis);
+			wprintf(L"%d号灯参数：\t%4f，%4f，%4f，%4f\n", lgt_toggle, light.ambient.x, light.diffuse.x, light.specular.x, light.attenuation.alpha);
 		}
 		else
-			wprintf(L"目前未选中任何灯\n");
+			wprintf(L"目前未选中任何灯\n无该灯光的详细信息");
 		if (obj_toggle != 0xff)
 		{
 			Vertex &pos = get<0>(scene.Objects[obj_toggle])->position;
@@ -565,7 +596,6 @@ DWORD WINAPI showdata(LPVOID lpParam)
 			wprintf(L"Finish in %4f s\n", rayt.useTime);
 		else
 			wprintf(L"Running... ...\t\t\n");
-		
 		Sleep(33);
 	}
 	return 0;
