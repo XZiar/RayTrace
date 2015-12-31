@@ -66,6 +66,7 @@ void InitMenu()
 	{
 		int base = 0x200 + (a << 4);
 		int ID = glutCreateMenu(onMenu);
+		//glutAddMenuEntry("Tog", 0);
 		glutAddMenuEntry("Toggle", base + 0x0);
 		glutAddMenuEntry("Enable/Disable", base + 0x1);
 		glutAddMenuEntry("Delete", base + 0x2);
@@ -78,7 +79,7 @@ void InitMenu()
 		glutAddMenuEntry("Toggle", base + 0x0);
 		glutAddMenuEntry("Enable/Disable", base + 0x1);
 		glutAddMenuEntry("Delete", base + 0x2);
-		if(dynamic_cast<Model*>(get<0>(scene.Objects[a])) != NULL)
+		if(dynamic_cast<Model*>(scene.Objects[a]) != NULL)
 			glutAddMenuEntry("Z-axis Rotate", base + 0x3);
 		menuID.push_back(ID);
 	}
@@ -445,7 +446,7 @@ void BaseTest()
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\0.obj";
 		filename[1] = L"F:\\Project\\RayTrace\\objs\\0.mtl";
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
-		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		Model &model = dynamic_cast<Model&>(*scene.Objects[obj_toggle]);
 		model.zRotate();
 		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -9,0,-2 });
 	}
@@ -453,7 +454,7 @@ void BaseTest()
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\1.obj";
 		filename[1] = L"F:\\Project\\RayTrace\\objs\\1.mtl";
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
-		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		Model &model = dynamic_cast<Model&>(*scene.Objects[obj_toggle]);
 		model.zRotate();
 		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,-2,4 });
 	}
@@ -465,7 +466,7 @@ void BaseTest()
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\2.obj";
 		filename[1] = L"F:\\Project\\RayTrace\\objs\\2.mtl";
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
-		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		Model &model = dynamic_cast<Model&>(*scene.Objects[obj_toggle]);
 		model.zRotate();
 		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 3,0,0 });
 	}
@@ -473,7 +474,7 @@ void BaseTest()
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\3.obj";
 		filename[1] = L"F:\\Project\\RayTrace\\objs\\3.mtl";
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
-		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		Model &model = dynamic_cast<Model&>(*scene.Objects[obj_toggle]);
 		model.zRotate();
 		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 7,0,3 });
 	}
@@ -534,7 +535,7 @@ void onMenu(int val)
 			InitMenu();
 			break;
 		case 3://z-rotate
-			Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj]));
+			Model &model = dynamic_cast<Model&>(*scene.Objects[obj]);
 			model.zRotate();
 			break;
 		}
@@ -587,7 +588,7 @@ void showdata()
 			wprintf(L"目前未选中任何灯\n无该灯光的详细信息");
 		if (obj_toggle != 0xff)
 		{
-			Vertex &pos = get<0>(scene.Objects[obj_toggle])->position;
+			Vertex &pos = scene.Objects[obj_toggle]->position;
 			wprintf(L"%d号物体坐标：\t%4f，%4f，%4f\n", obj_toggle, pos.x, pos.y, pos.z);
 		}
 		else

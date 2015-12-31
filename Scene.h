@@ -16,7 +16,7 @@ public:
 	Camera cam;
 	Vertex EnvLight;
 	vector<Light> Lights;
-	vector<tuple<DrawObject*, bool>> Objects;
+	vector<DrawObject*> Objects;
 	Scene();
 	~Scene();
 

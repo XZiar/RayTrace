@@ -527,6 +527,7 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr, const float min)
 
 Box::Box(const float len, GLuint lnum) : DrawObject(lnum)
 {
+	sprintf(type, "Cube");
 	width = height = length = len;
 	float l = len / 2;
 	max = Vertex(l, l, l);
@@ -535,6 +536,7 @@ Box::Box(const float len, GLuint lnum) : DrawObject(lnum)
 
 Box::Box(const float l, const float w, const float h, GLuint lnum) : DrawObject(lnum)
 {
+	sprintf(type, "Box");
 	length = l, width = w, height = h;
 	max = Vertex(l / 2, w / 2, h / 2);
 	max = max * -1;
@@ -615,6 +617,37 @@ HitRes Box::intersect(const Ray & ray, const HitRes &hr, const float dmin)
 			point.x = b2p.x>0 ? 1 : -1;
 		newhr.normal = Normal(point);
 		newhr.mtl = &mtl;
+		return newhr;
+	}
+	else
+		return hr;
+}
+
+
+
+Plane::Plane(const Vertex & v, GLuint lnum) : DrawObject(lnum)
+{
+	sprintf(type, "Plane");
+	position = v;
+	normal = v * -1;
+}
+
+void Plane::GLPrepare()
+{
+}
+
+HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float dmin)
+{
+	float a = ray.direction & normal;
+	if (a >= 0)
+		return hr;
+	Vertex p2r = ray.origin - position;
+	float b = p2r & normal;
+	float dis = -b / a;
+	if (dis < hr.distance)
+	{
+		HitRes newhr(dis);
+
 		return newhr;
 	}
 	else

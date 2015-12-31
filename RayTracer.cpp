@@ -80,10 +80,10 @@ void RayTracer::RTcheck(const int8_t tNum, const int8_t tID)
 Color RayTracer::RTdepth(const float zNear, const float zFar, const Ray &baseray)
 {
 	HitRes hr;
-	for (auto t : scene->Objects)
+	for (auto dobj : scene->Objects)
 	{
-		if (get<1>(t))
-			hr = get<0>(t)->intersect(baseray, hr);
+		if (dobj->bShow)
+			hr = dobj->intersect(baseray, hr);
 	}
 	return Color(hr.distance, zNear, zFar);
 }
@@ -91,10 +91,10 @@ Color RayTracer::RTdepth(const float zNear, const float zFar, const Ray &baseray
 Color RayTracer::RTnorm(const float zNear, const float zFar, const Ray &baseray)
 {
 	HitRes hr;
-	for (auto t : scene->Objects)
+	for (auto dobj : scene->Objects)
 	{
-		if (get<1>(t))
-			hr = get<0>(t)->intersect(baseray, hr);
+		if (dobj->bShow)
+			hr = dobj->intersect(baseray, hr);
 	}
 	if (hr.distance > zFar)
 		return Color(true);
@@ -106,10 +106,10 @@ Color RayTracer::RTnorm(const float zNear, const float zFar, const Ray &baseray)
 Color RayTracer::RTtex(const float zNear, const float zFar, const Ray &baseray)
 {
 	HitRes hr;
-	for (auto t : scene->Objects)
+	for (auto dobj : scene->Objects)
 	{
-		if (get<1>(t))
-			hr = get<0>(t)->intersect(baseray, hr);
+		if (dobj->bShow)
+			hr = dobj->intersect(baseray, hr);
 	}
 	if (hr.distance > zFar)
 		return Color(true);
@@ -132,10 +132,10 @@ Color RayTracer::RTmtl(const float zNear, const float zFar, const Ray &baseray)
 	HitRes hr;
 	Color c(false);
 	//c.r = c.g = c.b = 0.588 * 255;
-	for (auto t : scene->Objects)
+	for (auto dobj : scene->Objects)
 	{
-		if (get<1>(t))
-			hr = get<0>(t)->intersect(baseray, hr);
+		if (dobj->bShow)
+			hr = dobj->intersect(baseray, hr);
 	}
 	if (hr.distance > zFar)
 		return Color(true);
@@ -231,10 +231,10 @@ Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 	HitRes hr;
 	Color c(false);
 	//c.r = c.g = c.b = 0.588 * 255;
-	for (auto t : scene->Objects)
+	for (auto dobj : scene->Objects)
 	{
-		if (get<1>(t))
-			hr = get<0>(t)->intersect(baseray, hr);
+		if (dobj->bShow)
+			hr = dobj->intersect(baseray, hr);
 	}
 	if (hr.distance > zFar)
 		return Color(true);
@@ -284,10 +284,10 @@ Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 			//shadow test
 			Ray shadowray(hr.position, p2l);
 			HitRes shr(dis);
-			for (auto t : scene->Objects)
+			for (auto dobj : scene->Objects)
 			{
-				if (get<1>(t))
-					shr = get<0>(t)->intersect(shadowray, shr);
+				if (dobj->bShow)
+					shr = dobj->intersect(shadowray, shr);
 				if (shr.distance < dis)
 					break;
 			}
@@ -347,10 +347,10 @@ void RayTracer::start(const uint8_t type, const int8_t tnum)
 	width = scene->cam.width;
 	height = scene->cam.height;
 	memset(output, 127, 2048 * 2048 * 3);
-	for (auto t : scene->Objects)
+	for (auto dobj : scene->Objects)
 	{
-		if (get<1>(t))
-			get<0>(t)->RTPrepare();
+		if (dobj->bShow)
+			dobj->RTPrepare();
 	}
 	aBlock_Cur = tnum;
 	PR fun;

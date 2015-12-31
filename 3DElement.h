@@ -154,6 +154,8 @@ protected:
 	virtual void GLPrepare() = 0;
 public:
 	Vertex position;
+	char type[10];
+	bool bShow = true;
 
 	DrawObject(GLuint n) : GLListNum(n) { };
 	virtual ~DrawObject() { };
@@ -183,10 +185,19 @@ private:
 	Vertex min, max;
 	Material mtl;
 public:
-	
 	Box(const float len = 2.0, GLuint lnum = 0);
 	Box(const float l, const float w, const float h, GLuint lnum = 0);
 	void SetMtl(const Material &mtl);
+	virtual void GLPrepare() override;
+	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float dmin = 0) override;
+};
+
+class Plane : public DrawObject
+{
+private:
+	Normal normal;
+public:
+	Plane(const Vertex& v, GLuint lnum = 0);
 	virtual void GLPrepare() override;
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float dmin = 0) override;
 };
