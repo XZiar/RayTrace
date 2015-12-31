@@ -11,7 +11,7 @@ void RayTracer::parallelRT(const int8_t tNum, const int8_t tID, const PR &worker
 
 	const Camera &cam = scene->cam;
 	const int32_t blk_h = height / 64, blk_w = width / 64;
-	const float dp = tan(cam.fovy * PI / 360) / (height / 2);
+	const double dp = tan(cam.fovy * PI / 360) / (height / 2);
 	const float zNear = cam.zNear, zFar = cam.zFar;
 
 	int16_t blk_cur = tID, blk_xcur = tID % blk_w, blk_ycur = tID / blk_w;
