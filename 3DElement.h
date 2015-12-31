@@ -159,7 +159,7 @@ public:
 	virtual ~DrawObject() { };
 	void GLDraw();
 	virtual void RTPrepare() { };
-	virtual HitRes intersect(const Ray &ray, const HitRes &hr) = 0;
+	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float min = 0) = 0;
 };
 
 class Sphere : public DrawObject
@@ -173,7 +173,7 @@ public:
 
 	void SetMtl(const Material &mtl);
 	virtual void GLPrepare() override;
-	virtual HitRes intersect(const Ray &ray, const HitRes &hr) override;
+	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float min = 0) override;
 };
 
 class Box : public DrawObject
@@ -188,7 +188,7 @@ public:
 	Box(const float l, const float w, const float h, GLuint lnum = 0);
 	void SetMtl(const Material &mtl);
 	virtual void GLPrepare() override;
-	virtual HitRes intersect(const Ray &ray, const HitRes &hr) override;
+	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float dmin = 0) override;
 };
 
 class Light

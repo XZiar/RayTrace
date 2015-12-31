@@ -405,8 +405,10 @@ void Model::RTPrepare()
 	}
 }
 
-HitRes Model::intersect(const Ray &ray, const HitRes &hr)
+HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 {
+	if (hr.distance < min)//early quit
+		return hr;
 	float ans = BorderTest(ray, BorderMin, BorderMax);
 	if (ans < hr.distance)//inside and maybe nearer
 	{
@@ -420,14 +422,17 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 				for (Triangle &t : newparts[a])
 				{
 					newans = TriangleTest(ray, t, tmpc);
-					if (ans > newans)
+					if (newans < ans && newans > 1e-6)
 					{
 						objpart = a;
 						objt = &t;
 						ans = newans;
 						coord = tmpc;
+						if (newans < min)
+							goto ____EOS;
 					}
 				}
+	____EOS:
 		if (ans < hr.distance)
 		{
 			HitRes newhr(ans);

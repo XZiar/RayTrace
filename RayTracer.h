@@ -7,6 +7,7 @@
 #define MY_MODEL_NORMALTEST 0x3
 #define MY_MODEL_TEXTURETEST 0x4
 #define MY_MODEL_MATERIALTEST 0x5
+#define MY_MODEL_SHADOWTEST 0x6
 #define MY_MODEL_RAYTRACE 0x80
 
 class RayTracer
@@ -26,6 +27,7 @@ private:
 	Color RTnorm(const float zNear, const float zFar, const Ray &baseray);
 	Color RTtex(const float zNear, const float zFar, const Ray &baseray);
 	Color RTmtl(const float zNear, const float zFar, const Ray &baseray);
+	Color RTshd(const float zNear, const float zFar, const Ray &baseray);
 public:
 	GLuint texID;
 	uint8_t *output;

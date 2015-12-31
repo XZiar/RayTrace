@@ -494,13 +494,17 @@ void Sphere::GLPrepare()
 	glEndList();
 }
 
-HitRes Sphere::intersect(const Ray &ray, const HitRes &hr)
+HitRes Sphere::intersect(const Ray &ray, const HitRes &hr, const float min)
 {
+	if (hr.distance < min)//early quit
+		return hr;
 	/*
 	** s2r->vector that sphere's origin towards ray
 	** t = -d.s2r-sqrt[(d.s2r)^2-(s2r^2-r^2)]
 	*/
 	Vertex s2r = ray.origin - position;
+	if (abs(s2r.length_sqr() - radius_sqr) < 1e-5)//on it's self
+		return hr;
 	float rdDOTr2s = ray.direction & s2r;
 	if (rdDOTr2s > 0)
 		return hr;
@@ -508,7 +512,7 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr)
 	if (dis < 0)
 		return hr;
 	float t = -((ray.direction & s2r) + sqrt(dis));
-	if (t < hr.distance)
+	if (t < hr.distance && t > 1e-6)
 	{
 		HitRes newhr(t);
 		newhr.position = ray.origin + ray.direction * t;
@@ -592,10 +596,12 @@ void Box::GLPrepare()
 	glEndList();
 }
 
-HitRes Box::intersect(const Ray & ray, const HitRes &hr)
+HitRes Box::intersect(const Ray & ray, const HitRes &hr, const float dmin)
 {
+	if (hr.distance < dmin)//early quit
+		return hr;
 	float res = BorderTest(ray, min + position, max + position);
-	if (hr.distance > res)
+	if (res < hr.distance && res > 1e-6)
 	{
 		HitRes newhr(res);
 		newhr.position = ray.origin + ray.direction * res;

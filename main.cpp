@@ -315,6 +315,8 @@ void onKeyboard(unsigned char key, int x, int y)
 				rayt.start(MY_MODEL_TEXTURETEST, tnum);break;
 			case '5':
 				rayt.start(MY_MODEL_MATERIALTEST, tnum);break;
+			case '6':
+				rayt.start(MY_MODEL_SHADOWTEST, tnum); break;
 			}
 			glutTimerFunc(50, onTimer, 1);
 		}

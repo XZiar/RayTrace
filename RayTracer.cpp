@@ -226,6 +226,103 @@ Color RayTracer::RTmtl(const float zNear, const float zFar, const Ray &baseray)
 	return Color(vc.mixmul(mix_vd + mix_va) + mix_vsc);
 }
 
+Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
+{
+	HitRes hr;
+	Color c(false);
+	//c.r = c.g = c.b = 0.588 * 255;
+	for (auto t : scene->Objects)
+	{
+		if (get<1>(t))
+			hr = get<0>(t)->intersect(baseray, hr);
+	}
+	if (hr.distance > zFar)
+		return Color(true);
+	if (hr.distance < zNear)
+		return Color(false);
+	if (hr.tex != nullptr)//has texture
+		c = Color(hr.tex->w, hr.tex->h, hr.tex->data, hr.tcoord);
+	Vertex vc_specular(255, 255, 255),
+		vc(c.r, c.g, c.b),
+		mix_vd, mix_va, mix_vsc;
+	for (auto &lit : scene->Lights)
+	{
+		if (lit.bLight)
+		{
+			float light_lum;
+			Normal p2l;
+			float dis;
+			//consider light type
+			if (lit.position.alpha > 1e-6)
+			{//point light
+				Vertex p2l_v = lit.position - hr.position;
+				dis = p2l_v.length_sqr();
+				float step = lit.attenuation.x
+					+ lit.attenuation.z * dis;
+				dis = sqrt(dis);
+				step += lit.attenuation.y * dis;
+				light_lum = 1 / step;
+				p2l = Normal(p2l_v);
+			}
+			else
+			{//parallel light
+				dis = 1e20;
+				light_lum = 1.0f;
+				p2l = Normal(lit.position);
+			}
+
+			Vertex light_a = lit.ambient * light_lum,
+				light_d = lit.diffuse * light_lum,
+				light_s = lit.specular * light_lum;
+
+			/*
+			** ambient_color = base_map (*) mat_ambient (*) light_ambient
+			*/
+			Vertex v_ambient = hr.mtl->ambient.mixmul(light_a);
+			mix_va += v_ambient;//ambient color
+
+			//shadow test
+			Ray shadowray(hr.position, p2l);
+			HitRes shr(dis);
+			for (auto t : scene->Objects)
+			{
+				if (get<1>(t))
+					shr = get<0>(t)->intersect(shadowray, shr);
+				if (shr.distance < dis)
+					break;
+			}
+			if (shr.distance < dis)
+				continue;
+			/*
+			** diffuse_color = base_map * normal.p2l (*) mat_diffuse (*) light_diffuse
+			** p2l = normal that point towards light
+			*/
+			float n_n = hr.normal & p2l;
+			if (n_n > 0)
+			{
+				Vertex v_diffuse = hr.mtl->diffuse.mixmul(light_d);
+				mix_vd += v_diffuse * n_n;//diffuse color
+			}
+			/*
+			** blinn-phong model
+			** specular_color = (normal.h)^shiness * mat_diffuse (*) light_diffuse
+			** h = Normalized(p2r + p2l)
+			** p2r = normal that point towards camera = -r2p
+			** p2l = normal that point towards light
+			*/
+			Normal h = Normal(p2l - baseray.direction);
+			n_n = hr.normal & h;
+			if (n_n > 0)
+			{
+				Vertex v_specular = hr.mtl->specular.mixmul(light_s);
+				Vertex vs = v_specular * pow(n_n, hr.mtl->shiness.x);
+				mix_vsc += vc_specular.mixmul(vs);
+			}
+		}
+	}
+	mix_va += hr.mtl->ambient.mixmul(scene->EnvLight);//environment ambient color
+	return Color(vc.mixmul(mix_vd + mix_va) + mix_vsc);
+}
 
 
 
@@ -271,9 +368,11 @@ void RayTracer::start(const uint8_t type, const int8_t tnum)
 	case MY_MODEL_MATERIALTEST:
 		fun = bind(&RayTracer::RTmtl, this, _1, _2, _3);
 		break;
-
+	case MY_MODEL_SHADOWTEST:
+		fun = bind(&RayTracer::RTshd, this, _1, _2, _3);
+		break;
 	case MY_MODEL_RAYTRACE:
-		fun = bind(&RayTracer::RTtex, this, _1, _2, _3);
+		fun = bind(&RayTracer::RTshd, this, _1, _2, _3);
 		break;
 	}
 	for (int8_t a = 0; a < tnum; a++)
