@@ -41,6 +41,6 @@ public:
 	Plane(GLuint lnum = 0);
 	void rotate(const Vertex &v);
 	virtual void GLPrepare() override;
-	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float dmin = 0) override;
+	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float min = 0) override;
 };
 

@@ -4,6 +4,7 @@
 
 Sphere::Sphere(const float r, GLuint lnum) : DrawObject(lnum)
 {
+	type = MY_OBJECT_SPHERE;
 	radius = r;
 	radius_sqr = r * r;
 }
@@ -28,15 +29,14 @@ void Sphere::GLPrepare()
 
 HitRes Sphere::intersect(const Ray &ray, const HitRes &hr, const float min)
 {
-	if (hr.distance < min)//early quit
+	//early quit
+	if (hr.obj == (intptr_t)this)
 		return hr;
 	/*
 	** s2r->vector that sphere's origin towards ray
 	** t = -d.s2r-sqrt[(d.s2r)^2-(s2r^2-r^2)]
 	*/
 	Vertex s2r = ray.origin - position;
-	if (abs(s2r.length_sqr() - radius_sqr) < 1e-5)//on it's self
-		return hr;
 	float rdDOTr2s = ray.direction & s2r;
 	if (rdDOTr2s > 0)
 		return hr;
@@ -50,6 +50,7 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr, const float min)
 		newhr.position = ray.origin + ray.direction * t;
 		newhr.normal = Normal(newhr.position - position);
 		newhr.mtl = &mtl;
+		newhr.obj = (intptr_t)this;
 		return newhr;
 	}
 	return hr;
@@ -139,8 +140,10 @@ void Box::GLPrepare()
 
 HitRes Box::intersect(const Ray & ray, const HitRes &hr, const float dmin)
 {
-	if (hr.distance < dmin)//early quit
+	//early quit
+	if (hr.obj == (intptr_t)this)
 		return hr;
+
 	float res = BorderTest(ray, min + position, max + position);
 	if (res < hr.distance && res > 1e-6)
 	{
@@ -156,6 +159,7 @@ HitRes Box::intersect(const Ray & ray, const HitRes &hr, const float dmin)
 			point.x = b2p.x>0 ? 1 : -1;
 		newhr.normal = Normal(point);
 		newhr.mtl = &mtl;
+		newhr.obj = (intptr_t)this;
 		return newhr;
 	}
 	else
@@ -215,10 +219,12 @@ void Plane::GLPrepare()
 	glEndList();
 }
 
-HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float dmin)
+HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float min)
 {
+	//early quit
 	if (hr.obj == (intptr_t)this)
 		return hr;
+
 	float a = ray.direction & normal;
 	if (abs(a) < 1e-6)
 		return hr;

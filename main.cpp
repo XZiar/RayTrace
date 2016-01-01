@@ -63,11 +63,12 @@ void InitMenu()
 		glutRemoveMenuItem(a);
 
 	vector<int> menuID;
-	char label[32];
+	
 	for (auto a = 0; a < scene.Lights.size(); ++a)
 	{
 		int base = 0x200 + (a << 4);
 		int ID = glutCreateMenu(onMenu);
+		char label[32];
 		sprintf(label, "===%s===", MY_LIGHT_NAME[scene.Lights[a].type]);
 		glutAddMenuEntry(label, 0x0);
 		glutAddMenuEntry("Toggle", base + 0x0);
@@ -79,6 +80,7 @@ void InitMenu()
 	{
 		int base = 0x100 + (a << 4);
 		int ID = glutCreateMenu(onMenu);
+		char label[32];
 		sprintf(label, "===%s===", MY_OBJECT_NAME[scene.Objects[a]->type]);
 		glutAddMenuEntry(label, 0x0);
 		glutAddMenuEntry("Toggle", base + 0x0);
@@ -104,12 +106,14 @@ void InitMenu()
 	int a = 0;
 	for (; a < scene.Lights.size(); ++a)
 	{
+		char label[32];
 		sprintf(label, "Light %d", a);
 		glutAddSubMenu(label, menuID[a]);
 	}
 	glutAddMenuEntry("---Objects---", 0x0);
 	for (auto b = 0; a < menuID.size(); ++a, ++b)
 	{
+		char label[32];
 		sprintf(label, "Object %2d", b);
 		glutAddSubMenu(label, menuID[a]);
 	}
@@ -158,8 +162,9 @@ void init(void)
 
 	//init scene
 	scene.init();
-	scene.Switch(MY_MODEL_LIGHT, 0, true);
-	scene.Switch(MY_MODEL_LIGHT, 1, true);
+	//add ground
+	scene.AddPlane();
+	//add basic sphere
 	obj_toggle = scene.AddSphere(1.0);
 
 }
@@ -444,7 +449,7 @@ void onMouse(int x, int y)
 
 void BaseTest()
 {
-	SetCurrentDirectory(L"F:\\Project\\RayTrace\\objs");
+	scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(-42, -57, 1));
 	{
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\0.obj";
 		filename[1] = L"F:\\Project\\RayTrace\\objs\\0.mtl";
@@ -459,7 +464,7 @@ void BaseTest()
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
 		Model &model = dynamic_cast<Model&>(*scene.Objects[obj_toggle]);
 		model.zRotate();
-		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,-2,4 });
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,0,4 });
 	}
 	{
 		obj_toggle = scene.AddCube(1.0);
@@ -613,6 +618,7 @@ void showdata()
 int main(int argc, char** argv)
 {
 	//_CrtSetBreakAlloc(1322268);
+	SetCurrentDirectory(L"F:\\Project\\RayTrace\\objs");
 	glutInit(&argc, argv);
 	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);

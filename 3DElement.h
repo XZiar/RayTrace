@@ -7,14 +7,14 @@
 #define MY_OBJECT_PLANE  0x4
 
 const char MY_OBJECT_NAME[][10] =
-{ "sphere","cube","model","plane" };
+{ "ERROR","sphere","cube","model","plane" };
 
 #define MY_LIGHT_PARALLEL 0x1
 #define MY_LIGHT_POINT    0x2
 #define MY_LIGHT_SPOT     0x3
 
 const char MY_LIGHT_NAME[][10] =
-{ "parallel","point","spot" };
+{ "ERROR","parallel","point","spot" };
 
 #define MY_MODEL_AMBIENT     0x1
 #define MY_MODEL_DIFFUSE     0x2

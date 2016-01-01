@@ -448,7 +448,7 @@ void Color::get(uint8_t * addr)
 
 HitRes::HitRes(bool b)
 {
-	distance = b ? 1e10 : 1e20;
+	distance = b ? 1e8 : 1e20;
 }
 
 bool HitRes::operator<(const HitRes & right)
@@ -458,7 +458,7 @@ bool HitRes::operator<(const HitRes & right)
 
 HitRes::operator bool()
 {
-	return distance < 1e15;
+	return distance < 1e8;
 }
 
 

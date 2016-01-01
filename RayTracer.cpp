@@ -253,7 +253,7 @@ Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 			Normal p2l;
 			float dis;
 			//consider light type
-			if (lit.position.alpha > 1e-6)
+			if (lit.type == MY_LIGHT_POINT)
 			{//point light
 				Vertex p2l_v = lit.position - hr.position;
 				dis = p2l_v.length_sqr();
@@ -266,7 +266,7 @@ Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 			}
 			else
 			{//parallel light
-				dis = 1e20;
+				dis = 1e10;
 				light_lum = 1.0f;
 				p2l = Normal(lit.position);
 			}
@@ -289,11 +289,16 @@ Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 			{
 				if (dobj->bShow)
 					shr = dobj->intersect(shadowray, shr);
+				//early quick
 				if (shr.distance < dis)
 					break;
 			}
-			if (shr.distance < dis)
+			if (shr.distance < dis)//something block the light
+			{
+				//mix_vd += Vertex(1, 0, 0);
 				continue;
+			}
+				
 			/*
 			** diffuse_color = base_map * normal.p2l (*) mat_diffuse (*) light_diffuse
 			** p2l = normal that point towards light
