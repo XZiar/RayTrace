@@ -207,11 +207,13 @@ public:
 class Plane : public DrawObject
 {
 private:
-	Vertex edges[4];
+	Vertex ang;
 public:
+	Material mtl;
 	Normal normal;
 
-	Plane(const Vertex *edg, const Normal n, GLuint lnum = 0);
+	Plane(GLuint lnum = 0);
+	void rotate(const Vertex &v);
 	virtual void GLPrepare() override;
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float dmin = 0) override;
 };

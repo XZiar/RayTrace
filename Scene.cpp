@@ -115,9 +115,9 @@ uint8_t Scene::AddModel(const wstring & objname, const wstring & mtlname, uint8_
 uint8_t Scene::AddPlane(const uint8_t type, const float dis)
 {
 	GLuint lnum = glGenLists(1);
-	Normal norm;
+	/*Normal norm;
 	Vertex edges[4];
-	float mins = -500, maxs = 500;
+	float mins = -5, maxs = 5;
 	switch (type)
 	{
 	case MY_OBJECT_PLANE_FRONT:
@@ -162,8 +162,8 @@ uint8_t Scene::AddPlane(const uint8_t type, const float dis)
 		edges[2] = Vertex(mins, -dis, maxs);
 		edges[3] = Vertex(mins, -dis, mins);
 		break;
-	}
-	Plane *plane = new Plane(edges, norm, lnum);
+	}*/
+	Plane *plane = new Plane(lnum);
 	plane->GLPrepare();
 
 	Objects.push_back(plane);
@@ -223,7 +223,7 @@ bool Scene::Delete(uint8_t type, const uint8_t num)
 
 bool Scene::MovePos(const uint8_t type, const uint8_t num, const Vertex & v)
 {
-	Normal tmpn;
+	float tmp;
 	switch (type)
 	{
 	case MY_MODEL_OBJECT:
@@ -232,8 +232,9 @@ bool Scene::MovePos(const uint8_t type, const uint8_t num, const Vertex & v)
 		if (Objects[num]->type == MY_OBJECT_PLANE)
 		{
 			Plane &p = dynamic_cast<Plane&>(*Objects[num]);
-			Objects[num]->position += p.normal * -v.z;
-			//Objects[num]->GLPrepare();
+			//p.position += p.normal * -v.z;
+			p.rotate(v);
+			p.GLPrepare();
 		}
 		else
 			Objects[num]->position += v;

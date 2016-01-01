@@ -625,16 +625,28 @@ HitRes Box::intersect(const Ray & ray, const HitRes &hr, const float dmin)
 
 
 
-Plane::Plane(const Vertex *edg, const Normal n, GLuint lnum) : DrawObject(lnum)
+Plane::Plane(GLuint lnum) : DrawObject(lnum)
 {
 	type = MY_OBJECT_PLANE;
-	memcpy(edges, edg, sizeof(edges));
-	normal = n;
+	rotate(Vertex(0, 36, 0));
+}
+
+void Plane::rotate(const Vertex & v)
+{
+	bool fix = false;
+	ang.x = mod(360 + ang.x + v.y * 5, 360);
+	ang.y = mod(360 + ang.y + v.x * 5, 360);
+	ang.z += v.z;
+	if (abs(ang.z) < 1e-5)
+		fix = true, ang.z = 1;
+	Coord_sph2car2(ang.x, ang.y, ang.z, position);
+	normal = Normal(position * -1);
+	if (fix)
+		ang.z = 0, position = Vertex();
 }
 
 void Plane::GLPrepare()
 {
-	Material mtl;
 	glNewList(GLListNum, GL_COMPILE);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glMaterialfv(GL_FRONT, GL_AMBIENT, mtl.ambient);
@@ -643,12 +655,23 @@ void Plane::GLPrepare()
 	glMaterialfv(GL_FRONT, GL_SHININESS, mtl.shiness);
 	glMaterialfv(GL_FRONT, GL_EMISSION, mtl.emission);
 
+
+	float tangy = mod(90 + ang.x, 360);
+	Normal tmpy;
+	Coord_sph2car2(tangy, ang.y, 1, tmpy);
+	Normal tmpx = tmpy * normal;
+	Vertex tmp;
+
 	glBegin(GL_QUADS);
 	glNormal3fv(normal);
-	glVertex3fv(edges[0]);
-	glVertex3fv(edges[1]);
-	glVertex3fv(edges[2]);
-	glVertex3fv(edges[3]);
+	tmp = (tmpy * 5) + (tmpx * 5);
+	glVertex3fv(tmp);
+	tmp = (tmpy * 5) + (tmpx * -5);
+	glVertex3fv(tmp);
+	tmp = (tmpy * -5) + (tmpx * -5);
+	glVertex3fv(tmp);
+	tmp = (tmpy * -5) + (tmpx * 5);
+	glVertex3fv(tmp);
 	glEnd();
 	glEndList();
 }
@@ -656,15 +679,19 @@ void Plane::GLPrepare()
 HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float dmin)
 {
 	float a = ray.direction & normal;
-	if (a >= 0)
+	if (abs(a) < 1e-6)
 		return hr;
 	Vertex p2r = ray.origin - position;
 	float b = p2r & normal;
 	float dis = -b / a;
+	if (dis < 0)
+		return hr;
 	if (dis < hr.distance)
 	{
 		HitRes newhr(dis);
-		return hr;
+		newhr.normal = normal;
+		newhr.mtl = &mtl;
+		//return hr;
 		return newhr;
 	}
 	else
