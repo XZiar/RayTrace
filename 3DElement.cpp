@@ -123,7 +123,7 @@ float Vertex::length() const
 {
 #ifdef SSE4
 	__m128 ans = _mm_dp_ps(dat, dat, 0b01110001);
-	return sqrt(_mm_cvtss_f32(ans));
+	return _mm_cvtss_f32(_mm_sqrt_ss(ans));
 #else
 	return sqrt(x*x + y*y + z*z);
 #endif
@@ -139,9 +139,12 @@ float Vertex::length_sqr() const
 }
 Vertex Vertex::muladd(const float & n, const Vertex & v) const
 {
-	//__m256d tmp = _mm256_set1_pd(n);
-	//return _mm256_fmadd_pd(dat, tmp, v.dat);
+#ifdef FMA
+	__m128 tmp = _mm_set1_ps(n);
+	return _mm_fmadd_ps(dat, tmp, v);
+#else
 	return Vertex();
+#endif
 }
 Vertex Vertex::mixmul(const Vertex & v) const
 {
@@ -228,15 +231,7 @@ Vertex &Vertex::operator*=(const float & right)
 }
 Vertex Vertex::operator*(const Vertex &v) const
 {
-#ifdef FMA
-	__m128 t1 = _mm_permute_ps(dat, _MM_SHUFFLE(3, 0, 2, 1)),
-		t2 = _mm_permute_ps(v.dat, _MM_SHUFFLE(3, 1, 0, 2)),
-		t3 = _mm_permute_ps(dat, _MM_SHUFFLE(3, 1, 0, 2)),
-		t4 = _mm_permute_ps(v.dat, _MM_SHUFFLE(3, 0, 2, 1));
-	__m128 r = _mm_mul_ps(t3, t4);
-	return _mm_fmsub_ps(t1, t2, r);
-#else
-  #ifdef AVX
+#ifdef AVX
 	__m128 t1 = _mm_permute_ps(dat, _MM_SHUFFLE(3, 0, 2, 1)),
 		t2 = _mm_permute_ps(v.dat, _MM_SHUFFLE(3, 1, 0, 2)),
 		t3 = _mm_permute_ps(dat, _MM_SHUFFLE(3, 1, 0, 2)),
@@ -244,13 +239,12 @@ Vertex Vertex::operator*(const Vertex &v) const
 	__m128 l = _mm_mul_ps(t1, t2),
 		r = _mm_mul_ps(t3, t4);
 	return _mm_sub_ps(l, r);
-  #else
+#else
 	float a, b, c;
 	a = y*v.z - z*v.y;
 	b = z*v.x - x*v.z;
 	c = x*v.y - y*v.x;
 	return Vertex(a, b, c);
-  #endif
 #endif
 }
 float Vertex::operator&(const Vertex &v) const
