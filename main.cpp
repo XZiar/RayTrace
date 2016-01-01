@@ -15,7 +15,7 @@ static wstring filename[2];
 static volatile bool Mode = true, isRun = true;
 
 void onMenu(int val);
-void BaseTest();
+void BaseTest(bool isAuto = false);
 
 
 static void ChgMode(const bool b)
@@ -262,8 +262,7 @@ void onKeyboard(int key, int x, int y)
 	case GLUT_KEY_DOWN:
 		cam.pitch(-3);break;
 	case GLUT_KEY_END:
-		BaseTest();
-		InitMenu();break;
+		BaseTest();break;
 	case GLUT_KEY_F1:
 	case GLUT_KEY_F2:
 	case GLUT_KEY_F3:
@@ -447,7 +446,7 @@ void onMouse(int x, int y)
 	}
 }
 
-void BaseTest()
+void BaseTest(bool isAuto)
 {
 	scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(-42, -57, 1));
 	{
@@ -489,6 +488,19 @@ void BaseTest()
 	{
 		obj_toggle = scene.AddCube(1.0);
 		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 2.5,5,2 });
+	}
+	InitMenu();
+	if (isAuto)
+	{
+		ChgMode(false);
+		rayt.start(MY_MODEL_SHADOWTEST, 8);
+		glutTimerFunc(50, onTimer, 1);
+		thread([] 
+		{ 
+			Sleep(5000);
+			while (!rayt.isFinish) { Sleep(1000); }
+			exit(0);
+		}).detach();
 	}
 }
 
@@ -615,16 +627,18 @@ void showdata()
 }
 
 
-int main(int argc, char** argv)
+int wmain(int argc, wchar_t *argv[])
 {
+	char* tv[] = { "good" };
+	int tc = 1;
 	//_CrtSetBreakAlloc(1322268);
 	SetCurrentDirectory(L"F:\\Project\\RayTrace\\objs");
-	glutInit(&argc, argv);
+	glutInit(&tc, tv);
 	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(cam.width, cam.height);
 	glutInitWindowPosition(100, 100);
-	glutCreateWindow(argv[0]);
+	glutCreateWindow("");
 	init();
 	InitMenu();
 	glutDisplayFunc(display);
@@ -643,7 +657,8 @@ int main(int argc, char** argv)
 	});
 
 	thread(showdata).detach();
-
+	if (argc > 1)
+		thread([] { Sleep(100); BaseTest(true); }).detach();
 	glutMainLoop();
 
 	//_CrtDumpMemoryLeaks();
