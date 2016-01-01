@@ -51,6 +51,9 @@ public:
 	Vertex();
 	Vertex(const __m128 &idat);
 	Vertex(const float ix, const float iy, const float iz, const float ia = 0) :x(ix), y(iy), z(iz), alpha(ia) { };
+	operator float*() { return &x; };
+	operator __m128() const { return dat; };
+
 	float length() const;
 	float length_sqr() const;
 	Vertex muladd(const float &n, const Vertex &v) const;
@@ -66,7 +69,6 @@ public:
 	Vertex &operator*=(const float &right);
 	Vertex operator*(const Vertex &v) const;
 	float operator&(const Vertex &v) const;//µã»ý
-	operator float*() { return &x; };
 };
 
 class Normal : public Vertex
