@@ -284,6 +284,7 @@ Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 			//shadow test
 			Ray shadowray(hr.position, p2l);
 			HitRes shr(dis);
+			shr.obj = hr.obj;
 			for (auto dobj : scene->Objects)
 			{
 				if (dobj->bShow)

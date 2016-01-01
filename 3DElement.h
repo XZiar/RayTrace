@@ -6,12 +6,12 @@
 #define MY_OBJECT_MODEL  0x3
 #define MY_OBJECT_PLANE  0x4
 
-#define MY_OBJECT_PLANE_FRONT 0x1
-#define MY_OBJECT_PLANE_RIGHT 0x2
-#define MY_OBJECT_PLANE_BACK  0x3
-#define MY_OBJECT_PLANE_LEFT  0x4
-#define MY_OBJECT_PLANE_UP    0x5
-#define MY_OBJECT_PLANE_DOWN  0x6
+//#define MY_OBJECT_PLANE_FRONT 0x1
+//#define MY_OBJECT_PLANE_RIGHT 0x2
+//#define MY_OBJECT_PLANE_BACK  0x3
+//#define MY_OBJECT_PLANE_LEFT  0x4
+//#define MY_OBJECT_PLANE_UP    0x5
+//#define MY_OBJECT_PLANE_DOWN  0x6
 
 #define MY_MODEL_LIGHT_PARALLEL 0x1
 #define MY_MODEL_LIGHT_POINT    0x2
@@ -151,6 +151,7 @@ public:
 	float distance;
 	Material *mtl = nullptr;
 	Texture *tex = nullptr;
+	intptr_t obj = (intptr_t)this;
 
 	HitRes(bool b = false);
 	HitRes(float dis) : distance(dis){ };

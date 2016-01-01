@@ -508,7 +508,7 @@ void onMenu(int val)
 			InitMenu();
 			break;
 		case 0x04:
-			obj_toggle = scene.AddPlane(MY_OBJECT_PLANE_DOWN, 4.0f);
+			obj_toggle = scene.AddPlane();
 			InitMenu();
 			break;
 		case 0x11://Parallel Light
@@ -558,7 +558,7 @@ void onMenu(int val)
 			break;
 		case 2://Delete
 			scene.Delete(MY_MODEL_LIGHT, obj);
-			obj_toggle = 0xff;
+			lgt_toggle = 0xff;
 			InitMenu();
 			break;
 		}

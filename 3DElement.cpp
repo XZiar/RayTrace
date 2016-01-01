@@ -556,6 +556,13 @@ void Box::GLPrepare()
 	glMaterialfv(GL_FRONT, GL_SPECULAR, mtl.specular);
 	glMaterialfv(GL_FRONT, GL_SHININESS, mtl.shiness);
 	glMaterialfv(GL_FRONT, GL_EMISSION, mtl.emission);
+	
+	glEnable(GL_RESCALE_NORMAL);
+	Vertex tmp = max - min;
+	glScalef(tmp.x, tmp.y, tmp.z);
+	glutSolidCube(1);
+	glDisable(GL_RESCALE_NORMAL);
+	/*
 	glBegin(GL_QUADS);
 	//fornt
 	glNormal3d(0, 0, 1);
@@ -593,8 +600,8 @@ void Box::GLPrepare()
 	glVertex3f(max.x, min.y, max.z);
 	glVertex3f(min.x, min.y, max.z);
 	glVertex3f(min.x, min.y, min.z);
-
 	glEnd();
+	*/
 	glEndList();
 }
 
@@ -655,22 +662,22 @@ void Plane::GLPrepare()
 	glMaterialfv(GL_FRONT, GL_SHININESS, mtl.shiness);
 	glMaterialfv(GL_FRONT, GL_EMISSION, mtl.emission);
 
-
 	float tangy = mod(90 + ang.x, 360);
-	Normal tmpy;
+	Vertex tmpy;
 	Coord_sph2car2(tangy, ang.y, 1, tmpy);
-	Normal tmpx = tmpy * normal;
+	Vertex tmpx = tmpy * normal;
+	float range = 500;
+	tmpx *= range, tmpy *= range;
 	Vertex tmp;
-
 	glBegin(GL_QUADS);
 	glNormal3fv(normal);
-	tmp = (tmpy * 5) + (tmpx * 5);
+	tmp = tmpy + tmpx;
 	glVertex3fv(tmp);
-	tmp = (tmpy * 5) + (tmpx * -5);
+	tmp = tmpy + tmpx * -1;
 	glVertex3fv(tmp);
-	tmp = (tmpy * -5) + (tmpx * -5);
+	tmp = tmpy * -1 + tmpx * -1;
 	glVertex3fv(tmp);
-	tmp = (tmpy * -5) + (tmpx * 5);
+	tmp = tmpy * -1 + tmpx;
 	glVertex3fv(tmp);
 	glEnd();
 	glEndList();
@@ -678,6 +685,8 @@ void Plane::GLPrepare()
 
 HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float dmin)
 {
+	if (hr.obj == (intptr_t)this)
+		return hr;
 	float a = ray.direction & normal;
 	if (abs(a) < 1e-6)
 		return hr;
@@ -691,7 +700,8 @@ HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float dmin)
 		HitRes newhr(dis);
 		newhr.normal = normal;
 		newhr.mtl = &mtl;
-		//return hr;
+		newhr.position = ray.origin + ray.direction*dis;
+		newhr.obj = (intptr_t)this;
 		return newhr;
 	}
 	else

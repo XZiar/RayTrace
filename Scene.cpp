@@ -112,7 +112,7 @@ uint8_t Scene::AddModel(const wstring & objname, const wstring & mtlname, uint8_
 	return Objects.size() - 1;
 }
 
-uint8_t Scene::AddPlane(const uint8_t type, const float dis)
+uint8_t Scene::AddPlane()
 {
 	GLuint lnum = glGenLists(1);
 	/*Normal norm;
