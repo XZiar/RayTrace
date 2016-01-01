@@ -62,11 +62,13 @@ void InitMenu()
 		glutRemoveMenuItem(a);
 
 	vector<int> menuID;
+	char label[32];
 	for (auto a = 0; a < scene.Lights.size(); ++a)
 	{
 		int base = 0x200 + (a << 4);
 		int ID = glutCreateMenu(onMenu);
-		//glutAddMenuEntry("Tog", 0);
+		sprintf(label, "===%s===", MY_LIGHT_NAME[scene.Lights[a].type]);
+		glutAddMenuEntry(label, 0x0);
 		glutAddMenuEntry("Toggle", base + 0x0);
 		glutAddMenuEntry("Enable/Disable", base + 0x1);
 		glutAddMenuEntry("Delete", base + 0x2);
@@ -76,6 +78,8 @@ void InitMenu()
 	{
 		int base = 0x100 + (a << 4);
 		int ID = glutCreateMenu(onMenu);
+		sprintf(label, "===%s===", MY_OBJECT_NAME[scene.Objects[a]->type]);
+		glutAddMenuEntry(label, 0x0);
 		glutAddMenuEntry("Toggle", base + 0x0);
 		glutAddMenuEntry("Enable/Disable", base + 0x1);
 		glutAddMenuEntry("Delete", base + 0x2);
@@ -99,16 +103,13 @@ void InitMenu()
 	int a = 0;
 	for (; a < scene.Lights.size(); ++a)
 	{
-		char label[32];
 		sprintf(label, "Light %d", a);
 		glutAddSubMenu(label, menuID[a]);
-			
 	}
 	glutAddMenuEntry("---Objects---", 0x0);
 	for (auto b = 0; a < menuID.size(); ++a, ++b)
 	{
-		char label[32];
-		sprintf(label, "Object %d", b);
+		sprintf(label, "Object %2d", b);
 		glutAddSubMenu(label, menuID[a]);
 	}
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
@@ -139,9 +140,9 @@ void init(void)
 
 	//set light
 	scene.EnvLight = Vertex(0.05f, 0.05f, 0.05f, 1.0f);
-	lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
+	lgt_toggle = scene.AddLight(MY_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
 	scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(-45, 45, 0));
-	lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_POINT, Vertex(0.15f, 0.55f, 0.3f), Vertex(0.0f, 0.0f, 1.0f, 256));
+	lgt_toggle = scene.AddLight(MY_LIGHT_POINT, Vertex(0.15f, 0.55f, 0.3f), Vertex(0.0f, 0.0f, 1.0f, 256));
 	/*scene.Lights[0] = Light();
 	Light *lit = &scene.Lights[0];
 	lit->SetProperty(MY_MODEL_SPECULAR, 0.5f, 0.5f, 0.5f);
@@ -512,10 +513,10 @@ void onMenu(int val)
 			InitMenu();
 			break;
 		case 0x11://Parallel Light
-			lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
+			lgt_toggle = scene.AddLight(MY_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
 			break;
 		case 0x12://Point Light
-			lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_POINT, Vertex(0.15f, 0.55f, 0.3f), Vertex(0.0f, 0.0f, 1.0f, 256));
+			lgt_toggle = scene.AddLight(MY_LIGHT_POINT, Vertex(0.15f, 0.55f, 0.3f), Vertex(0.0f, 0.0f, 1.0f, 256));
 			break;
 		case 0x13://Spot Light
 			break;

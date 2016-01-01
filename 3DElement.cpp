@@ -721,13 +721,13 @@ Light::Light(const uint8_t type)
 	SetProperty(MY_MODEL_ATTENUATION, 1.0f, 0.0f, 0.0f);
 	switch (type)
 	{
-	case MY_MODEL_LIGHT_PARALLEL:
+	case MY_LIGHT_PARALLEL:
 		position.alpha = 0.0f;
 		break;
-	case MY_MODEL_LIGHT_POINT:
+	case MY_LIGHT_POINT:
 		position.alpha = 1.0f;
 		break;
-	case MY_MODEL_LIGHT_SPOT:
+	case MY_LIGHT_SPOT:
 		position.alpha = 1.0f;
 		break;
 	}

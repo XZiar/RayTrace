@@ -115,54 +115,6 @@ uint8_t Scene::AddModel(const wstring & objname, const wstring & mtlname, uint8_
 uint8_t Scene::AddPlane()
 {
 	GLuint lnum = glGenLists(1);
-	/*Normal norm;
-	Vertex edges[4];
-	float mins = -5, maxs = 5;
-	switch (type)
-	{
-	case MY_OBJECT_PLANE_FRONT:
-		norm = Normal(0, 0, -1);
-		edges[0] = Vertex(maxs, mins, dis);
-		edges[1] = Vertex(maxs, maxs, dis);
-		edges[2] = Vertex(mins, maxs, dis);
-		edges[3] = Vertex(mins, mins, dis);
-		break;
-	case MY_OBJECT_PLANE_RIGHT:
-		norm = Normal(-1, 0, 0);
-		edges[0] = Vertex(dis, mins, maxs);
-		edges[1] = Vertex(dis, maxs, maxs);
-		edges[2] = Vertex(dis, maxs, mins);
-		edges[3] = Vertex(dis, mins, mins);
-		break;
-	case MY_OBJECT_PLANE_BACK:
-		norm = Normal(0, 0, 1);
-		edges[0] = Vertex(mins, mins, -dis);
-		edges[1] = Vertex(mins, maxs, -dis);
-		edges[2] = Vertex(maxs, maxs, -dis);
-		edges[3] = Vertex(maxs, mins, -dis);
-		break;
-	case MY_OBJECT_PLANE_LEFT:
-		norm = Normal(1, 0, 0);
-		edges[0] = Vertex(-dis, mins, maxs);
-		edges[1] = Vertex(-dis, maxs, maxs);
-		edges[2] = Vertex(-dis, maxs, mins);
-		edges[3] = Vertex(-dis, mins, mins);
-		break;
-	case MY_OBJECT_PLANE_UP:
-		norm = Normal(0, -1, 0);
-		edges[0] = Vertex(maxs, dis, maxs);
-		edges[1] = Vertex(maxs, dis, mins);
-		edges[2] = Vertex(mins, dis, mins);
-		edges[3] = Vertex(mins, dis, maxs);
-		break;
-	case MY_OBJECT_PLANE_DOWN:
-		norm = Normal(0, 1, 0);
-		edges[0] = Vertex(maxs, -dis, mins);
-		edges[1] = Vertex(maxs, -dis, maxs);
-		edges[2] = Vertex(mins, -dis, maxs);
-		edges[3] = Vertex(mins, -dis, mins);
-		break;
-	}*/
 	Plane *plane = new Plane(lnum);
 	plane->GLPrepare();
 

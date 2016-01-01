@@ -6,16 +6,15 @@
 #define MY_OBJECT_MODEL  0x3
 #define MY_OBJECT_PLANE  0x4
 
-//#define MY_OBJECT_PLANE_FRONT 0x1
-//#define MY_OBJECT_PLANE_RIGHT 0x2
-//#define MY_OBJECT_PLANE_BACK  0x3
-//#define MY_OBJECT_PLANE_LEFT  0x4
-//#define MY_OBJECT_PLANE_UP    0x5
-//#define MY_OBJECT_PLANE_DOWN  0x6
+const char MY_OBJECT_NAME[][10] =
+{ "sphere","cube","model","plane" };
 
-#define MY_MODEL_LIGHT_PARALLEL 0x1
-#define MY_MODEL_LIGHT_POINT    0x2
-#define MY_MODEL_LIGHT_SPOT     0x4
+#define MY_LIGHT_PARALLEL 0x1
+#define MY_LIGHT_POINT    0x2
+#define MY_LIGHT_SPOT     0x3
+
+const char MY_LIGHT_NAME[][10] =
+{ "parallel","point","spot" };
 
 #define MY_MODEL_AMBIENT     0x1
 #define MY_MODEL_DIFFUSE     0x2
