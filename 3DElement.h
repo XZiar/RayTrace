@@ -176,48 +176,6 @@ public:
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float min = 0) = 0;
 };
 
-class Sphere : public DrawObject
-{
-private:
-	float radius, radius_sqr;
-	//Material mtl;
-public:
-	Material mtl;
-	Sphere(const float r = 1.0, GLuint lnum = 0);
-
-	void SetMtl(const Material &mtl);
-	virtual void GLPrepare() override;
-	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float min = 0) override;
-};
-
-class Box : public DrawObject
-{
-private:
-	float width, height, length;
-	Vertex min, max;
-	Material mtl;
-public:
-	Box(const float len = 2.0, GLuint lnum = 0);
-	Box(const float l, const float w, const float h, GLuint lnum = 0);
-	void SetMtl(const Material &mtl);
-	virtual void GLPrepare() override;
-	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float dmin = 0) override;
-};
-
-class Plane : public DrawObject
-{
-private:
-	Vertex ang;
-public:
-	Material mtl;
-	Normal normal;
-
-	Plane(GLuint lnum = 0);
-	void rotate(const Vertex &v);
-	virtual void GLPrepare() override;
-	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float dmin = 0) override;
-};
-
 class Light
 {
 public:
@@ -254,7 +212,9 @@ public:
 
 
 void Coord_sph2car(float &angy, float &angz, const float dis, Vertex &v);
+void Coord_sph2car2(float &angy, float &angz, const float dis, Vertex &v);
 void Coord_car2sph(const Vertex &v, float &angy, float &angz, float &dis);
+float mod(const float &l, const float &r);
 float BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max);
 
 

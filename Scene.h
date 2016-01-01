@@ -2,6 +2,7 @@
 
 #include "rely.h"
 #include "3DElement.h"
+#include "Basic3DObject.h"
 #include "Model.h"
 
 #define MY_MODEL_LIGHT  0x1

@@ -1,5 +1,6 @@
 #include "rely.h"
 #include "3DElement.h"
+#include "Basic3DObject.h"
 #include "Model.h"
 #include "Scene.h"
 #include "RayTracer.h"
