@@ -35,7 +35,7 @@ public:
 	vector<Coord2D> txcs;
 	vector<vector<Triangle>> parts;
 	vector<vector<Triangle>> newparts;
-	array_view<const ampTri, 1> gpuParts[64];
+	vector<vector<ampTri>> ampparts;
 	vector<Vertex> borders;
 	vector<Vertex> bboxs;
 	vector<Material> mtls;

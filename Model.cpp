@@ -392,7 +392,8 @@ void Model::RTPrepare()
 	for (Vertex &v : borders)
 		bboxs.push_back(v + position);
 	newparts.clear();
-	int cur = 0;
+	ampparts.clear();
+
 	vector<ampTri> tpart;
 	vector<Triangle> tmppart;
 	for (vector<Triangle> &part : parts)
@@ -410,11 +411,11 @@ void Model::RTPrepare()
 			tpart.push_back(newt);
 		}
 		newparts.push_back(move(tmppart));
-		tmppart.reserve(2000);
+		tmppart.reserve(3000);
 
 		tpart.shrink_to_fit();
-		gpuParts[cur++] = array_view<const ampTri, 1>(tpart.size(), tpart);
-		tpart.clear();
+		ampparts.push_back(move(tpart));
+		tpart.reserve(3000);
 	}
 
 
@@ -438,10 +439,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 
 		ampRes ampres[5000];
 		float resdis[5000];
-		array_view<ampRes, 1> ares(4000, ampres);
-		array_view<float, 1> adis(4000, resdis);
-		ares.discard_data(); adis.discard_data();
-
+		
 		ans = hr.distance;
 		int objpart = -1;
 		Triangle *objt = nullptr;
@@ -450,30 +448,33 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 			if (BorderTest(ray, bboxs[a * 2], bboxs[a * 2 + 1]) < hr.distance)
 			{
 				size_t size = newparts[a].size();
-
-				parallel_for_each(gpuParts[a].extent, [=](index<1> idx) restrict(amp)
+				array_view<ampRes, 1> ares(4000, ampres);
+				array_view<float, 1> adis(4000, resdis);
+				ares.discard_data(); adis.discard_data();
+				array_view<ampTri, 1> apart(size, ampparts[a]);
+				parallel_for_each(apart.extent, [=](index<1> idx) restrict(amp)
 				{
-					VEC3 tmp1 = ampray.dir * gpuParts[a][idx].v;
-					float tmpa = gpuParts[a][idx].u & tmp1;
+					VEC3 tmp1 = ampray.dir * apart[idx].v;
+					float tmpa = apart[idx].u & tmp1;
 					if (fast_math::fabs(tmpa) < 1e-6f)
 					{
 						adis[idx] = 1e20f; return;
 					}
 					float f = 1 / a;
-					VEC3 t2r = ampray.ori - gpuParts[a][idx].p0;
+					VEC3 t2r = ampray.ori - apart[idx].p0;
 					float u = (t2r & tmp1) * f;
 					if (u < 0.0f || u > 1.0f)
 					{
 						adis[idx] = 1e20f; return;
 					}
-					VEC3 tmp2 = t2r * gpuParts[a][idx].u;
+					VEC3 tmp2 = t2r * apart[idx].u;
 					float v = (ampray.dir & tmp2) * f,
 						duv = 1 - u - v;
 					if (v < 0.0f || duv < 0.0f)
 					{
 						adis[idx] = 1e20f; return;
 					}
-					float t = (gpuParts[a][idx].v & tmp2) * f;
+					float t = (apart[idx].v & tmp2) * f;
 					if (t > 1e-5f)
 					{
 						ares[idx].u = u, ares[idx].v = v;
