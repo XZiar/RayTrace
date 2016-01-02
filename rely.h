@@ -1,6 +1,7 @@
 #pragma once
 
 #define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_DEPRECATE
 #define USING_FREEGLUT
 #define SSE2
 #ifdef SSE2
@@ -47,8 +48,8 @@
 #include <atomic>
 
 #ifdef USING_OPENCL
-#include <CL\opencl.h>
-#pragma comment(lib, "opencl.lib")
+  #include <CL\opencl.h>
+  #pragma comment(lib, "opencl.lib")
 #endif
 
 

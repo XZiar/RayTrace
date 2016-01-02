@@ -2,6 +2,7 @@
 
 #include "rely.h"
 #include "3DElement.h"
+#include "packCL.h"
 
 class Model : public DrawObject
 {
@@ -25,12 +26,14 @@ public:
 	vector<Coord2D> txcs;
 	vector<vector<Triangle>> parts;
 	vector<vector<Triangle>> newparts;
+	vector<vector<clTri>> clparts;
 	vector<Vertex> borders;
 	vector<Vertex> bboxs;
 	vector<Material> mtls;
 	vector<Texture> texs;
 	vector<int8_t> part_mtl, mtl_tex;
 	wstring objname, mtlname;
+	packCL pcl;
 private:
 	virtual void GLPrepare() override;
 	float TriangleTest(const Ray &ray, const Triangle &tri, Vertex &coord);

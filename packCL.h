@@ -1,26 +1,25 @@
 #pragma once
 #include "rely.h"
-#include "Model.h"
+#include "3DElement.h"
 
+class Model;
+void CL_get(cl_context &ctx, cl_command_queue &cqu, cl_program &pgm, cl_kernel knl);
 class packCL
 {
 private:
-	cl_device_id device_id = NULL;
-	cl_context context = NULL;
-	cl_command_queue command_queue = NULL;
-	cl_mem memobj = NULL;
-	cl_program program = NULL;
-	cl_kernel kernel = NULL;
-	cl_platform_id platform_id = NULL;
-	cl_uint ret_num_devices;
-	cl_uint ret_num_platforms;
+	cl_context context;
+	cl_command_queue command_queue;
+	cl_program program;
+	cl_kernel kernel;
 	cl_int ret;
-	vector<cl_mem> modeldat;
-	vector<cl_mem> raydat;
+
+	vector<cl_mem> clm_parts;
+	vector<int> tri_cnt;
+	cl_mem clm_rays[16];
 public:
 	packCL();
 	~packCL();
 
-	void init(const int8_t tNum, const Model &mod);
-	float dowork(const int8_t tID, const Ray &ray);
+	void init(const Model *mod);
+	int16_t dowork(const int8_t pID, const clRay &ray, Vertex &coord);
 };

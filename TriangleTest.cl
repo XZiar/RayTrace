@@ -1,41 +1,52 @@
 typedef struct clRay
 {
-	float origin[4];
-	float direction[4];
+	float3 ori, dir;
 }clRay;
 
 typedef struct clTri
 {
-	float points[12];
-	float axisu[4], axisv[4];
-	float norms[12];
-	float tcoords[6];
-}
+	float3 axisu, axisv, p0;
+}clTri;
 
 
 
-__kernel void hello(__global clRay* ray, __global clTri* tri, __global float* res)
+__kernel void clTriTest(__constant clRay* ray, __global clTri* tri, __global float* res)
 {
-	Vertex tmp1 = ray.direction * tri.axisv;
-	float a = tri.axisu & tmp1;
-	if (abs(a) < 1e-6f)
-		return 1e20f;
+	int num = get_global_id(0);
+	float3 tmp1 = cross(ray->dir, tri[num].axisv);
+	float a = dot(tri[num].axisu, tmp1);
+	if (a < 1e-5f && a > -1e-5f)
+	{
+		res[num * 4 + 3] = 1e20f;
+		return;
+	}
 	float f = 1 / a;
-	Vertex t2r = ray.origin - tri.points[0];
-	float u = (t2r & tmp1) * f;
+	float3 t2r = ray->ori - tri[num].p0;
+	float u = dot(t2r, tmp1) * f;
 	if (u < 0.0f || u > 1.0f)
-		return 1e20f;
-	Vertex tmp2 = t2r * tri.axisu;
-	float v = (ray.direction & tmp2) * f,
-		duv = 1 - u - v;
+	{
+		res[num * 4 + 3] = 1e20f;
+		return;
+	}
+	float3 tmp2 = cross(t2r, tri[num].axisu);
+	float v = dot(ray->dir, tmp2) * f;
+	float duv = 1 - u - v;
 	if (v < 0.0f || duv < 0.0f)
-		return 1e20;
-	float t = (tri.axisv & tmp2) * f;
+	{
+		res[num * 4 + 3] = 1e20f;
+		return;
+	}
+	float t = dot(tri[num].axisv, tmp2) * f;
 	if (t > 1e-6f)
 	{
-		coord = Vertex(duv, u, v);
-		return t;
+		res[num * 4 + 3] = t;
+		res[num * 4] = duv;
+		res[num * 4 + 1] = u, res[num * 4 + 2] = v;
+		return;
 	}
 	else
-		return 1e20;
+	{
+		res[num * 4 + 3] = 1e20f;
+		return;
+	}
 }

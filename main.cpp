@@ -1,5 +1,6 @@
 #include "rely.h"
 #include "3DElement.h"
+#include "packCL.h"
 #include "Basic3DObject.h"
 #include "Model.h"
 #include "Scene.h"
@@ -310,7 +311,7 @@ void onKeyboard(unsigned char key, int x, int y)
 		//start ray-trace
 		else
 		{
-			int tnum = 8;
+			int tnum = 1;
 			switch (key)
 			{
 			case '1':

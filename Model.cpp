@@ -387,7 +387,9 @@ void Model::RTPrepare()
 	for (Vertex &v : borders)
 		bboxs.push_back(v + position);
 	newparts.clear();
-	vector<Triangle> tmppart;
+	clparts.clear();
+	vector<Triangle> tpart;
+	vector<clTri> cltpart;
 	for (vector<Triangle> &part : parts)
 	{
 		for (Triangle &t : part)
@@ -398,11 +400,19 @@ void Model::RTPrepare()
 			newt.points[2] += position;
 			newt.axisu = newt.points[1] - newt.points[0];
 			newt.axisv = newt.points[2] - newt.points[0];
-			tmppart.push_back(newt);
+			tpart.push_back(newt);
+
+			cltpart.push_back(newt);
 		}
-		newparts.push_back(move(tmppart));
-		tmppart.reserve(2000);
+		newparts.push_back(move(tpart));
+		tpart.reserve(3000);
+
+		cltpart.shrink_to_fit();
+		clparts.push_back(move(cltpart));
+		cltpart.reserve(3000);
 	}
+
+	pcl.init(this);
 }
 
 HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
@@ -417,7 +427,19 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 		Vertex coord, tmpc;
 		for (auto a = 0; a < newparts.size(); ++a)
 			if (BorderTest(ray, bboxs[a * 2], bboxs[a * 2 + 1]) < hr.distance)
-				for (Triangle &t : newparts[a])
+			{
+				int choose = pcl.dowork(a, ray, tmpc);
+				if (tmpc.alpha < ans)
+				{
+					objpart = a;
+					objt = &newparts[a][choose];
+					ans = tmpc.alpha;
+					coord = tmpc;
+					if (ans < min)
+						goto ____EOS;
+				}
+			}
+				/*for (Triangle &t : newparts[a])
 				{
 					//early quit
 					if (hr.obj == (intptr_t)&t)
@@ -432,7 +454,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 						if (newans < min)
 							goto ____EOS;
 					}
-				}
+				}*/
 	____EOS:
 		if (ans < hr.distance)
 		{

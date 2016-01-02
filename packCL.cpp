@@ -1,94 +1,181 @@
 #include "rely.h"
 #include "packCL.h"
+#include "Model.h"
+#pragma warning( disable : 4996 )
+
+
+void CL_get(cl_context &ctx, cl_command_queue &cqu, cl_program &pgm, cl_kernel knl)
+{
+	static bool isFirst = true;
+	static cl_platform_id platform_id = 0;
+	static cl_uint ret_num_platforms;
+	static cl_uint ret_num_devices;
+	static cl_device_id device_id;
+	static cl_context context;
+	static cl_command_queue command_queue;
+	static cl_program program;
+	static cl_kernel kernel;
+
+	cl_int ret;
+	if (isFirst)
+	{
+		FILE *fp;
+		char fileName[] = "./TriangleTest.cl";
+		char *source_str;
+		size_t source_size;
+
+		/* Load the source code containing the kernel*/
+		fp = fopen(fileName, "r");
+		if (!fp)
+		{
+			fprintf(stderr, "Failed to load kernel.\n");
+			exit(1);
+		}
+		source_str = new char[2048];
+		source_size = fread(source_str, 1, 2048, fp);
+		fclose(fp);
+
+		cl_uint numPlatforms = 0;
+		clGetPlatformIDs(0, NULL, &numPlatforms);
+
+		//获得平台列表  
+		cl_platform_id *platforms = (cl_platform_id*)malloc(numPlatforms * sizeof(cl_platform_id));
+		clGetPlatformIDs(numPlatforms, platforms, NULL);
+
+		//轮询各个opencl设备  
+		for (cl_uint i = 0; i < numPlatforms; i++)
+		{
+			char pBuf[2][100];
+			clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, sizeof(pBuf), pBuf[0], NULL);
+			clGetPlatformInfo(platforms[i], CL_PLATFORM_VERSION, sizeof(pBuf), pBuf[1], NULL);
+			if (IDYES == MessageBoxA(NULL, pBuf[1], pBuf[0], MB_ICONQUESTION | MB_YESNO))
+			{
+				platform_id = platforms[i];
+				break;
+			}
+		}
+
+
+		/* Get Platform and Device Info */
+		//ret = clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
+		ret = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_DEFAULT, 1, &device_id, &ret_num_devices);
+
+		/* Create OpenCL context */
+		context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &ret);
+
+		/* Create Command Queue */
+		command_queue = clCreateCommandQueue(context, device_id, 0, &ret);
+
+		/* Create Kernel Program from the source */
+		program = clCreateProgramWithSource(context, 1, (const char **)&source_str, (const size_t *)&source_size, &ret);
+
+		/* Build Kernel Program */
+		ret = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
+		if (ret != CL_SUCCESS)
+		{
+			size_t len;
+			char buffer[204800];
+
+			printf("Error: Failed to build program executable!\n");
+			clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &len);
+			printf("%s\n", buffer);
+			MessageBoxA(NULL, buffer, "Failed to build program executable!", MB_ICONSTOP);
+			exit(1);
+		}
+		
+
+		delete[] source_str;
+		isFirst = false;
+	}
+	ctx = context;
+	cqu = command_queue;
+	pgm = program;
+	knl = kernel;
+	return;
+}
 
 packCL::packCL()
 {
-	FILE *fp;
-	char fileName[] = "./TriangleTest.cl";
-	char *source_str;
-	size_t source_size;
-
-	/* Load the source code containing the kernel*/
-	fp = fopen(fileName, "r");
-	if (!fp)
-	{
-		fprintf(stderr, "Failed to load kernel.\n");
-		exit(1);
-	}
-	source_str = new char[2048];
-	source_size = fread(source_str, 1, 2048, fp);
-	fclose(fp);
-
-	/* Get Platform and Device Info */
-	ret = clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
-	ret = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_DEFAULT, 1, &device_id, &ret_num_devices);
-
-	/* Create OpenCL context */
-	context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &ret);
-
-	/* Create Command Queue */
-	command_queue = clCreateCommandQueue(context, device_id, 0, &ret);
-
-	/* Create Kernel Program from the source */
-	program = clCreateProgramWithSource(context, 1, (const char **)&source_str, (const size_t *)&source_size, &ret);
-
-	/* Build Kernel Program */
-	ret = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
-
+	CL_get(context, command_queue, program, kernel);
 	/* Create OpenCL Kernel */
-	kernel = clCreateKernel(program, "triTest", &ret);
-
-	delete[] source_str;
-
+	kernel = clCreateKernel(program, "clTriTest", &ret);
+	for (auto a = 0; a < 16; ++a)
+	{
+		clm_rays[a] = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(clRay), NULL, &ret);
+	}
 }
 
 packCL::~packCL()
 {
 	/* Finalization */
-	ret = clFlush(command_queue);
+	/*ret = clFlush(command_queue);
 	ret = clFinish(command_queue);
 	ret = clReleaseKernel(kernel);
 	ret = clReleaseProgram(program);
 	ret = clReleaseMemObject(memobj);
 	ret = clReleaseCommandQueue(command_queue);
-	ret = clReleaseContext(context);
+	ret = clReleaseContext(context);*/
 }
 
-void packCL::init(const int8_t tNum, const Model &mod)
+void packCL::init(const Model *mod)
 {
-	for(auto &mo : modeldat)
+	for(auto &mo : clm_parts)
 		clReleaseMemObject(mo);
-	for (auto &mo : raydat)
-		clReleaseMemObject(mo);
-	modeldat.clear();
-	for (auto &part : mod.newparts)
+	clm_parts.clear();
+	tri_cnt.clear();
+	for (auto &part : mod->clparts)
 	{
-		cl_mem mo = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, part.size()*sizeof(Triangle), &part[0], &ret);
-		modeldat.push_back(mo);
-	}
-	for (auto a = 0; a < tNum; ++a)
-	{
-		cl_mem mo = clCreateBuffer(context, CL_MEM_READ_ONLY, 32, NULL, &ret);
-		raydat.push_back(mo);
+		tri_cnt.push_back(part.size());
+		cl_mem mo = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, part.size()*sizeof(clTri), (void*)&part[0], &ret);
+		clm_parts.push_back(mo);
 	}
 }
 
-float packCL::dowork(const int8_t tID, const Ray &ray)
+int16_t packCL::dowork(const int8_t pID, const clRay &ray, Vertex &coord)
 {
-	cl_event wrt;
+	int size = tri_cnt[pID];
 	//put ray data
-	ret = clEnqueueWriteBuffer(command_queue, raydat[tID], TRUE, 0, 32, &ray, 0, NULL, &wrt);
-
-
+	cl_mem mray = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(clRay), (void*)&ray, &ret);
+	//ret = clEnqueueWriteBuffer(command_queue, clm_rays[tID], TRUE, 0, 32, &ray, 0, NULL, &wrt);
+	cl_mem mres = clCreateBuffer(context, CL_MEM_WRITE_ONLY, 16 * size, NULL, &ret);
 
 
 	/* Set OpenCL Kernel Parameters */
-	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&memobj);
+	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&mray);
+	ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&clm_parts[pID]);
+	ret = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&mres);
 
 	/* Execute OpenCL Kernel */
-	ret = clEnqueueTask(command_queue, kernel, 0, NULL, NULL);
+	size_t global_work_size[1] = { size };
+	cl_event enentPoint;
+	ret = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, global_work_size, NULL, 0, NULL, &enentPoint);
+	clWaitForEvents(1, &enentPoint); //wait
+	clReleaseEvent(enentPoint);
 
+	
 	/* Copy results from the memory buffer */
-	ret = clEnqueueReadBuffer(command_queue, memobj, CL_TRUE, 0,
-		MEM_SIZE * sizeof(char), string, 0, NULL, NULL);
+	Vertex *fres = new Vertex[size];
+	ret = clEnqueueReadBuffer(command_queue, mres, CL_TRUE, 0, 16 * size, fres, 0, NULL, &enentPoint);
+	clWaitForEvents(1, &enentPoint); //wait
+	clReleaseEvent(enentPoint);
+
+	float fans = 1e10f;
+	int choose = -1;
+	for (int a = 0; a < size; ++a)
+	{
+		if (fres[a].alpha < fans)
+			fans = fres[a].alpha, choose = a;
+	}
+	if (fans < 1e10f)
+		coord = fres[choose];
+	else
+		coord = Vertex(0, 0, 0, 1e20f);
+	/*clean resources*/
+	ret = clReleaseMemObject(mres);
+	ret = clReleaseMemObject(mray);
+	delete[] fres;
+
+	return choose;
 }
+
+

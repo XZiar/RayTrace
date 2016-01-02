@@ -36,6 +36,15 @@ public:
 	Coord2D operator*(const float &n) const;
 	operator float*() { return &u; };
 };
+struct VEC3
+{
+	union
+	{
+		float dat[3];
+		struct { float x, y, z; };
+	};
+	VEC3(const float a = 0.0f, const float b = 0.0f, const float c = 0.0f) :x(a), y(b), z(c) { };
+};
 
 _MM_ALIGN16 class Vertex
 {
@@ -53,6 +62,7 @@ public:
 	Vertex(const float ix, const float iy, const float iz, const float ia = 0) :x(ix), y(iy), z(iz), alpha(ia) { };
 	operator float*() { return &x; };
 	operator __m128() const { return dat; };
+	operator VEC3() const { return VEC3(x, y, z); };
 
 	float length() const;
 	float length_sqr() const;
@@ -106,6 +116,11 @@ public:
 	void SetMtl(int8_t prop, float r, float g, float b, float a = 1.0f);
 };
 
+struct clTri
+{
+	VEC3 axisu, axisv, p0;
+	clTri(const VEC3 &u = VEC3(), const VEC3 &v = VEC3(), const VEC3 &p = VEC3()) :axisu(u), axisv(v), p0(p) { };
+};
 class Triangle
 {
 public:
@@ -118,6 +133,7 @@ public:
 	Triangle(const Vertex &va, const Vertex &vb, const Vertex &vc);
 	Triangle(const Vertex &va, const Normal &na, const Vertex &vb, const Normal &nb, const Vertex &vc, const Normal &nc);
 	Triangle(const Vertex &va, const Normal &na, const Coord2D &ta, const Vertex &vb, const Normal &nb, const Coord2D &tb, const Vertex &vc, const Normal &nc, const Coord2D &tc);
+	operator clTri() const { return clTri(axisu, axisv, points[0]); };
 };
 
 class Color
@@ -133,6 +149,12 @@ public:
 	void get(uint8_t *addr);
 };
 
+
+struct clRay
+{
+	VEC3 ori, dir;
+	clRay(const VEC3 &o, const VEC3 &d) :ori(o), dir(d) { };
+};
 class Ray
 {
 public:
@@ -141,6 +163,7 @@ public:
 	uint8_t type = 0x0;
 
 	Ray(const Vertex &o, const Normal &dir) : origin(o), direction(dir) { };
+	operator clRay() const { return clRay(origin, direction); };
 };
 
 class HitRes
