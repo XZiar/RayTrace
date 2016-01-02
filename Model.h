@@ -3,9 +3,19 @@
 #include "rely.h"
 #include "3DElement.h"
 
+struct ampRes
+{
+	float u, v;
+};
+struct ampRay
+{
+	VEC3 ori, dir;
+};
+
 class Model : public DrawObject
 {
 private:
+	
 	class Loader
 	{
 		wstring filename;
@@ -25,6 +35,7 @@ public:
 	vector<Coord2D> txcs;
 	vector<vector<Triangle>> parts;
 	vector<vector<Triangle>> newparts;
+	array_view<const ampTri, 1> gpuParts[64];
 	vector<Vertex> borders;
 	vector<Vertex> bboxs;
 	vector<Material> mtls;
@@ -39,7 +50,7 @@ private:
 	int32_t loadtex(const string &texname, const uint8_t code);
 	void reset();
 public:
-	Model(GLuint num = 0) : DrawObject(num) { type = MY_OBJECT_MODEL; };
+	Model(uint32_t num = 0);
 	~Model() override;
 	int32_t loadOBJ(const wstring &objname, const wstring &mtlname, const uint8_t code = 0x0);
 	void zRotate();

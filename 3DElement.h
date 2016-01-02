@@ -37,6 +37,37 @@ public:
 	operator float*() { return &u; };
 };
 
+struct VEC3
+{
+	union
+	{
+		float dat[3];
+		struct { float x, y, z; };
+	};
+	VEC3() { };
+	VEC3(const float a, const float b, const float c) restrict(amp) : x(a), y(b), z(c) { };
+	VEC3 operator-(const VEC3 &v) const restrict(amp)
+	{
+		return VEC3(x - v.x, y - v.y, z - v.z);
+	}
+	VEC3 operator+(const VEC3 &v) const restrict(amp)
+	{
+		return VEC3(x + v.x, y + v.y, z + v.z);
+	}
+	VEC3 operator*(const VEC3 &v) const restrict(amp)
+	{
+		float a, b, c;
+		a = y*v.z - z*v.y;
+		b = z*v.x - x*v.z;
+		c = x*v.y - y*v.x;
+		return VEC3(a, b, c);
+	}
+	float operator&(const VEC3 &v) const restrict(amp)
+	{
+		return x*v.x + y*v.y + z*v.z;
+	}
+};
+
 _MM_ALIGN16 class Vertex
 {
 public:
@@ -70,6 +101,8 @@ public:
 	Vertex operator*(const Vertex &v) const;
 	float operator&(const Vertex &v) const;//µã»ý
 };
+void v2v(const Vertex &vx, VEC3 &v3);
+
 
 class Normal : public Vertex
 {
@@ -106,6 +139,12 @@ public:
 	void SetMtl(int8_t prop, float r, float g, float b, float a = 1.0f);
 };
 
+struct ampTri
+{
+	VEC3 u, v, p0;
+	ampTri(const VEC3 &a, const VEC3 &b, const VEC3 &c) :u(a), v(b), p0(c) { };
+};
+
 class Triangle
 {
 public:
@@ -113,6 +152,12 @@ public:
 	Vertex axisu, axisv;
 	Normal norms[3];
 	Coord2D tcoords[3];
+	operator ampTri() const 
+	{ 
+		VEC3 u, v, p0;
+		v2v(axisu, u); v2v(axisv, v); v2v(points[0], p0);
+		return ampTri(u, v, p0); 
+	};
 	
 	Triangle();
 	Triangle(const Vertex &va, const Vertex &vb, const Vertex &vc);
@@ -164,13 +209,13 @@ public:
 class DrawObject
 {
 protected:
-	GLuint GLListNum, texList[30];
+	uint32_t GLListNum, texList[30];
 public:
 	Vertex position;
 	uint8_t type;
 	bool bShow = true;
 
-	DrawObject(GLuint n) : GLListNum(n) { };
+	DrawObject(uint32_t n) : GLListNum(n) { };
 	virtual ~DrawObject() { };
 	void GLDraw();
 	virtual void GLPrepare() = 0;

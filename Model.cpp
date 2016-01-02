@@ -328,6 +328,11 @@ void Model::reset()
 	txcs.swap(vector<Coord2D>());
 }
 
+Model::Model(uint32_t num) : DrawObject(num)
+{ 
+	type = MY_OBJECT_MODEL; 
+};
+
 Model::~Model()
 {
 	reset();
@@ -387,6 +392,8 @@ void Model::RTPrepare()
 	for (Vertex &v : borders)
 		bboxs.push_back(v + position);
 	newparts.clear();
+	int cur = 0;
+	vector<ampTri> tpart;
 	vector<Triangle> tmppart;
 	for (vector<Triangle> &part : parts)
 	{
@@ -399,12 +406,116 @@ void Model::RTPrepare()
 			newt.axisu = newt.points[1] - newt.points[0];
 			newt.axisv = newt.points[2] - newt.points[0];
 			tmppart.push_back(newt);
+
+			tpart.push_back(newt);
 		}
 		newparts.push_back(move(tmppart));
 		tmppart.reserve(2000);
+
+		tpart.shrink_to_fit();
+		gpuParts[cur++] = array_view<const ampTri, 1>(tpart.size(), tpart);
+		tpart.clear();
 	}
+
+
+
 }
 
+#ifdef USING_CPPAMP
+
+auto ampTriTest = [](const ampRay &ray, const ampTri &tri, ampRes &res) restrict(amp) -> float
+{
+	
+};
+
+HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
+{
+	float ans = BorderTest(ray, BorderMin, BorderMax);
+	if (ans < hr.distance)//inside and maybe nearer
+	{
+		ampRay ampray;
+		v2v(ray.direction, ampray.dir); v2v(ray.origin, ampray.ori);
+
+		ampRes ampres[5000];
+		float resdis[5000];
+		array_view<ampRes, 1> ares(4000, ampres);
+		array_view<float, 1> adis(4000, resdis);
+		ares.discard_data(); adis.discard_data();
+
+		ans = hr.distance;
+		int objpart = -1;
+		Triangle *objt = nullptr;
+		Vertex coord;
+		for (auto a = 0; a < newparts.size(); ++a)
+			if (BorderTest(ray, bboxs[a * 2], bboxs[a * 2 + 1]) < hr.distance)
+			{
+				size_t size = newparts[a].size();
+
+				parallel_for_each(gpuParts[a].extent, [=](index<1> idx) restrict(amp)
+				{
+					VEC3 tmp1 = ampray.dir * gpuParts[a][idx].v;
+					float tmpa = gpuParts[a][idx].u & tmp1;
+					if (fast_math::fabs(tmpa) < 1e-6f)
+					{
+						adis[idx] = 1e20f; return;
+					}
+					float f = 1 / a;
+					VEC3 t2r = ampray.ori - gpuParts[a][idx].p0;
+					float u = (t2r & tmp1) * f;
+					if (u < 0.0f || u > 1.0f)
+					{
+						adis[idx] = 1e20f; return;
+					}
+					VEC3 tmp2 = t2r * gpuParts[a][idx].u;
+					float v = (ampray.dir & tmp2) * f,
+						duv = 1 - u - v;
+					if (v < 0.0f || duv < 0.0f)
+					{
+						adis[idx] = 1e20f; return;
+					}
+					float t = (gpuParts[a][idx].v & tmp2) * f;
+					if (t > 1e-5f)
+					{
+						ares[idx].u = u, ares[idx].v = v;
+						adis[idx] = t; return;
+					}
+					else
+					{
+						adis[idx] = 1e20f; return;
+					}
+				});
+
+				for (auto b = 0; b < size; ++b)
+					if (adis[b] < ans)
+					{
+						objpart = a;
+						objt = &newparts[a][b];
+						ans = adis[b];
+						coord = Vertex(1 - ares[b].u - ares[b].v, ares[b].u, ares[b].v);
+						if (ans < min)
+							goto ____EOS;
+					}
+			}
+	____EOS:
+		if (ans < hr.distance)
+		{
+			HitRes newhr(ans);
+			newhr.position = ray.origin + ray.direction * ans;
+			newhr.normal = objt->norms[0] * coord.x + objt->norms[1] * coord.y + objt->norms[2] * coord.z;
+			newhr.tcoord = objt->tcoords[0] * coord.x + objt->tcoords[1] * coord.y + objt->tcoords[2] * coord.z;
+			auto mnum = part_mtl[objpart];
+			newhr.mtl = &mtls[mnum];
+			auto tnum = mtl_tex[mnum];
+			if (tnum >= 0)
+				newhr.tex = &texs[tnum];
+			newhr.obj = (intptr_t)objt;
+			return newhr;
+		}
+	}
+	return hr;
+}
+
+#else
 HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 {
 	float ans = BorderTest(ray, BorderMin, BorderMax);
@@ -451,6 +562,9 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 	}
 	return hr;
 }
+#endif
+
+
 
 void Model::GLPrepare()
 {
@@ -532,8 +646,6 @@ float Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
 	else
 		return 1e20;
 }
-
-
 
 
 

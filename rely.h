@@ -13,7 +13,7 @@
     #endif
   #endif
 #endif
-
+#define USING_CPPAMP
 #ifndef _DEBUG
 #define NDEBUG
 #endif
@@ -45,5 +45,11 @@
 #include <memory>
 #include <thread>
 #include <atomic>
+#include <amp.h>
+#include <amp_math.h>
+//#include <fvec.h>
+
 using namespace std;
 using namespace std::placeholders;
+using namespace concurrency;
+//using namespace fast_math;

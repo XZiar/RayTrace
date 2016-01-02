@@ -257,7 +257,10 @@ float Vertex::operator&(const Vertex &v) const
 #endif
 }
 
-
+void v2v(const Vertex &vx, VEC3 &v3)
+{
+	v3.x = vx.x, v3.y = vx.y, v3.z = vx.z;
+}
 
 Normal::Normal(const Vertex &v)//น้าปปฏ
 {
