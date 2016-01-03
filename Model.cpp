@@ -319,7 +319,7 @@ void Model::reset()
 	texs.swap(vector<Texture>());
 	mtls.swap(vector<Material>());
 	parts.swap(vector<vector<Triangle>>());
-	newparts.swap(vector<vector<Triangle>>());
+	//newparts.swap(vector<vector<Triangle>>());
 	borders.swap(vector<Vertex>());
 	bboxs.swap(vector<Vertex>());
 
@@ -386,22 +386,32 @@ void Model::RTPrepare()
 	bboxs.clear();
 	for (Vertex &v : borders)
 		bboxs.push_back(v + position);
-	newparts.clear();
-	vector<Triangle> tmppart;
+	//newparts.clear();
+	clparts.clear();
+	//vector<Triangle> tpart;
+	vector<clTri> cltpart;
 	for (vector<Triangle> &part : parts)
 	{
 		for (Triangle &t : part)
 		{
-			Triangle newt = t;
-			newt.points[0] += position;
-			newt.points[1] += position;
-			newt.points[2] += position;
-			newt.axisu = newt.points[1] - newt.points[0];
-			newt.axisv = newt.points[2] - newt.points[0];
-			tmppart.push_back(newt);
+			clTri ct;
+			//Triangle newt = t;
+			//newt.points[0] += position;
+			//newt.points[1] += position;
+			//newt.points[2] += position;
+			ct.axisu = t.points[1] - t.points[0];
+			ct.axisv = t.points[2] - t.points[0];
+			ct.p0 = t.points[0] + position;
+			//tpart.push_back(newt);
+
+			cltpart.push_back(ct);
 		}
-		newparts.push_back(move(tmppart));
-		tmppart.reserve(2000);
+		//newparts.push_back(move(tpart));
+		//tpart.reserve(3000);
+
+		cltpart.shrink_to_fit();
+		clparts.push_back(move(cltpart));
+		cltpart.reserve(3000);
 	}
 }
 
@@ -414,11 +424,13 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 		float newans;
 		int objpart = -1;
 		Triangle *objt = nullptr;
+		clTri *objclt = nullptr;
 		Vertex coord, tmpc;
-		for (auto a = 0; a < newparts.size(); ++a)
+		for (auto a = 0; a < clparts.size(); ++a)
 			if (BorderTest(ray, bboxs[a * 2], bboxs[a * 2 + 1]) < hr.distance)
-				for (Triangle &t : newparts[a])
+				for (auto b = 0; b < clparts[a].size(); ++b)
 				{
+					clTri &t = clparts[a][b];
 					//early quit
 					if (hr.obj == (intptr_t)&t)
 						continue;
@@ -426,7 +438,8 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 					if (newans < ans && newans > 1e-5)
 					{
 						objpart = a;
-						objt = &t;
+						objclt = &clparts[a][b];
+						objt = &parts[a][b];
 						ans = newans;
 						coord = tmpc;
 						if (newans < min)
@@ -502,7 +515,7 @@ void Model::GLPrepare()
 	glEndList();
 }
 
-float Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
+inline float Model::TriangleTest(const Ray & ray, const clTri & tri, Vertex &coord)
 {
 	/*
 	** Point(u,v) = (1-u-v)*p0 + u*p1 + v*p2
@@ -510,11 +523,11 @@ float Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
 	** o + t*dir = (1-u-v)*p0 + u*p1 + v*p2
 	*/
 	Vertex tmp1 = ray.direction * tri.axisv;
-	float a = tri.axisu & tmp1;
-	if (abs(a) < 1e-6f)
+	float f = tri.axisu & tmp1;
+	if (f > 1e6f)
 		return 1e20f;
-	float f = 1 / a;
-	Vertex t2r = ray.origin - tri.points[0];
+	f = 1 / f;
+	Vertex t2r = ray.origin - tri.p0;
 	float u = (t2r & tmp1) * f;
 	if (u < 0.0f || u > 1.0f)
 		return 1e20f;
@@ -522,7 +535,7 @@ float Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
 	float v = (ray.direction & tmp2) * f,
 		duv = 1 - u - v;
 	if (v < 0.0f || duv < 0.0f)
-		return 1e20;
+		return 1e20f;
 	float t = (tri.axisv & tmp2) * f;
 	if (t > 1e-6f)
 	{
@@ -530,7 +543,7 @@ float Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
 		return t;
 	}
 	else
-		return 1e20;
+		return 1e20f;
 }
 
 

@@ -106,6 +106,11 @@ public:
 	void SetMtl(int8_t prop, float r, float g, float b, float a = 1.0f);
 };
 
+struct clTri
+{
+	Vertex axisu, axisv, p0;
+	clTri(const Vertex &u = Vertex(), const Vertex &v = Vertex(), const Vertex &p = Vertex()) :axisu(u), axisv(v), p0(p) { };
+};
 class Triangle
 {
 public:
@@ -118,6 +123,7 @@ public:
 	Triangle(const Vertex &va, const Vertex &vb, const Vertex &vc);
 	Triangle(const Vertex &va, const Normal &na, const Vertex &vb, const Normal &nb, const Vertex &vc, const Normal &nc);
 	Triangle(const Vertex &va, const Normal &na, const Coord2D &ta, const Vertex &vb, const Normal &nb, const Coord2D &tb, const Vertex &vc, const Normal &nc, const Coord2D &tc);
+	operator clTri() const { return clTri(axisu, axisv, points[0]); };
 };
 
 class Color

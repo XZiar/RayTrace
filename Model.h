@@ -24,7 +24,8 @@ public:
 	vector<Normal> nors;
 	vector<Coord2D> txcs;
 	vector<vector<Triangle>> parts;
-	vector<vector<Triangle>> newparts;
+	//vector<vector<Triangle>> newparts;
+	vector<vector<clTri>> clparts;
 	vector<Vertex> borders;
 	vector<Vertex> bboxs;
 	vector<Material> mtls;
@@ -33,7 +34,7 @@ public:
 	wstring objname, mtlname;
 private:
 	virtual void GLPrepare() override;
-	float TriangleTest(const Ray &ray, const Triangle &tri, Vertex &coord);
+	float TriangleTest(const Ray &ray, const clTri &tri, Vertex &coord);
 	int32_t loadobj(const wstring &objname, const uint8_t code);
 	int32_t loadmtl(const wstring &mtlname, const uint8_t code);
 	int32_t loadtex(const string &texname, const uint8_t code);
