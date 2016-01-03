@@ -14,6 +14,7 @@ private:
 	cl_int ret;
 
 	vector<cl_mem> clm_parts;
+	vector<cl_mem> clm_ress;
 	vector<int> tri_cnt;
 	cl_mem clm_rays[16];
 public:

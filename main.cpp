@@ -591,9 +591,10 @@ void showdata()
 {
 	wprintf(L"Triangle size=%zd\tHitRes size=%zd\n", sizeof(Triangle), sizeof(HitRes));
 	HANDLE hOut;
-	COORD pos = { 0,1 };
+	COORD pos = { 0,5 };
 	hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 	std::locale::global(std::locale(""));
+	return;
 	while (isRun)
 	{
 		SetConsoleCursorPosition(hOut, pos);

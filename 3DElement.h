@@ -36,12 +36,12 @@ public:
 	Coord2D operator*(const float &n) const;
 	operator float*() { return &u; };
 };
-struct VEC3
+_MM_ALIGN16 struct VEC3
 {
 	union
 	{
-		float dat[3];
-		struct { float x, y, z; };
+		float dat[4];
+		struct { float x, y, z, w; };
 	};
 	VEC3(const float a = 0.0f, const float b = 0.0f, const float c = 0.0f) :x(a), y(b), z(c) { };
 };
@@ -116,7 +116,7 @@ public:
 	void SetMtl(int8_t prop, float r, float g, float b, float a = 1.0f);
 };
 
-struct clTri
+_MM_ALIGN16 struct clTri
 {
 	VEC3 axisu, axisv, p0;
 	clTri(const VEC3 &u = VEC3(), const VEC3 &v = VEC3(), const VEC3 &p = VEC3()) :axisu(u), axisv(v), p0(p) { };
@@ -150,7 +150,7 @@ public:
 };
 
 
-struct clRay
+_MM_ALIGN16 struct clRay
 {
 	VEC3 ori, dir;
 	clRay(const VEC3 &o, const VEC3 &d) :ori(o), dir(d) { };

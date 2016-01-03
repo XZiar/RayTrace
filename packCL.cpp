@@ -20,7 +20,7 @@ void CL_get(cl_context &ctx, cl_command_queue &cqu, cl_program &pgm, cl_kernel k
 	if (isFirst)
 	{
 		FILE *fp;
-		char fileName[] = "./TriangleTest.cl";
+		char fileName[] = "D:\\Programs Data\\VSProject\\RayTrace\\RayTrace\\TriangleTest.cl";
 		char *source_str;
 		size_t source_size;
 
@@ -121,29 +121,37 @@ void packCL::init(const Model *mod)
 {
 	for(auto &mo : clm_parts)
 		clReleaseMemObject(mo);
+	for (auto &mo : clm_ress)
+		clReleaseMemObject(mo);
 	clm_parts.clear();
+	clm_ress.clear();
 	tri_cnt.clear();
+	
 	for (auto &part : mod->clparts)
 	{
 		tri_cnt.push_back(part.size());
-		cl_mem mo = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, part.size()*sizeof(clTri), (void*)&part[0], &ret);
-		clm_parts.push_back(mo);
+		cl_mem mo1 = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, part.size()*sizeof(clTri), (void*)&part[0], &ret);
+		cl_mem mo2 = clCreateBuffer(context, CL_MEM_WRITE_ONLY, part.size() * 16, NULL, &ret);
+		clm_parts.push_back(mo1);
+		clm_ress.push_back(mo2);
 	}
+	for (auto a = 0; a < 16; ++a)
+		clm_rays[a] = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(clRay), NULL, &ret);
 }
 
 int16_t packCL::dowork(const int8_t pID, const clRay &ray, Vertex &coord)
 {
 	int size = tri_cnt[pID];
 	//put ray data
-	cl_mem mray = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(clRay), (void*)&ray, &ret);
-	//ret = clEnqueueWriteBuffer(command_queue, clm_rays[tID], TRUE, 0, 32, &ray, 0, NULL, &wrt);
-	cl_mem mres = clCreateBuffer(context, CL_MEM_WRITE_ONLY, 16 * size, NULL, &ret);
-
+	
+	ret = clEnqueueWriteBuffer(command_queue, clm_rays[0], TRUE, 0, 32, &ray, 0, NULL, NULL);
+	
+	//ret = clEnqueueWriteBuffer(command_queue, mray, TRUE, 0, 32, &ray, 0, NULL, NULL);
 
 	/* Set OpenCL Kernel Parameters */
-	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&mray);
+	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&clm_rays[0]);
 	ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&clm_parts[pID]);
-	ret = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&mres);
+	ret = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&clm_ress[pID]);
 
 	/* Execute OpenCL Kernel */
 	size_t global_work_size[1] = { size };
@@ -151,17 +159,17 @@ int16_t packCL::dowork(const int8_t pID, const clRay &ray, Vertex &coord)
 	ret = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, global_work_size, NULL, 0, NULL, &enentPoint);
 	clWaitForEvents(1, &enentPoint); //wait
 	clReleaseEvent(enentPoint);
-
 	
 	/* Copy results from the memory buffer */
 	Vertex *fres = new Vertex[size];
-	ret = clEnqueueReadBuffer(command_queue, mres, CL_TRUE, 0, 16 * size, fres, 0, NULL, &enentPoint);
+	ret = clEnqueueReadBuffer(command_queue, clm_ress[pID], CL_TRUE, 0, 16 * size, fres, 0, NULL, &enentPoint);
 	clWaitForEvents(1, &enentPoint); //wait
 	clReleaseEvent(enentPoint);
 
 	float fans = 1e10f;
 	int choose = -1;
-	for (int a = 0; a < size; ++a)
+
+  	for (int a = 0; a < size; ++a)
 	{
 		if (fres[a].alpha < fans)
 			fans = fres[a].alpha, choose = a;
@@ -170,9 +178,9 @@ int16_t packCL::dowork(const int8_t pID, const clRay &ray, Vertex &coord)
 		coord = fres[choose];
 	else
 		coord = Vertex(0, 0, 0, 1e20f);
+
 	/*clean resources*/
-	ret = clReleaseMemObject(mres);
-	ret = clReleaseMemObject(mray);
+	//ret = clReleaseMemObject(mray);
 	delete[] fres;
 
 	return choose;
