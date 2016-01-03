@@ -115,7 +115,6 @@ class Triangle
 {
 public:
 	Vertex points[3];
-	Vertex axisu, axisv;
 	Normal norms[3];
 	Coord2D tcoords[3];
 	
@@ -123,7 +122,6 @@ public:
 	Triangle(const Vertex &va, const Vertex &vb, const Vertex &vc);
 	Triangle(const Vertex &va, const Normal &na, const Vertex &vb, const Normal &nb, const Vertex &vc, const Normal &nc);
 	Triangle(const Vertex &va, const Normal &na, const Coord2D &ta, const Vertex &vb, const Normal &nb, const Coord2D &tb, const Vertex &vc, const Normal &nc, const Coord2D &tc);
-	operator clTri() const { return clTri(axisu, axisv, points[0]); };
 };
 
 class Color

@@ -24,7 +24,6 @@ public:
 	vector<Normal> nors;
 	vector<Coord2D> txcs;
 	vector<vector<Triangle>> parts;
-	//vector<vector<Triangle>> newparts;
 	vector<vector<clTri>> clparts;
 	vector<Vertex> borders;
 	vector<Vertex> bboxs;

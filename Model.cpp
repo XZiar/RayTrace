@@ -319,7 +319,7 @@ void Model::reset()
 	texs.swap(vector<Texture>());
 	mtls.swap(vector<Material>());
 	parts.swap(vector<vector<Triangle>>());
-	//newparts.swap(vector<vector<Triangle>>());
+	clparts.swap(vector<vector<clTri>>());
 	borders.swap(vector<Vertex>());
 	bboxs.swap(vector<Vertex>());
 
@@ -386,29 +386,14 @@ void Model::RTPrepare()
 	bboxs.clear();
 	for (Vertex &v : borders)
 		bboxs.push_back(v + position);
-	//newparts.clear();
 	clparts.clear();
-	//vector<Triangle> tpart;
 	vector<clTri> cltpart;
 	for (vector<Triangle> &part : parts)
 	{
 		for (Triangle &t : part)
 		{
-			clTri ct;
-			//Triangle newt = t;
-			//newt.points[0] += position;
-			//newt.points[1] += position;
-			//newt.points[2] += position;
-			ct.axisu = t.points[1] - t.points[0];
-			ct.axisv = t.points[2] - t.points[0];
-			ct.p0 = t.points[0] + position;
-			//tpart.push_back(newt);
-
-			cltpart.push_back(ct);
+			cltpart.push_back(clTri(t.points[1] - t.points[0], t.points[2] - t.points[0], t.points[0] + position));
 		}
-		//newparts.push_back(move(tpart));
-		//tpart.reserve(3000);
-
 		cltpart.shrink_to_fit();
 		clparts.push_back(move(cltpart));
 		cltpart.reserve(3000);
@@ -438,7 +423,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 					if (newans < ans && newans > 1e-5)
 					{
 						objpart = a;
-						objclt = &clparts[a][b];
+						objclt = &t;
 						objt = &parts[a][b];
 						ans = newans;
 						coord = tmpc;
@@ -458,7 +443,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 			auto tnum = mtl_tex[mnum];
 			if (tnum >= 0)
 				newhr.tex = &texs[tnum];
-			newhr.obj = (intptr_t)objt;
+			newhr.obj = (intptr_t)objclt;
 			return newhr;
 		}
 	}
@@ -524,8 +509,8 @@ inline float Model::TriangleTest(const Ray & ray, const clTri & tri, Vertex &coo
 	*/
 	Vertex tmp1 = ray.direction * tri.axisv;
 	float f = tri.axisu & tmp1;
-	if (f > 1e6f)
-		return 1e20f;
+	//if (abs(f) < 1e-6f)
+		//return 1e20f;
 	f = 1 / f;
 	Vertex t2r = ray.origin - tri.p0;
 	float u = (t2r & tmp1) * f;

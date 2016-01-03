@@ -175,7 +175,6 @@ bool Scene::Delete(uint8_t type, const uint8_t num)
 
 bool Scene::MovePos(const uint8_t type, const uint8_t num, const Vertex & v)
 {
-	float tmp;
 	switch (type)
 	{
 	case MY_MODEL_OBJECT:
