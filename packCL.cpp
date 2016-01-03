@@ -131,7 +131,7 @@ void packCL::init(const Model *mod)
 	{
 		tri_cnt.push_back(part.size());
 		cl_mem mo1 = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, part.size()*sizeof(clTri), (void*)&part[0], &ret);
-		cl_mem mo2 = clCreateBuffer(context, CL_MEM_WRITE_ONLY, part.size() * 16, NULL, &ret);
+		cl_mem mo2 = clCreateBuffer(context, CL_MEM_WRITE_ONLY, 16, NULL, &ret);
 		clm_parts.push_back(mo1);
 		clm_ress.push_back(mo2);
 	}
@@ -161,27 +161,32 @@ int16_t packCL::dowork(const int8_t pID, const clRay &ray, Vertex &coord)
 	clReleaseEvent(enentPoint);
 	
 	/* Copy results from the memory buffer */
-	Vertex *fres = new Vertex[size];
-	ret = clEnqueueReadBuffer(command_queue, clm_ress[pID], CL_TRUE, 0, 16 * size, fres, 0, NULL, &enentPoint);
+	Vertex fres(0, 0, 0, 1e20f);
+
+	ret = clEnqueueReadBuffer(command_queue, clm_ress[pID], CL_TRUE, 0, 16, &fres, 0, NULL, &enentPoint);
 	clWaitForEvents(1, &enentPoint); //wait
 	clReleaseEvent(enentPoint);
 
 	float fans = 1e10f;
-	int choose = -1;
-
+	int32_t choose = -1;
+	fans = fres.alpha;
+	/*
   	for (int a = 0; a < size; ++a)
 	{
 		if (fres[a].alpha < fans)
 			fans = fres[a].alpha, choose = a;
-	}
+	}*/
 	if (fans < 1e10f)
-		coord = fres[choose];
+	{
+		choose = *(int32_t*)&fres.x;
+		coord = fres;
+		coord.x = 1 - coord.y - coord.z;
+	}
 	else
-		coord = Vertex(0, 0, 0, 1e20f);
-
+		coord = fres;
 	/*clean resources*/
 	//ret = clReleaseMemObject(mray);
-	delete[] fres;
+	//delete[] fres;
 
 	return choose;
 }
