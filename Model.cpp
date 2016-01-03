@@ -502,11 +502,55 @@ void Model::GLPrepare()
 
 inline float Model::TriangleTest(const Ray & ray, const clTri & tri, Vertex &coord)
 {
+#ifdef AVX_
+	__m256 mg14 = _mm256_set_m128(ray.direction, tri.axisv),
+		mg23 = _mm256_set_m128(tri.axisv, ray.direction);
+	__m256 mg23bak = mg23;
+	__m256 t14 = _mm256_permute_ps(mg14, _MM_SHUFFLE(3, 0, 2, 1)),
+		t23 = _mm256_permute_ps(mg23, _MM_SHUFFLE(3, 1, 0, 2));
+	__m256 lr = _mm256_mul_ps(t14, t23);//l~r->tmp1
+	__m128 *r = (__m128*)&lr.m256_f32[0], *l = (__m128*)&lr.m256_f32[4];
+
+	__m256 dpa = _mm256_set_m128(_mm_sub_ps(*l, *r), _mm_sub_ps(*l, *r));//tmp1~tmp1
+	mg14 = _mm256_set_m128(_mm_sub_ps(ray.origin, tri.p0), tri.axisu);//t2r~axu
+	__m256 dpans = _mm256_dp_ps(dpa, mg14, 0b01110001);//tmp1&t2r ~ a(tmp1&axu)
+
+	mg23 = _mm256_set_m128(tri.axisu, _mm_sub_ps(ray.origin, tri.p0));//axu~t2r
+	t14 = _mm256_permute_ps(mg14, _MM_SHUFFLE(3, 0, 2, 1)),
+	t23 = _mm256_permute_ps(mg23, _MM_SHUFFLE(3, 1, 0, 2));
+	lr = _mm256_mul_ps(t14, t23);//l~r->tmp2
+
+	__m256 ansmix = _mm256_insertf128_ps(dpans, _mm_set1_ps(1.0f), 0);//tmp1&t2r ~ 1
+	__m256 aexp = _mm256_permute2f128_ps(dpans, dpans, 0x00);//a`a`a`a`a`a`a`a
+	//__m256 dpfm = _mm256_permute2f128_ps(_mm256_set1_ps(1.0f), dpans, 0x20);
+	__m256 divans = _mm256_div_ps(ansmix, aexp);//u(tmp1&t2r/a) ~ f(1/a)
+	//divans:***u***f
+	float u = divans.m256_f32[4], f = divans.m256_f32[0];
+	if(u < 0.0f || u > 1.0f)
+		return 1e20f;
+
+	dpa = _mm256_set_m128(_mm_sub_ps(*l, *r), _mm_sub_ps(*l, *r));//tmp2~tmp2
+	mg23bak;//axv~rdir
+
+	dpans = _mm256_dp_ps(dpa, mg23bak, 0b01110001);//tmp2&axv ~ tmp2&rdir
+	aexp = _mm256_permute2f128_ps(divans, divans, 0x00);//f`f`f`f`f`f`f`f
+	__m256 mulans = _mm256_mul_ps(dpans, aexp);
+	//mulans:***t***v
+	float v = mulans.m256_f32[0], t = mulans.m256_f32[4];
+	if (v < 0.0f || v > 1.0f || t < 1e-6f)
+		return 1e20f;
+	else
+	{
+		coord = Vertex(1.0f - u - v, u, v);
+		return t;
+	}
+#else
 	/*
 	** Point(u,v) = (1-u-v)*p0 + u*p1 + v*p2
 	** Ray:Point(t) = o + t*dir
 	** o + t*dir = (1-u-v)*p0 + u*p1 + v*p2
 	*/
+	
 	Vertex tmp1 = ray.direction * tri.axisv;
 	float f = tri.axisu & tmp1;
 	//if (abs(f) < 1e-6f)
@@ -514,6 +558,7 @@ inline float Model::TriangleTest(const Ray & ray, const clTri & tri, Vertex &coo
 	f = 1 / f;
 	Vertex t2r = ray.origin - tri.p0;
 	float u = (t2r & tmp1) * f;
+	
 	if (u < 0.0f || u > 1.0f)
 		return 1e20f;
 	Vertex tmp2 = t2r * tri.axisu;
@@ -529,6 +574,7 @@ inline float Model::TriangleTest(const Ray & ray, const clTri & tri, Vertex &coo
 	}
 	else
 		return 1e20f;
+#endif
 }
 
 

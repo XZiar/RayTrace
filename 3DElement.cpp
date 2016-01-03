@@ -231,7 +231,17 @@ Vertex &Vertex::operator*=(const float & right)
 }
 Vertex Vertex::operator*(const Vertex &v) const
 {
-#ifdef AVX
+#ifdef AVX_
+	__m256 mg14 = _mm256_set_m128(dat, v.dat),
+	mg23 = _mm256_set_m128(v.dat, dat);
+	__m256 t14 = _mm256_permute_ps(mg14, _MM_SHUFFLE(3, 0, 2, 1)),
+	t23 = _mm256_permute_ps(mg23, _MM_SHUFFLE(3, 1, 0, 2));
+	__m256 lr = _mm256_mul_ps(t14, t23);
+	__m128 *r = (__m128*)&lr.m256_f32[0], *l = (__m128*)&lr.m256_f32[4];
+	//__m256 tmp1a = _mm256_set_m128(_mm_sub_ps(*l, *r), _mm_sub_ps(*l, *r));
+	//return _mm256_extractf128_ps(tmp1a, 1);
+	return _mm_sub_ps(*l, *r);
+#elif defined(AVX)
 	__m128 t1 = _mm_permute_ps(dat, _MM_SHUFFLE(3, 0, 2, 1)),
 		t2 = _mm_permute_ps(v.dat, _MM_SHUFFLE(3, 1, 0, 2)),
 		t3 = _mm_permute_ps(dat, _MM_SHUFFLE(3, 1, 0, 2)),
