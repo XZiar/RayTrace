@@ -321,6 +321,7 @@ void Model::reset()
 	mtls.swap(vector<Material>());
 	parts.swap(vector<vector<Triangle>>());
 	clparts.swap(vector<vector<clTri>>());
+	octclparts.swap(vector<vector<clTri>>());
 	borders.swap(vector<Vertex>());
 	bboxs.swap(vector<Vertex>());
 
@@ -385,19 +386,71 @@ void Model::RTPrepare()
 {
 	BorderMin = VerMin + position, BorderMax = VerMax + position;
 	bboxs.clear();
-	for (Vertex &v : borders)
-		bboxs.push_back(v + position);
+	//for (Vertex &v : borders)
+		//bboxs.push_back(v + position);
 	clparts.clear();
+	octclparts.clear();
 	vector<clTri> cltpart;
+	vector<clTri> octcltpart[8];
+	int bbnum = 0;
 	for (vector<Triangle> &part : parts)
 	{
+		Vertex va = borders[bbnum], vb = borders[bbnum + 1];
+		bboxs.push_back(va + position), bboxs.push_back(vb + position);
+		va += vb;
+		bbnum += 2;
 		for (Triangle &t : part)
 		{
-			cltpart.push_back(clTri(t.points[1] - t.points[0], t.points[2] - t.points[0], t.points[0] + position));
+			clTri clt(t.points[1] - t.points[0], t.points[2] - t.points[0], t.points[0] + position);
+			cltpart.push_back(clt);
+			__m128 tmin = _mm_min_ps(t.points[0].dat, _mm_min_ps(t.points[1].dat, t.points[2].dat));
+			__m128 tmax = _mm_max_ps(t.points[0].dat, _mm_max_ps(t.points[1].dat, t.points[2].dat));
+			/*__m128 toless = _mm_cmple_ps(tmin, va.dat),
+				tomore = _mm_cmple_ps(va.dat, tmin);*/
+			if (tmin.m128_f32[0] <= va.x)
+			{
+				if (tmin.m128_f32[2] <= va.z)
+				{
+					if (tmin.m128_f32[1] <= va.y)
+						octcltpart[0].push_back(clt);
+					if (tmin.m128_f32[1] >= va.y)
+						octcltpart[1].push_back(clt);
+				}
+				if (tmin.m128_f32[2] >= va.z)
+				{
+					if (tmin.m128_f32[1] <= va.y)
+						octcltpart[2].push_back(clt);
+					if (tmin.m128_f32[1] >= va.y)
+						octcltpart[3].push_back(clt);
+				}
+			}
+			if (tmin.m128_f32[0] >= va.x)
+			{
+				if (tmin.m128_f32[2] <= va.z)
+				{
+					if (tmin.m128_f32[1] <= va.y)
+						octcltpart[4].push_back(clt);
+					if (tmin.m128_f32[1] >= va.y)
+						octcltpart[5].push_back(clt);
+				}
+				if (tmin.m128_f32[2] >= va.z)
+				{
+					if (tmin.m128_f32[1] <= va.y)
+						octcltpart[6].push_back(clt);
+					if (tmin.m128_f32[1] >= va.y)
+						octcltpart[7].push_back(clt);
+				}
+			}
 		}
 		cltpart.shrink_to_fit();
 		clparts.push_back(move(cltpart));
 		cltpart.reserve(3000);
+		for (auto b = 0; b < 8; ++b)
+		{
+			octcltpart[b].shrink_to_fit();
+			octclparts.push_back(move(octcltpart[b]));
+			octcltpart[b].reserve(500);
+		}
 	}
 }
 
@@ -494,6 +547,12 @@ static float BorderTestEx(const Ray & ray, const Vertex &Min, const Vertex &Max,
 		}
 		
 	}
+	/*
+	float empty;
+	float dtest = BorderTest(ray, Min, Max, &empty);
+	if (dtest != minist)
+		printf("wrong!");
+	*/
 	return minist;
 }
 

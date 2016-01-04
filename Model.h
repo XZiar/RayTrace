@@ -25,6 +25,7 @@ public:
 	vector<Coord2D> txcs;
 	vector<vector<Triangle>> parts;
 	vector<vector<clTri>> clparts;
+	vector<vector<clTri>> octclparts;
 	vector<Vertex> borders;
 	vector<Vertex> bboxs;
 	vector<Material> mtls;
