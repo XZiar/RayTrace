@@ -44,3 +44,4 @@ public:
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float min = 0) override;
 };
 
+float BorderTest(const Ray &ray, const Vertex &Min, const Vertex &Max, float *getMax);

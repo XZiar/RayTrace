@@ -1,4 +1,5 @@
 #include "rely.h"
+#include "Basic3DObject.h"
 #include "Model.h"
 
 #define pS(a,b,c) (a)*65536+(b)*256+(c)
@@ -402,7 +403,8 @@ void Model::RTPrepare()
 
 HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 {
-	float ans = BorderTest(ray, BorderMin, BorderMax);
+	float empty;
+	float ans = BorderTest(ray, BorderMin, BorderMax, &empty);
 	if (ans < hr.distance)//inside and maybe nearer
 	{
 		ans = hr.distance;
@@ -412,7 +414,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 		clTri *objclt = nullptr;
 		Vertex coord, tmpc;
 		for (auto a = 0; a < clparts.size(); ++a)
-			if (BorderTest(ray, bboxs[a * 2], bboxs[a * 2 + 1]) < hr.distance)
+			if (BorderTest(ray, bboxs[a * 2], bboxs[a * 2 + 1], &empty) < hr.distance)
 				for (auto b = 0; b < clparts[a].size(); ++b)
 				{
 					clTri &t = clparts[a][b];
@@ -552,11 +554,13 @@ inline float Model::TriangleTest(const Ray & ray, const clTri & tri, Vertex &coo
 	*/
 	
 	Vertex tmp1 = ray.direction * tri.axisv;
+	Vertex t2r = ray.origin - tri.p0;
+
 	float f = tri.axisu & tmp1;
 	//if (abs(f) < 1e-6f)
 		//return 1e20f;
-	f = 1 / f;
-	Vertex t2r = ray.origin - tri.p0;
+	f = 1.0f / f;
+	
 	float u = (t2r & tmp1) * f;
 	
 	if (u < 0.0f || u > 1.0f)

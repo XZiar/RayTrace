@@ -221,6 +221,6 @@ void Coord_sph2car(float &angy, float &angz, const float dis, Vertex &v);
 void Coord_sph2car2(float &angy, float &angz, const float dis, Vertex &v);
 void Coord_car2sph(const Vertex &v, float &angy, float &angz, float &dis);
 float mod(const float &l, const float &r);
-float BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max);
+
 
 

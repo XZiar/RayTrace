@@ -2,6 +2,50 @@
 #include "Basic3DObject.h"
 
 
+float BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max, float *getMax)
+{
+	Vertex tdismin = Min - ray.origin, tdismax = Max - ray.origin;
+	Vertex rrd = _mm_div_ps(_mm_set1_ps(1.0f), ray.direction);
+	tdismin = tdismin.mixmul(rrd);
+	tdismax = tdismax.mixmul(rrd);
+	Vertex dismin = _mm_min_ps(tdismin.dat, tdismax.dat),
+		dismax = _mm_max_ps(tdismin.dat, tdismax.dat);
+	
+	//test y
+	if (abs(ray.direction.z) < 1e-6)
+	{
+		if (ray.origin.y > Max.y || ray.origin.y < Min.y)
+			return 1e20f;
+		dismin.y = -1, dismax.y = 1e10f;
+	}
+	//test x
+	if (abs(ray.direction.z) < 1e-6)
+	{
+		if (ray.origin.x > Max.x || ray.origin.x < Min.x)
+			return 1e20f;
+		dismin.x = -1, dismax.x = 1e10f;
+	}
+	//test z
+	if (abs(ray.direction.z) < 1e-6)
+	{
+		if (ray.origin.z > Max.z || ray.origin.z < Min.z)
+			return 1e20f;
+		dismin.z = -1, dismax.z = 1e10f;
+	}
+
+	float dmin = dismin.x < dismin.y ? dismin.y : dismin.x,
+		dmax = dismax.x < dismax.y ? dismax.x : dismax.y;
+	dmin = dmin < dismin.z ? dismin.z : dmin,
+		dmax = dmax < dismax.z ? dmax : dismax.z;
+	dmin = dmin < 0 ? 0 : dmin;
+	if (dmax < dmin)
+		return 1e20;
+	*getMax = dmax;
+	return dmin;
+}
+
+
+
 Sphere::Sphere(const float r, GLuint lnum) : DrawObject(lnum)
 {
 	type = MY_OBJECT_SPHERE;
@@ -143,8 +187,8 @@ HitRes Box::intersect(const Ray & ray, const HitRes &hr, const float dmin)
 	//early quit
 	if (hr.obj == (intptr_t)this)
 		return hr;
-
-	float res = BorderTest(ray, min + position, max + position);
+	float empty;
+	float res = BorderTest(ray, min + position, max + position, &empty);
 	if (res < hr.distance && res > 1e-6)
 	{
 		HitRes newhr(res);
