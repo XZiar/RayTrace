@@ -106,9 +106,10 @@ public:
 	void SetMtl(int8_t prop, float r, float g, float b, float a = 1.0f);
 };
 
-struct clTri
+_MM_ALIGN16 struct clTri
 {
 	Vertex axisu, axisv, p0;
+	int16_t numa, numb;
 	clTri(const Vertex &u = Vertex(), const Vertex &v = Vertex(), const Vertex &p = Vertex()) :axisu(u), axisv(v), p0(p) { };
 };
 class Triangle

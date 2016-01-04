@@ -393,15 +393,22 @@ void Model::RTPrepare()
 	vector<clTri> cltpart;
 	vector<clTri> octcltpart[8];
 	int bbnum = 0;
-	for (vector<Triangle> &part : parts)
+	for (auto cnta = 0; cnta < parts.size(); ++cnta)
+	//for (vector<Triangle> &part : parts)
 	{
+		vector<Triangle> &part = parts[cnta];
+
 		Vertex va = borders[bbnum], vb = borders[bbnum + 1];
 		bboxs.push_back(va + position), bboxs.push_back(vb + position);
 		va = (va + vb) * 0.5;
 		bbnum += 2;
-		for (Triangle &t : part)
+		for (auto cntb = 0; cntb < part.size(); ++cntb)
+		//for (Triangle &t : part)
 		{
+			Triangle &t = part[cntb];
 			clTri clt(t.points[1] - t.points[0], t.points[2] - t.points[0], t.points[0] + position);
+			clt.numa = cnta, clt.numb = cntb;
+
 			cltpart.push_back(clt);
 			__m128 tmin = _mm_min_ps(t.points[0].dat, _mm_min_ps(t.points[1].dat, t.points[2].dat));
 			__m128 tmax = _mm_max_ps(t.points[0].dat, _mm_max_ps(t.points[1].dat, t.points[2].dat));
@@ -647,24 +654,35 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 		Vertex coord, tmpc;
 		for (auto a = 0; a < clparts.size(); ++a)
 			if (BorderTestEx(ray, bboxs[a * 2], bboxs[a * 2 + 1], mask) < hr.distance)
-				for (auto b = 0; b < clparts[a].size(); ++b)
+			{
+				for (auto c = 0; c < 8; ++c)
 				{
-					clTri &t = clparts[a][b];
-					//early quit
-					if (hr.obj == (intptr_t)&t)
-						continue;
-					newans = TriangleTest(ray, t, tmpc);
-					if (newans < ans && newans > 1e-5)
+					if (mask[c])
 					{
-						objpart = a;
-						objclt = &t;
-						objt = &parts[a][b];
-						ans = newans;
-						coord = tmpc;
-						if (newans < min)
-							goto ____EOS;
+						for (auto b = 0; b < octclparts[a*8+c].size(); ++b)
+						{
+							//clTri &t = clparts[a][b];
+							clTri &t = octclparts[a * 8 + c][b];
+							//early quit
+							if (hr.obj == (intptr_t)&t)
+								continue;
+							newans = TriangleTest(ray, t, tmpc);
+							if (newans < ans && newans > 1e-5)
+							{
+								objpart = a;
+								objclt = &t;
+								//objt = &parts[a][b];
+								objt = &parts[t.numa][t.numb];
+								ans = newans;
+								coord = tmpc;
+								if (newans < min)
+									goto ____EOS;
+							}
+						}
 					}
 				}
+				
+			}
 	____EOS:
 		if (ans < hr.distance)
 		{
