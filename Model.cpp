@@ -386,22 +386,29 @@ void Model::RTPrepare()
 {
 	BorderMin = VerMin + position, BorderMax = VerMax + position;
 	bboxs.clear();
-	//for (Vertex &v : borders)
-		//bboxs.push_back(v + position);
+	for (Vertex &v : borders)
+		bboxs.push_back(v + position);
 	clparts.clear();
 	octclparts.clear();
 	vector<clTri> cltpart;
 	vector<clTri> octcltpart[8];
 	int bbnum = 0;
-	for (vector<Triangle> &part : parts)
+	for (int32_t cnta = 0; cnta < parts.size(); ++cnta)
 	{
+		vector<Triangle> &part = parts[cnta];
 		Vertex va = borders[bbnum], vb = borders[bbnum + 1];
-		bboxs.push_back(va + position), bboxs.push_back(vb + position);
-		va += vb;
+		//bboxs.push_back(va + position), bboxs.push_back(vb + position);
+		va = (va + vb) / 2;
 		bbnum += 2;
-		for (Triangle &t : part)
+		for (int32_t cntb = 0; cntb < part.size(); ++cntb)
+		//for (Triangle &t : part)
 		{
+			Triangle &t = part[cntb];
+
 			clTri clt(t.points[1] - t.points[0], t.points[2] - t.points[0], t.points[0] + position);
+			*(int32_t*)&clt.axisu.alpha = cnta;
+			*(int32_t*)&clt.axisv.alpha = cntb;
+
 			cltpart.push_back(clt);
 			__m128 tmin = _mm_min_ps(t.points[0].dat, _mm_min_ps(t.points[1].dat, t.points[2].dat));
 			__m128 tmax = _mm_max_ps(t.points[0].dat, _mm_max_ps(t.points[1].dat, t.points[2].dat));
@@ -652,7 +659,11 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 		clTri *objclt = nullptr;
 		Vertex coord, tmpc;
 		for (auto a = 0; a < clparts.size(); ++a)
-			if (BorderTestEx(ray, bboxs[a * 2], bboxs[a * 2 + 1], mask) < hr.distance)
+			//if (BorderTestEx(ray, bboxs[a * 2], bboxs[a * 2 + 1], mask) < hr.distance)
+			//if (BorderTest(ray, bboxs[a * 2], bboxs[a * 2 + 1], &empty) < hr.distance)
+			if (BorderTestOld(ray, bboxs[a * 2], bboxs[a * 2 + 1]) < hr.distance)
+			{
+				//if()
 				for (auto b = 0; b < clparts[a].size(); ++b)
 				{
 					clTri &t = clparts[a][b];
@@ -671,11 +682,17 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 							goto ____EOS;
 					}
 				}
+			}
 	____EOS:
 		if (ans < hr.distance)
 		{
 			HitRes newhr(ans);
 			newhr.position = ray.origin + ray.direction * ans;
+
+			/*int32_t cnta = *(int32_t*)&objclt->axisu.alpha;
+			int32_t cntb = *(int32_t*)&objclt->axisv.alpha;
+			objt = &parts[cnta][cntb];*/
+
 			newhr.normal = objt->norms[0] * coord.x + objt->norms[1] * coord.y + objt->norms[2] * coord.z;
 			newhr.tcoord = objt->tcoords[0] * coord.x + objt->tcoords[1] * coord.y + objt->tcoords[2] * coord.z;
 			auto mnum = part_mtl[objpart];
