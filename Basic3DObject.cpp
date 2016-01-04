@@ -33,11 +33,8 @@ float BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max, float *g
 		dismin.z = -1, dismax.z = 1e10f;
 	}
 
-	float dmin = dismin.x < dismin.y ? dismin.y : dismin.x,
-		dmax = dismax.x < dismax.y ? dismax.x : dismax.y;
-	dmin = dmin < dismin.z ? dismin.z : dmin,
-		dmax = dmax < dismax.z ? dmax : dismax.z;
-	dmin = dmin < 0 ? 0 : dmin;
+	float dmin = max(max(dismin.x, dismin.y), max(dismin.z, 0.0f)),
+		dmax = min(min(dismax.x, dismax.y), dismax.z);
 	if (dmax < dmin)
 		return 1e20;
 	*getMax = dmax;

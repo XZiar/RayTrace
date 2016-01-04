@@ -400,10 +400,212 @@ void Model::RTPrepare()
 		cltpart.reserve(3000);
 	}
 }
+#pragma region bordertest2
+static float BorderTest2(const Ray & ray, const Vertex &Min, const Vertex &Max, int8_t *ord, __m256i *mask)
+{
+	const Vertex Mid = (Min + Max) * 0.5;
+	Vertex tdismin = Min - ray.origin, tdismax = Max - ray.origin, tdismid = Mid - ray.origin;
+	Vertex rrd = _mm_div_ps(_mm_set1_ps(1.0f), ray.direction);
+	tdismin = tdismin.mixmul(rrd);
+	tdismax = tdismax.mixmul(rrd);
+	tdismid = tdismid.mixmul(rrd);
+	
+	//test y
+	if (abs(ray.direction.z) < 1e-6)
+	{
+		if (ray.origin.y > Max.y || ray.origin.y < Min.y)
+			return 1e20f;
+		tdismin.y = -1, tdismax.y = 1e10f;
+		if (ray.origin.y > Mid.y)
+			tdismid.y = -1;
+		else
+			tdismid.y = 1e10f;
+	}
+	//test x
+	if (abs(ray.direction.z) < 1e-6)
+	{
+		if (ray.origin.x > Max.x || ray.origin.x < Min.x)
+			return 1e20f;
+		tdismin.x = -1, tdismax.x = 1e10f;
+		if (ray.origin.x > Mid.x)
+			tdismid.x = -1;
+		else
+			tdismid.x = 1e10f;
+	}
+	//test z
+	if (abs(ray.direction.z) < 1e-6)
+	{
+		if (ray.origin.z > Max.z || ray.origin.z < Min.z)
+			return 1e20f;
+		tdismin.z = -1, tdismax.z = 1e10f;
+		if (ray.origin.z > Mid.z)
+			tdismid.z = -1;
+		else
+			tdismid.z = 1e10f;
+	}
+
+	__m256 min_mid = _mm256_set_m128(tdismid, tdismin),
+		mid_max = _mm256_set_m128(tdismax, tdismid);
+	__m256 xa = _mm256_permute_ps(min_mid, 0x00),
+		xb = _mm256_permute_ps(mid_max, 0x00);
+	__m256 ya = _mm256_permutevar8x32_ps(min_mid, _mm256_set_epi32(5, 1, 5, 1, 5, 1, 5, 1)),
+		yb = _mm256_permutevar8x32_ps(mid_max, _mm256_set_epi32(5, 1, 5, 1, 5, 1, 5, 1));
+	__m256 ansmin = _mm256_max_ps(xa, xb),
+		ansmax = _mm256_min_ps(xa, xb);
+	__m256 za = _mm256_permutevar8x32_ps(min_mid, _mm256_set_epi32(2, 2, 6, 6, 2, 2, 6, 6)),
+		zb = _mm256_permutevar8x32_ps(mid_max, _mm256_set_epi32(2, 2, 6, 6, 2, 2, 6, 6));
+	__m256 tyansmin = _mm256_max_ps(ya, yb),
+		tyansmax = _mm256_min_ps(ya, yb),
+		tzansmin = _mm256_max_ps(za, zb),
+		tzansmax = _mm256_min_ps(za, zb);
+	ansmin = _mm256_max_ps(ansmin, tyansmin),
+	ansmax = _mm256_min_ps(ansmax, tyansmax);
+	ansmin = _mm256_max_ps(ansmin, tzansmin),
+	ansmax = _mm256_min_ps(ansmax, tzansmax);
+
+	__m256i state = *(__m256i*)&_mm256_cmp_ps(ansmin, ansmax, _CMP_LE_OS);
+	*mask = state;
+	int8_t sum = 0;
+	int8_t tmpp = -1;
+	float tmpf = 1e20;
+	for (auto b = 0; b < 8; ++b)
+	{
+		if (state.m256i_i32[b])//min<=max
+		{
+			if (ansmin.m256_f32[b] < tmpf)
+				tmpf = ansmin.m256_f32[b];
+		}
+	}
+	if (tmpf > 1e8f)
+		return 1e20f;
+	return tmpf;
+}
+#pragma endregion wrong way of bordertest2
+
+static float BorderTestEx(const Ray & ray, const Vertex &Min, const Vertex &Max, int8_t *mask)
+{
+	const Vertex Mid = (Min + Max) * 0.5;
+	Vertex tdismin = Min - ray.origin, tdismax = Max - ray.origin, tdismid = Mid - ray.origin;
+	Vertex rrd = _mm_div_ps(_mm_set1_ps(1.0f), ray.direction);
+	tdismin = tdismin.mixmul(rrd);
+	tdismax = tdismax.mixmul(rrd);
+	tdismid = tdismid.mixmul(rrd);
+	//test y
+	if (abs(ray.direction.z) < 1e-6)
+	{
+		if (ray.origin.y > Max.y || ray.origin.y < Min.y)
+			return 1e20f;
+		tdismin.y = -1, tdismax.y = 1e10f;
+	}
+	//test x
+	if (abs(ray.direction.z) < 1e-6)
+	{
+		if (ray.origin.x > Max.x || ray.origin.x < Min.x)
+			return 1e20f;
+		tdismin.x = -1, tdismax.x = 1e10f;
+	}
+	//test z
+	if (abs(ray.direction.z) < 1e-6)
+	{
+		if (ray.origin.z > Max.z || ray.origin.z < Min.z)
+			return 1e20f;
+		tdismin.z = -1, tdismax.z = 1e10f;
+	}
+
+	float dmin = max(max(tdismin.x, tdismin.y), max(tdismin.z, 0.0f)),
+		dmax = min(min(tdismax.x, tdismax.y), tdismax.z);
+	if (dmax < dmin)
+		return 1e20;
+	return dmin;
+}
+
+inline static float TriangleTest(const Ray & ray, const clTri & tri, Vertex &coord)
+{
+#pragma region avx_triangletest
+#ifdef AVX_
+
+	__m256 mg14 = _mm256_set_m128(ray.direction, tri.axisv),
+		mg23 = _mm256_set_m128(tri.axisv, ray.direction);
+	__m256 mg23bak = mg23;
+	__m256 t14 = _mm256_permute_ps(mg14, _MM_SHUFFLE(3, 0, 2, 1)),
+		t23 = _mm256_permute_ps(mg23, _MM_SHUFFLE(3, 1, 0, 2));
+	__m256 lr = _mm256_mul_ps(t14, t23);//l~r->tmp1
+	__m128 *r = (__m128*)&lr.m256_f32[0], *l = (__m128*)&lr.m256_f32[4];
+
+	__m256 dpa = _mm256_set_m128(_mm_sub_ps(*l, *r), _mm_sub_ps(*l, *r));//tmp1~tmp1
+	mg14 = _mm256_set_m128(_mm_sub_ps(ray.origin, tri.p0), tri.axisu);//t2r~axu
+	__m256 dpans = _mm256_dp_ps(dpa, mg14, 0b01110001);//tmp1&t2r ~ a(tmp1&axu)
+
+	mg23 = _mm256_set_m128(tri.axisu, _mm_sub_ps(ray.origin, tri.p0));//axu~t2r
+	t14 = _mm256_permute_ps(mg14, _MM_SHUFFLE(3, 0, 2, 1)),
+		t23 = _mm256_permute_ps(mg23, _MM_SHUFFLE(3, 1, 0, 2));
+	lr = _mm256_mul_ps(t14, t23);//l~r->tmp2
+
+	__m256 ansmix = _mm256_insertf128_ps(dpans, _mm_set1_ps(1.0f), 0);//tmp1&t2r ~ 1
+	__m256 aexp = _mm256_permute2f128_ps(dpans, dpans, 0x00);//a`a`a`a`a`a`a`a
+															 //__m256 dpfm = _mm256_permute2f128_ps(_mm256_set1_ps(1.0f), dpans, 0x20);
+	__m256 divans = _mm256_div_ps(ansmix, aexp);//u(tmp1&t2r/a) ~ f(1/a)
+												//divans:***u***f
+	float u = divans.m256_f32[4], f = divans.m256_f32[0];
+	if (u < 0.0f || u > 1.0f)
+		return 1e20f;
+
+	dpa = _mm256_set_m128(_mm_sub_ps(*l, *r), _mm_sub_ps(*l, *r));//tmp2~tmp2
+	mg23bak;//axv~rdir
+
+	dpans = _mm256_dp_ps(dpa, mg23bak, 0b01110001);//tmp2&axv ~ tmp2&rdir
+	aexp = _mm256_permute2f128_ps(divans, divans, 0x00);//f`f`f`f`f`f`f`f
+	__m256 mulans = _mm256_mul_ps(dpans, aexp);
+	//mulans:***t***v
+	float v = mulans.m256_f32[0], t = mulans.m256_f32[4];
+	if (v < 0.0f || v > 1.0f || t < 1e-6f)
+		return 1e20f;
+	else
+	{
+		coord = Vertex(1.0f - u - v, u, v);
+		return t;
+	}
+#else
+#pragma endregion a wrong way to do triangletest using avx2
+	/*
+	** Point(u,v) = (1-u-v)*p0 + u*p1 + v*p2
+	** Ray:Point(t) = o + t*dir
+	** o + t*dir = (1-u-v)*p0 + u*p1 + v*p2
+	*/
+
+	Vertex tmp1 = ray.direction * tri.axisv;
+	Vertex t2r = ray.origin - tri.p0;
+
+	float f = tri.axisu & tmp1;
+	//if (abs(f) < 1e-6f)
+	//return 1e20f;
+	f = 1.0f / f;
+
+	float u = (t2r & tmp1) * f;
+
+	if (u < 0.0f || u > 1.0f)
+		return 1e20f;
+	Vertex tmp2 = t2r * tri.axisu;
+	float v = (ray.direction & tmp2) * f,
+		duv = 1 - u - v;
+	if (v < 0.0f || duv < 0.0f)
+		return 1e20f;
+	float t = (tri.axisv & tmp2) * f;
+	if (t > 1e-6f)
+	{
+		coord = Vertex(duv, u, v);
+		return t;
+	}
+	else
+		return 1e20f;
+#endif
+}
 
 HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 {
 	float empty;
+	__m256i mask;
+	int8_t tmpppp;
 	float ans = BorderTest(ray, BorderMin, BorderMax, &empty);
 	if (ans < hr.distance)//inside and maybe nearer
 	{
@@ -502,84 +704,7 @@ void Model::GLPrepare()
 	glEndList();
 }
 
-inline float Model::TriangleTest(const Ray & ray, const clTri & tri, Vertex &coord)
-{
-#ifdef AVX_
-	__m256 mg14 = _mm256_set_m128(ray.direction, tri.axisv),
-		mg23 = _mm256_set_m128(tri.axisv, ray.direction);
-	__m256 mg23bak = mg23;
-	__m256 t14 = _mm256_permute_ps(mg14, _MM_SHUFFLE(3, 0, 2, 1)),
-		t23 = _mm256_permute_ps(mg23, _MM_SHUFFLE(3, 1, 0, 2));
-	__m256 lr = _mm256_mul_ps(t14, t23);//l~r->tmp1
-	__m128 *r = (__m128*)&lr.m256_f32[0], *l = (__m128*)&lr.m256_f32[4];
 
-	__m256 dpa = _mm256_set_m128(_mm_sub_ps(*l, *r), _mm_sub_ps(*l, *r));//tmp1~tmp1
-	mg14 = _mm256_set_m128(_mm_sub_ps(ray.origin, tri.p0), tri.axisu);//t2r~axu
-	__m256 dpans = _mm256_dp_ps(dpa, mg14, 0b01110001);//tmp1&t2r ~ a(tmp1&axu)
-
-	mg23 = _mm256_set_m128(tri.axisu, _mm_sub_ps(ray.origin, tri.p0));//axu~t2r
-	t14 = _mm256_permute_ps(mg14, _MM_SHUFFLE(3, 0, 2, 1)),
-	t23 = _mm256_permute_ps(mg23, _MM_SHUFFLE(3, 1, 0, 2));
-	lr = _mm256_mul_ps(t14, t23);//l~r->tmp2
-
-	__m256 ansmix = _mm256_insertf128_ps(dpans, _mm_set1_ps(1.0f), 0);//tmp1&t2r ~ 1
-	__m256 aexp = _mm256_permute2f128_ps(dpans, dpans, 0x00);//a`a`a`a`a`a`a`a
-	//__m256 dpfm = _mm256_permute2f128_ps(_mm256_set1_ps(1.0f), dpans, 0x20);
-	__m256 divans = _mm256_div_ps(ansmix, aexp);//u(tmp1&t2r/a) ~ f(1/a)
-	//divans:***u***f
-	float u = divans.m256_f32[4], f = divans.m256_f32[0];
-	if(u < 0.0f || u > 1.0f)
-		return 1e20f;
-
-	dpa = _mm256_set_m128(_mm_sub_ps(*l, *r), _mm_sub_ps(*l, *r));//tmp2~tmp2
-	mg23bak;//axv~rdir
-
-	dpans = _mm256_dp_ps(dpa, mg23bak, 0b01110001);//tmp2&axv ~ tmp2&rdir
-	aexp = _mm256_permute2f128_ps(divans, divans, 0x00);//f`f`f`f`f`f`f`f
-	__m256 mulans = _mm256_mul_ps(dpans, aexp);
-	//mulans:***t***v
-	float v = mulans.m256_f32[0], t = mulans.m256_f32[4];
-	if (v < 0.0f || v > 1.0f || t < 1e-6f)
-		return 1e20f;
-	else
-	{
-		coord = Vertex(1.0f - u - v, u, v);
-		return t;
-	}
-#else
-	/*
-	** Point(u,v) = (1-u-v)*p0 + u*p1 + v*p2
-	** Ray:Point(t) = o + t*dir
-	** o + t*dir = (1-u-v)*p0 + u*p1 + v*p2
-	*/
-	
-	Vertex tmp1 = ray.direction * tri.axisv;
-	Vertex t2r = ray.origin - tri.p0;
-
-	float f = tri.axisu & tmp1;
-	//if (abs(f) < 1e-6f)
-		//return 1e20f;
-	f = 1.0f / f;
-	
-	float u = (t2r & tmp1) * f;
-	
-	if (u < 0.0f || u > 1.0f)
-		return 1e20f;
-	Vertex tmp2 = t2r * tri.axisu;
-	float v = (ray.direction & tmp2) * f,
-		duv = 1 - u - v;
-	if (v < 0.0f || duv < 0.0f)
-		return 1e20f;
-	float t = (tri.axisv & tmp2) * f;
-	if (t > 1e-6f)
-	{
-		coord = Vertex(duv, u, v);
-		return t;
-	}
-	else
-		return 1e20f;
-#endif
-}
 
 
 
