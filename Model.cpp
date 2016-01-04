@@ -400,123 +400,101 @@ void Model::RTPrepare()
 		cltpart.reserve(3000);
 	}
 }
-#pragma region bordertest2
-static float BorderTest2(const Ray & ray, const Vertex &Min, const Vertex &Max, int8_t *ord, __m256i *mask)
-{
-	const Vertex Mid = (Min + Max) * 0.5;
-	Vertex tdismin = Min - ray.origin, tdismax = Max - ray.origin, tdismid = Mid - ray.origin;
-	Vertex rrd = _mm_div_ps(_mm_set1_ps(1.0f), ray.direction);
-	tdismin = tdismin.mixmul(rrd);
-	tdismax = tdismax.mixmul(rrd);
-	tdismid = tdismid.mixmul(rrd);
-	
-	//test y
-	if (abs(ray.direction.z) < 1e-6)
-	{
-		if (ray.origin.y > Max.y || ray.origin.y < Min.y)
-			return 1e20f;
-		tdismin.y = -1, tdismax.y = 1e10f;
-		if (ray.origin.y > Mid.y)
-			tdismid.y = -1;
-		else
-			tdismid.y = 1e10f;
-	}
-	//test x
-	if (abs(ray.direction.z) < 1e-6)
-	{
-		if (ray.origin.x > Max.x || ray.origin.x < Min.x)
-			return 1e20f;
-		tdismin.x = -1, tdismax.x = 1e10f;
-		if (ray.origin.x > Mid.x)
-			tdismid.x = -1;
-		else
-			tdismid.x = 1e10f;
-	}
-	//test z
-	if (abs(ray.direction.z) < 1e-6)
-	{
-		if (ray.origin.z > Max.z || ray.origin.z < Min.z)
-			return 1e20f;
-		tdismin.z = -1, tdismax.z = 1e10f;
-		if (ray.origin.z > Mid.z)
-			tdismid.z = -1;
-		else
-			tdismid.z = 1e10f;
-	}
-
-	__m256 min_mid = _mm256_set_m128(tdismid, tdismin),
-		mid_max = _mm256_set_m128(tdismax, tdismid);
-	__m256 xa = _mm256_permute_ps(min_mid, 0x00),
-		xb = _mm256_permute_ps(mid_max, 0x00);
-	__m256 ya = _mm256_permutevar8x32_ps(min_mid, _mm256_set_epi32(5, 1, 5, 1, 5, 1, 5, 1)),
-		yb = _mm256_permutevar8x32_ps(mid_max, _mm256_set_epi32(5, 1, 5, 1, 5, 1, 5, 1));
-	__m256 ansmin = _mm256_max_ps(xa, xb),
-		ansmax = _mm256_min_ps(xa, xb);
-	__m256 za = _mm256_permutevar8x32_ps(min_mid, _mm256_set_epi32(2, 2, 6, 6, 2, 2, 6, 6)),
-		zb = _mm256_permutevar8x32_ps(mid_max, _mm256_set_epi32(2, 2, 6, 6, 2, 2, 6, 6));
-	__m256 tyansmin = _mm256_max_ps(ya, yb),
-		tyansmax = _mm256_min_ps(ya, yb),
-		tzansmin = _mm256_max_ps(za, zb),
-		tzansmax = _mm256_min_ps(za, zb);
-	ansmin = _mm256_max_ps(ansmin, tyansmin),
-	ansmax = _mm256_min_ps(ansmax, tyansmax);
-	ansmin = _mm256_max_ps(ansmin, tzansmin),
-	ansmax = _mm256_min_ps(ansmax, tzansmax);
-
-	__m256i state = *(__m256i*)&_mm256_cmp_ps(ansmin, ansmax, _CMP_LE_OS);
-	*mask = state;
-	int8_t sum = 0;
-	int8_t tmpp = -1;
-	float tmpf = 1e20;
-	for (auto b = 0; b < 8; ++b)
-	{
-		if (state.m256i_i32[b])//min<=max
-		{
-			if (ansmin.m256_f32[b] < tmpf)
-				tmpf = ansmin.m256_f32[b];
-		}
-	}
-	if (tmpf > 1e8f)
-		return 1e20f;
-	return tmpf;
-}
-#pragma endregion wrong way of bordertest2
 
 static float BorderTestEx(const Ray & ray, const Vertex &Min, const Vertex &Max, int8_t *mask)
 {
 	const Vertex Mid = (Min + Max) * 0.5;
-	Vertex tdismin = Min - ray.origin, tdismax = Max - ray.origin, tdismid = Mid - ray.origin;
+	Vertex tmin = Min - ray.origin, tmax = Max - ray.origin, tmid = Mid - ray.origin;
 	Vertex rrd = _mm_div_ps(_mm_set1_ps(1.0f), ray.direction);
-	tdismin = tdismin.mixmul(rrd);
-	tdismax = tdismax.mixmul(rrd);
-	tdismid = tdismid.mixmul(rrd);
+	tmin = tmin.mixmul(rrd);
+	tmax = tmax.mixmul(rrd);
+	tmid = tmid.mixmul(rrd);
+
+	__m256 min_mid, mid_max, xa, xb, ya, yb, za, zb;
+	min_mid = _mm256_set_m128(tmid, tmin);
+	mid_max = _mm256_set_m128(tmax, tmid);
+	xa = _mm256_permute_ps(min_mid, 0x00);
+	xb = _mm256_permute_ps(mid_max, 0x00);
+	ya = _mm256_permutevar8x32_ps(min_mid, _mm256_set_epi32(5, 1, 5, 1, 5, 1, 5, 1));
+	yb = _mm256_permutevar8x32_ps(mid_max, _mm256_set_epi32(5, 1, 5, 1, 5, 1, 5, 1));
+	za = _mm256_permutevar8x32_ps(min_mid, _mm256_set_epi32(6, 6, 2, 2, 6, 6, 2, 2));
+	zb = _mm256_permutevar8x32_ps(mid_max, _mm256_set_epi32(6, 6, 2, 2, 6, 6, 2, 2));
+
+	__m256 txansmin = _mm256_min_ps(xa, xb),
+		txansmax = _mm256_max_ps(xa, xb),
+		tyansmin = _mm256_min_ps(ya, yb),
+		tyansmax = _mm256_max_ps(ya, yb),
+		tzansmin = _mm256_min_ps(za, zb),
+		tzansmax = _mm256_max_ps(za, zb);
+
 	//test y
-	if (abs(ray.direction.z) < 1e-6)
+	if (abs(ray.direction.y) < 1e-6)
 	{
 		if (ray.origin.y > Max.y || ray.origin.y < Min.y)
 			return 1e20f;
-		tdismin.y = -1, tdismax.y = 1e10f;
+		if (ray.origin.y >= Mid.y)
+			tyansmin = _mm256_setr_ps(1e20f, 0, 1e20f, 0, 1e20f, 0, 1e20f, 0),
+			tyansmax = _mm256_setr_ps(0, 1e20f, 0, 1e20f, 0, 1e20f, 0, 1e20f);
+		else
+			tyansmin = _mm256_setr_ps(0, 1e20f, 0, 1e20f, 0, 1e20f, 0, 1e20f),
+			tyansmax = _mm256_setr_ps(1e20f, 0, 1e20f, 0, 1e20f, 0, 1e20f, 0);
+		/*	else
+		tyansmin = _mm256_setzero_ps(),//_mm256_set_ps(0, 0, 0, 0, 0, 0, 0, 0),
+		tyansmax = _mm256_set_ps(1e20f, 1e20f, 1e20f, 1e20f, 1e20f, 1e20f, 1e20f, 1e20f);
+		*/
 	}
 	//test x
-	if (abs(ray.direction.z) < 1e-6)
+	if (abs(ray.direction.x) < 1e-6)
 	{
 		if (ray.origin.x > Max.x || ray.origin.x < Min.x)
 			return 1e20f;
-		tdismin.x = -1, tdismax.x = 1e10f;
+		if (ray.origin.x >= Mid.x)
+			txansmin = _mm256_setr_ps(1e20f, 1e20f, 1e20f, 1e20f, 0, 0, 0, 0),
+			txansmax = _mm256_setr_ps(0, 0, 0, 0, 1e20f, 1e20f, 1e20f, 1e20f);
+		else
+			txansmin = _mm256_setr_ps(0, 0, 0, 0, 1e20f, 1e20f, 1e20f, 1e20f),
+			txansmax = _mm256_setr_ps(1e20f, 1e20f, 1e20f, 1e20f, 0, 0, 0, 0);
 	}
 	//test z
 	if (abs(ray.direction.z) < 1e-6)
 	{
 		if (ray.origin.z > Max.z || ray.origin.z < Min.z)
 			return 1e20f;
-		tdismin.z = -1, tdismax.z = 1e10f;
+		if (ray.origin.z >= Mid.z)
+			tzansmin = _mm256_setr_ps(1e20f, 1e20f, 0, 0, 1e20f, 1e20f, 0, 0),
+			tzansmax = _mm256_setr_ps(0, 0, 1e20f, 1e20f, 0, 0, 1e20f, 1e20f);
+		else
+			tzansmin = _mm256_setr_ps(0, 0, 1e20f, 1e20f, 0, 0, 1e20f, 1e20f),
+			tzansmax = _mm256_setr_ps(1e20f, 1e20f, 0, 0, 1e20f, 1e20f, 0, 0);
 	}
 
-	float dmin = max(max(tdismin.x, tdismin.y), max(tdismin.z, 0.0f)),
-		dmax = min(min(tdismax.x, tdismax.y), tdismax.z);
-	if (dmax < dmin)
-		return 1e20;
-	return dmin;
+	__m256 ansmin = _mm256_max_ps(txansmin, tyansmin),
+		ansmax = _mm256_min_ps(txansmax, tyansmax),
+		ttansmin = _mm256_max_ps(tzansmin, _mm256_setzero_ps());
+	ansmin = _mm256_max_ps(ansmin, ttansmin);
+	ansmax = _mm256_min_ps(ansmax, tzansmax);
+
+	__m256i state = *(__m256i*)&_mm256_cmp_ps(ansmin, ansmax, _CMP_LE_OS);
+	float minist = 1e20f;
+
+	for (auto a = 0; a < 8; ++a)
+	{
+		/*Vertex ttmin(a & 0x4 ? Mid.x : Min.x, a & 0x1 ? Mid.y : Min.y, a & 0x2 ? Mid.z : Min.z);
+		Vertex ttmax(a & 0x4 ? Max.x : Mid.x, a & 0x1 ? Max.y : Mid.y, a & 0x2 ? Max.z : Mid.z);
+		float empty;
+		float ttans = BorderTest(ray, ttmin, ttmax, &empty);*/
+		if (state.m256i_i32[a])//min<=max
+		{
+			mask[a] = 0xff;
+			minist = min(minist, ansmin.m256_f32[a]);
+		}
+		else
+		{
+			mask[a] = 0x0;
+		}
+		
+	}
+	return minist;
 }
 
 inline static float TriangleTest(const Ray & ray, const clTri & tri, Vertex &coord)
@@ -604,8 +582,7 @@ inline static float TriangleTest(const Ray & ray, const clTri & tri, Vertex &coo
 HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 {
 	float empty;
-	__m256i mask;
-	int8_t tmpppp;
+	int8_t mask[16];
 	float ans = BorderTest(ray, BorderMin, BorderMax, &empty);
 	if (ans < hr.distance)//inside and maybe nearer
 	{
@@ -616,7 +593,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 		clTri *objclt = nullptr;
 		Vertex coord, tmpc;
 		for (auto a = 0; a < clparts.size(); ++a)
-			if (BorderTest(ray, bboxs[a * 2], bboxs[a * 2 + 1], &empty) < hr.distance)
+			if (BorderTestEx(ray, bboxs[a * 2], bboxs[a * 2 + 1], mask) < hr.distance)
 				for (auto b = 0; b < clparts[a].size(); ++b)
 				{
 					clTri &t = clparts[a][b];

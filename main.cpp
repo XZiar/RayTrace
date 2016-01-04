@@ -310,7 +310,7 @@ void onKeyboard(unsigned char key, int x, int y)
 		//start ray-trace
 		else
 		{
-			int tnum = 1;
+			int tnum = 8;
 			switch (key)
 			{
 			case '1':

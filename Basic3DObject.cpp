@@ -12,14 +12,14 @@ float BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max, float *g
 		dismax = _mm_max_ps(tdismin.dat, tdismax.dat);
 	
 	//test y
-	if (abs(ray.direction.z) < 1e-6)
+	if (abs(ray.direction.y) < 1e-6)
 	{
 		if (ray.origin.y > Max.y || ray.origin.y < Min.y)
 			return 1e20f;
 		dismin.y = -1, dismax.y = 1e10f;
 	}
 	//test x
-	if (abs(ray.direction.z) < 1e-6)
+	if (abs(ray.direction.x) < 1e-6)
 	{
 		if (ray.origin.x > Max.x || ray.origin.x < Min.x)
 			return 1e20f;
