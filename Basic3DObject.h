@@ -45,3 +45,4 @@ public:
 };
 
 float BorderTest(const Ray &ray, const Vertex &Min, const Vertex &Max, float *getMax);
+float BorderTestOld(const Ray & ray, const Vertex &Min, const Vertex &Max);
