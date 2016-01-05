@@ -18,6 +18,7 @@ private:
 		int8_t parseFloat(const string &in, float out[]);
 		int8_t parseInt(const string &in, int out[]);
 	};
+	GLuint texList[64];
 	Vertex VerMin, VerMax, BorderMin, BorderMax;
 public:
 	vector<Vertex> vers;

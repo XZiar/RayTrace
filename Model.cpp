@@ -459,6 +459,7 @@ void Model::RTPrepare()
 		//cltpart.reserve(3000);
 		for (auto b = 0; b < 8; ++b)
 		{
+			octcltpart[b].push_back(clTri());
 			octcltpart[b].shrink_to_fit();
 			octclparts.push_back(move(octcltpart[b]));
 			octcltpart[b].reserve(500);
@@ -755,7 +756,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 				{
 					if (mask.m256i_i32[b])//oct-border may hit
 					{
-						int tcnt = octclparts[pcur].size();
+						int tcnt = octclparts[pcur].size() - 1;
 						for (auto c = 0; c < tcnt;)//each triangle in oct-border
 						{
 							clTri &t = octclparts[pcur][c++];
@@ -844,6 +845,7 @@ void Model::GLPrepare()
 		}
 		glEnd();
 	}
+	glBindTexture(GL_TEXTURE_2D, 0);
 	glEndList();
 }
 

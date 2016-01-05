@@ -89,10 +89,12 @@ public:
 	string name;
 	int16_t w, h;
 	uint8_t *data = nullptr;
+	Texture();
 	Texture(const string &iname, const int16_t iw, const int16_t ih, const uint8_t *img);
 	~Texture();
 	Texture(const Texture& t);
 	Texture(Texture &&t);
+	Texture &operator=(const Texture &t);
 };
 
 class Material
@@ -174,7 +176,8 @@ public:
 class DrawObject
 {
 protected:
-	GLuint GLListNum, texList[30];
+	Material mtl;
+	GLuint GLListNum;
 public:
 	Vertex position;
 	uint8_t type;
@@ -182,6 +185,7 @@ public:
 
 	DrawObject(GLuint n) : GLListNum(n) { };
 	virtual ~DrawObject() { };
+	void SetMtl(const Material &mtl) { this->mtl = mtl; };
 	void GLDraw();
 	virtual void GLPrepare() = 0;
 	virtual void RTPrepare() { };

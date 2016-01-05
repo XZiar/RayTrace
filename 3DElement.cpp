@@ -239,6 +239,20 @@ Normal::Normal(const Vertex &v)//น้าปปฏ
 
 
 
+Texture::Texture()
+{
+	name = "check";
+	w = 4, h = 4;
+	data = new uint8_t[48];
+	for (auto a = 0; a < 4; ++a)
+	for (auto b = 0; b < 4; ++b)
+	{
+		auto begin = (4 * a + b) * 3;
+		uint8_t color = (a & 0x2) == (b & 0x2) ? 0xff : 0x0;
+		data[begin] = data[begin + 1] = data[begin + 2] = color;
+	}
+}
+
 Texture::Texture(const string &iname, const int16_t iw, const int16_t ih, const uint8_t * img)
 {
 	name = iname;
@@ -289,6 +303,26 @@ Texture::Texture(Texture && t)
 		delete[] t.data;
 		t.data = nullptr;
 	}
+}
+
+Texture &Texture::operator=(const Texture & t)
+{
+	if (this == &t)
+		return *this;
+	name = t.name;
+	w = t.w, h = t.h;
+	int32_t size = w*h * 3;
+	if (data != nullptr)
+	{
+		delete[] data;
+		data = nullptr;
+	}
+	if (t.data != nullptr)
+	{
+		data = new uint8_t[size];
+		memcpy(data, t.data, size);
+	}
+	return *this;
 }
 
 
