@@ -298,7 +298,7 @@ void onKeyboard(unsigned char key, int x, int y)
 		//start ray-trace
 		else
 		{
-			int tnum = 1;
+			int tnum = 8;
 			switch (key)
 			{
 			case '1':
@@ -325,6 +325,11 @@ void onKeyboard(unsigned char key, int x, int y)
 		return;
 	switch (key)
 	{
+	//RayTrace setting
+	case '*':
+		rayt.maxLevel++; break;
+	case '/':
+		rayt.maxLevel--; break;
 	//move camera
 	case 'h':
 		cam.move(1, 0, 0);break;
@@ -352,21 +357,21 @@ void onKeyboard(unsigned char key, int x, int y)
 		scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(3, 0, 0)); break;
 	//set light component
 	case 'z':
-		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1.5, 1, 1)); break;
+		scene.ChgLightComp(MY_LIGHT_COMPENT, lgt_toggle, Vertex(1.5, 1, 1)); break;
 	case 'Z':
-		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(0.67, 1, 1)); break;
+		scene.ChgLightComp(MY_LIGHT_COMPENT, lgt_toggle, Vertex(0.67, 1, 1)); break;
 	case 'x':
-		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1.5, 1)); break;
+		scene.ChgLightComp(MY_LIGHT_COMPENT, lgt_toggle, Vertex(1, 1.5, 1)); break;
 	case 'X':
-		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 0.67, 1)); break;
+		scene.ChgLightComp(MY_LIGHT_COMPENT, lgt_toggle, Vertex(1, 0.67, 1)); break;
 	case 'c':
-		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1, 1.5)); break;
+		scene.ChgLightComp(MY_LIGHT_COMPENT, lgt_toggle, Vertex(1, 1, 1.5)); break;
 	case 'C':
-		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1, 0.67)); break;
+		scene.ChgLightComp(MY_LIGHT_COMPENT, lgt_toggle, Vertex(1, 1, 0.67)); break;
 	case 'v':
-		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1, 1, 2)); break;
+		scene.ChgLightComp(MY_LIGHT_LUMI, lgt_toggle, Vertex(1, 1, 1, 2)); break;
 	case 'V':
-		scene.ChgLightComp(MY_MODEL_SWITCH, lgt_toggle, Vertex(1, 1, 1, 0.5)); break;
+		scene.ChgLightComp(MY_LIGHT_LUMI, lgt_toggle, Vertex(1, 1, 1, 0.5)); break;
 	//move object
 	case '2':
 	case '4':
@@ -586,12 +591,11 @@ void showdata()
 	while (isRun)
 	{
 		SetConsoleCursorPosition(hOut, pos);
-		wprintf(L"方向键移动摄像机，wasd键移动灯，+-号缩放，12键开关灯\n");
-
+		//wprintf(L"方向键移动摄像机，wasd键移动灯，+-号缩放，12键开关灯\n");
 		wprintf(L"相机绝对坐标：\t%4f，%4f，%4f\n", cam.position.x, cam.position.y, cam.position.z);
-		wprintf(L"相机u向量坐标：\t%4f，%4f，%4f\n", cam.u.x, cam.u.y, cam.u.z);
-		wprintf(L"相机v向量坐标：\t%4f，%4f，%4f\n", cam.v.x, cam.v.y, cam.v.z);
-		wprintf(L"相机n向量坐标：\t%4f，%4f，%4f\n", cam.n.x, cam.n.y, cam.n.z);
+		wprintf(L"相机u向量：\t%4f，%4f，%4f\n", cam.u.x, cam.u.y, cam.u.z);
+		wprintf(L"相机v向量：\t%4f，%4f，%4f\n", cam.v.x, cam.v.y, cam.v.z);
+		wprintf(L"相机n向量：\t%4f，%4f，%4f\n", cam.n.x, cam.n.y, cam.n.z);
 		if (lgt_toggle != 0xff)
 		{
 			Light &light = scene.Lights[lgt_toggle];
@@ -607,6 +611,7 @@ void showdata()
 		}
 		else
 			wprintf(L"目前未选中任何物体\n");
+		wprintf(L"目前RayTrace深度%d\n", rayt.maxLevel);
 		if (rayt.isFinish)
 			wprintf(L"Finish in %4f s\n", rayt.useTime);
 		else

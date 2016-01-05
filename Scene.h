@@ -7,6 +7,8 @@
 
 #define MY_MODEL_LIGHT  0x1
 #define MY_MODEL_OBJECT 0x2
+#define MY_LIGHT_COMPENT 0x1
+#define MY_LIGHT_LUMI 0x2
 #define MY_MODEL_SWITCH 0x80
 
 class Scene

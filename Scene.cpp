@@ -84,7 +84,7 @@ uint8_t Scene::AddPlane()
 	GLuint lnum = glGenLists(1);
 	Plane *plane = new Plane(lnum);
 	Material mtl;
-	mtl.reflect = 0.5;
+	mtl.reflect = 0.8;
 	plane->SetMtl(mtl);
 	plane->GLPrepare();
 
@@ -101,7 +101,7 @@ bool Scene::ChgLightComp(const uint8_t type, const uint8_t num, const Vertex & v
 	float tmp;
 	switch (type)
 	{
-	case MY_MODEL_SWITCH:
+	case MY_LIGHT_COMPENT:
 		ta = light.ambient * v.x;
 		td = light.diffuse * v.y;
 		ts = light.specular * v.z;
@@ -115,7 +115,7 @@ bool Scene::ChgLightComp(const uint8_t type, const uint8_t num, const Vertex & v
 		light.SetProperty(MY_MODEL_DIFFUSE, td.x, td.y, td.z);
 		light.SetProperty(MY_MODEL_SPECULAR, ts.x, ts.y, ts.z);
 		break;
-	case MY_MODEL_ATTENUATION:
+	case MY_LIGHT_LUMI:
 		tmp = light.attenuation.alpha * v.alpha;
 		light.SetLumi(tmp);
 		break;

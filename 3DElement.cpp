@@ -239,17 +239,27 @@ Normal::Normal(const Vertex &v)//น้าปปฏ
 
 
 
-Texture::Texture()
+Texture::Texture(bool check)
 {
-	name = "check";
-	w = 4, h = 4;
-	data = new uint8_t[48];
-	for (auto a = 0; a < 4; ++a)
-	for (auto b = 0; b < 4; ++b)
+	if (check)
 	{
-		auto begin = (4 * a + b) * 3;
-		uint8_t color = (a & 0x2) == (b & 0x2) ? 0xff : 0x7f;
-		data[begin] = data[begin + 1] = data[begin + 2] = color;
+		name = "check";
+		w = 4, h = 4;
+		data = new uint8_t[48];
+		for (auto a = 0; a < 4; ++a)
+			for (auto b = 0; b < 4; ++b)
+			{
+				auto begin = (4 * a + b) * 3;
+				uint8_t color = (a & 0x2) == (b & 0x2) ? 0xff : 0x7f;
+				data[begin] = data[begin + 1] = data[begin + 2] = color;
+			}
+	}
+	else
+	{
+		name = "empty";
+		w = 4, h = 4;
+		data = new uint8_t[48];
+		memset(data, 0xff, 48);
 	}
 }
 

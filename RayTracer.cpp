@@ -322,17 +322,15 @@ Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 
 Color RayTracer::RTflec(const float zNear, const float zFar, const Ray & baseray, const int level, const float bwc, HitRes hr)
 {
-	if (level > 1 || bwc < 0.01f)//deep limit
+	if (level > maxLevel || bwc < 1e-5f)//deep limit
 		return Color(false);
 	//intersect
 	for (auto dobj : scene->Objects)
 		if (dobj->bShow)
 			hr = dobj->intersect(baseray, hr);
 	//early cut
-	if (hr.distance > zFar)
+	if (hr.distance > zFar || hr.distance < zNear)
 		return Color(false);
-	if (hr.distance < zNear)
-		return Color(true);
 	Color vc_specular(1.0f, 1.0f, 1.0f),
 		vc(hr.tex, hr.tcoord),
 		mix_vd, mix_vsc;
@@ -410,7 +408,7 @@ Color RayTracer::RTflec(const float zNear, const float zFar, const Ray & baseray
 		}
 	____EOLT:;//end of light test this turn
 	}
-	Color c_all = vc.mixmul(mix_vd + mix_va) + mix_vsc;
+	Color c_all = vc.mixmul(mix_vd + mix_va);
 	//accept reflection
 	if (hr.mtl->reflect > 0.01f)
 	{
@@ -418,9 +416,6 @@ Color RayTracer::RTflec(const float zNear, const float zFar, const Ray & baseray
 		//reflection test
 		c_all *= (1 - flecrate);
 		/*
-		** phong model
-		** specular_color = (r2p'.p2l)^shiness * mat_diffuse (*) light_diffuse
-		** p2l = normal that point towards light
 		** r2p' = reflect normal that camera towards point
 		** r2p' = r2p - 2 * (r2p.normal) * normal
 		*/
@@ -429,10 +424,10 @@ Color RayTracer::RTflec(const float zNear, const float zFar, const Ray & baseray
 		Ray flecray(hr.position, r2p_r);
 		HitRes flechr;
 		flechr.obj = hr.obj;
-		Color c_flec = RTflec(zNear, zFar, flecray, level + 1, bwc * flecrate, flechr);
+		Color c_flec = RTflec(0.0f, zFar, flecray, level + 1, bwc * flecrate, flechr);
 		c_all += c_flec * flecrate;
 	}
-	return c_all;
+	return c_all + mix_vsc;
 }
 
 

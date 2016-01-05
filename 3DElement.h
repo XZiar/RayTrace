@@ -89,7 +89,7 @@ public:
 	string name;
 	int16_t w, h;
 	uint8_t *data = nullptr;
-	Texture();
+	Texture(bool check = false);
 	Texture(const string &iname, const int16_t iw, const int16_t ih, const uint8_t *img);
 	~Texture();
 	Texture(const Texture& t);
