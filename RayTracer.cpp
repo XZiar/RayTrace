@@ -320,11 +320,10 @@ Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 	return vc.mixmul(mix_vd + mix_va) + mix_vsc;
 }
 
-Color RayTracer::RTflc(const float zNear, const float zFar, const Ray & baseray, const int level)
+Color RayTracer::RTflec(const float zNear, const float zFar, const Ray & baseray, const int level, const float bwc, HitRes hr)
 {
-	if (level > 1)
+	if (level > 1 || bwc < 0.01f)//deep limit
 		return Color(false);
-	HitRes hr;
 	//intersect
 	for (auto dobj : scene->Objects)
 		if (dobj->bShow)
@@ -340,86 +339,100 @@ Color RayTracer::RTflc(const float zNear, const float zFar, const Ray & baseray,
 	Vertex mix_va = hr.mtl->ambient.mixmul(scene->EnvLight);//environment ambient color
 	//accept light
 	for (auto &lit : scene->Lights)
-	if (lit.bLight)
 	{
-		Vertex light_a, light_d, light_s;
-		Normal p2l;
-		float dis;
-		//consider light type
-		if (lit.type == MY_LIGHT_POINT)
-		{//point light
-			Vertex p2l_v = lit.position - hr.position;
-			dis = p2l_v.length_sqr();
-			float step = lit.attenuation.x
-				+ lit.attenuation.z * dis;
-			dis = sqrt(dis);
-			step += lit.attenuation.y * dis;
-			float light_lum = 1 / step;
-			light_a = lit.ambient * light_lum;
-			light_d = lit.diffuse * light_lum;
-			light_s = lit.specular * light_lum;
-			p2l = Normal(p2l_v);
-		}
-		else
-		{//parallel light
-			dis = 1e10;
-			light_a = lit.ambient;
-			light_d = lit.diffuse;
-			light_s = lit.specular;
-			p2l = Normal(lit.position);
-		}
-		/*
-		** ambient_color = base_map (*) mat_ambient (*) light_ambient
-		*/
-		Vertex v_ambient = hr.mtl->ambient.mixmul(light_a);
-		mix_va += v_ambient;
-		//shadow test
-		Ray shadowray(hr.position, p2l);
-		HitRes shr(dis);
-		shr.obj = hr.obj;
-		for (auto dobj : scene->Objects)
+		if (lit.bLight)
 		{
-			if (dobj->bShow)
-				//quick test to find nearest blocking object
-				shr = dobj->intersect(shadowray, shr, dis);
-			//early quick
-			if (shr.distance < dis)
-				break;
+			Vertex light_a, light_d, light_s;
+			Normal p2l;
+			float dis;
+			//consider light type
+			if (lit.type == MY_LIGHT_POINT)
+			{//point light
+				Vertex p2l_v = lit.position - hr.position;
+				dis = p2l_v.length_sqr();
+				float step = lit.attenuation.x
+					+ lit.attenuation.z * dis;
+				dis = sqrt(dis);
+				step += lit.attenuation.y * dis;
+				float light_lum = 1 / step;
+				light_a = lit.ambient * light_lum;
+				light_d = lit.diffuse * light_lum;
+				light_s = lit.specular * light_lum;
+				p2l = Normal(p2l_v);
+			}
+			else
+			{//parallel light
+				dis = 1e10;
+				light_a = lit.ambient;
+				light_d = lit.diffuse;
+				light_s = lit.specular;
+				p2l = Normal(lit.position);
+			}
+			/*
+			** ambient_color = base_map (*) mat_ambient (*) light_ambient
+			*/
+			Vertex v_ambient = hr.mtl->ambient.mixmul(light_a);
+			mix_va += v_ambient;
+			//shadow test
+			Ray shadowray(hr.position, p2l);
+			HitRes shr(dis);
+			shr.obj = hr.obj;
+			for (auto dobj : scene->Objects)
+			{
+				if (dobj->bShow)
+					shr = dobj->intersect(shadowray, shr, dis);//quick test to find not the nearest blocking object
+				//early quit
+				if (shr.distance < dis)//something block the light
+					goto ____EOLT;
+			}
+			/*
+			** diffuse_color = base_map * normal.p2l (*) mat_diffuse (*) light_diffuse
+			*/
+			float n_n = hr.normal & p2l;
+			if (n_n > 0)
+			{
+				Vertex v_diffuse = hr.mtl->diffuse.mixmul(light_d);
+				mix_vd += v_diffuse * n_n;
+			}
+			/*
+			** blinn-phong model
+			** specular_color = (normal.h)^shiness * mat_diffuse (*) light_diffuse
+			** h = Normalized(p2r + p2l)
+			*/
+			Normal h = Normal(p2l - baseray.direction);
+			n_n = hr.normal & h;
+			if (n_n > 0)
+			{
+				Vertex v_specular = hr.mtl->specular.mixmul(light_s);
+				Vertex vs = v_specular * pow(n_n, hr.mtl->shiness);
+				mix_vsc += vc_specular.mixmul(vs);
+			}
 		}
-		if (shr.distance < dis)//something block the light
-		{
-			//mix_vd += Vertex(1, 0, 0);
-			continue;
-		}
-		/*
-		** diffuse_color = base_map * normal.p2l (*) mat_diffuse (*) light_diffuse
-		** p2l = normal that point towards light
-		*/
-		float n_n = hr.normal & p2l;
-		if (n_n > 0)
-		{
-			Vertex v_diffuse = hr.mtl->diffuse.mixmul(light_d);
-			mix_vd += v_diffuse * n_n;
-		}
-		/*
-		** blinn-phong model
-		** specular_color = (normal.h)^shiness * mat_diffuse (*) light_diffuse
-		** h = Normalized(p2r + p2l)
-		** p2r = normal that point towards camera = -r2p
-		** p2l = normal that point towards light
-		*/
-		Normal h = Normal(p2l - baseray.direction);
-		n_n = hr.normal & h;
-		if (n_n > 0)
-		{
-			Vertex v_specular = hr.mtl->specular.mixmul(light_s);
-			Vertex vs = v_specular * pow(n_n, hr.mtl->shiness);
-			mix_vsc += vc_specular.mixmul(vs);
-		}
+	____EOLT:;//end of light test this turn
 	}
+	Color c_all = vc.mixmul(mix_vd + mix_va) + mix_vsc;
 	//accept reflection
-	
-	return vc.mixmul(mix_vd + mix_va) + mix_vsc;
+	if (hr.mtl->reflect > 0.01f)
+	{
+		const float &flecrate = hr.mtl->reflect;
+		//reflection test
+		c_all *= (1 - flecrate);
+		/*
+		** phong model
+		** specular_color = (r2p'.p2l)^shiness * mat_diffuse (*) light_diffuse
+		** p2l = normal that point towards light
+		** r2p' = reflect normal that camera towards point
+		** r2p' = r2p - 2 * (r2p.normal) * normal
+		*/
+		float n_n = 2 * (baseray.direction & hr.normal);
+		Normal r2p_r = baseray.direction - (hr.normal * n_n);
+		Ray flecray(hr.position, r2p_r);
+		HitRes flechr;
+		flechr.obj = hr.obj;
+		Color c_flec = RTflec(zNear, zFar, flecray, level + 1, bwc * flecrate, flechr);
+		c_all += c_flec * flecrate;
+	}
+	return c_all;
 }
 
 
@@ -470,7 +483,7 @@ void RayTracer::start(const uint8_t type, const int8_t tnum)
 		fun = bind(&RayTracer::RTshd, this, _1, _2, _3);
 		break;
 	case MY_MODEL_REFLECTTEST:
-		fun = bind(&RayTracer::RTflc, this, _1, _2, _3, 0);
+		fun = bind(&RayTracer::RTflec, this, _1, _2, _3, 0, 1.0f, HitRes());
 		break;
 	case MY_MODEL_RAYTRACE:
 		fun = bind(&RayTracer::RTshd, this, _1, _2, _3);

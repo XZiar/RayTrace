@@ -333,6 +333,7 @@ Material::Material()
 	SetMtl(MY_MODEL_AMBIENT | MY_MODEL_DIFFUSE, 0.588f, 0.588f, 0.588f);
 	SetMtl(MY_MODEL_EMISSION | MY_MODEL_SPECULAR, 0.0f, 0.0f, 0.0f);
 	SetMtl(MY_MODEL_SHINESS, 10.0f, 10.0f, 10.0f, 10.0f);
+	reflect = refract = 0.0f;
 }
 
 Material::~Material()

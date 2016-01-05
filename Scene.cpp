@@ -83,6 +83,9 @@ uint8_t Scene::AddPlane()
 {
 	GLuint lnum = glGenLists(1);
 	Plane *plane = new Plane(lnum);
+	Material mtl;
+	mtl.reflect = 0.5;
+	plane->SetMtl(mtl);
 	plane->GLPrepare();
 
 	Objects.push_back(plane);

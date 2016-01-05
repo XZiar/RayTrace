@@ -766,7 +766,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 							//early quit
 							if (hr.obj == (intptr_t)&t)
 								continue;
-							_mm_prefetch((char*)&octclparts[b][c], _MM_HINT_T0);
+							_mm_prefetch((char*)&octclparts[pcur][c], _MM_HINT_T0);
 							newans = TriangleTest(ray, t, tmpc);
 							if (newans < ans)
 							{
