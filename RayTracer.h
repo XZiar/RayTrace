@@ -8,6 +8,7 @@
 #define MY_MODEL_TEXTURETEST 0x4
 #define MY_MODEL_MATERIALTEST 0x5
 #define MY_MODEL_SHADOWTEST 0x6
+#define MY_MODEL_REFLECTTEST 0x7
 #define MY_MODEL_RAYTRACE 0x80
 
 class RayTracer
@@ -20,6 +21,7 @@ private:
 	bool state[32];
 	volatile double costtime[32];
 	atomic_int16_t aBlock_Cur;
+	HitRes tmphr; bool isPrt = false;
 
 	void parallelRT(const int8_t tNum, const int8_t tID, const PR &worker);
 	void RTcheck(const int8_t tNum, const int8_t tID);
@@ -28,11 +30,14 @@ private:
 	Color RTtex(const float zNear, const float zFar, const Ray &baseray);
 	Color RTmtl(const float zNear, const float zFar, const Ray &baseray);
 	Color RTshd(const float zNear, const float zFar, const Ray &baseray);
+	Color RTflec(const float zNear, const float zFar, const Ray &baseray,
+		const uint8_t level, const float bwc, HitRes hr);//loop count , benefit weight , base hitres
 public:
 	GLuint texID;
 	uint8_t *output;
 	volatile bool isFinish = true;
 	volatile double useTime;
+	uint8_t maxLevel = 1;
 	int width, height;
 	RayTracer(Scene &scene);
 	~RayTracer();

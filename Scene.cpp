@@ -8,6 +8,41 @@ Scene::Scene()
 	EnvLight = Vertex(0.2f, 0.2f, 0.2f, 1.0f);
 	for (Light &light : Lights)
 		light.bLight = false;
+	//init material library
+	Material mtl;
+	mtl.name = "brass";//黄铜材质
+	mtl.SetMtl(MY_MODEL_AMBIENT, 0.329412f, 0.223529f, 0.027451f);
+	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.780392f, 0.568627f, 0.113725f);
+	mtl.SetMtl(MY_MODEL_SPECULAR, 0.992157f, 0.941176f, 0.807843f);
+	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 27.8974f);
+	MtlLiby.push_back(mtl);
+
+	mtl = Material();
+	mtl.name = "bas-sphere";//基本球材质
+	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.1f, 0.1f);
+	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1f, 0.5f, 0.8f);
+	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
+	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 100);
+	mtl.reflect = 0.35f;
+	MtlLiby.push_back(mtl);
+
+	mtl = Material();
+	mtl.name = "mirror";//全反射
+	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.1f, 0.1f);
+	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1f, 0.1f, 0.1f);
+	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
+	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 127);
+	mtl.reflect = 0.95f;
+	MtlLiby.push_back(mtl);
+
+	mtl = Material();
+	mtl.name = "green grass";//带颜色反射
+	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.4f, 0.1f);
+	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1f, 0.5f, 0.1f);
+	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
+	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 127);
+	mtl.reflect = 0.55f;
+	MtlLiby.push_back(mtl);
 }
 
 Scene::~Scene()
@@ -15,35 +50,6 @@ Scene::~Scene()
 	for (auto &obj : Objects)
 		if(obj != nullptr)
 			delete obj;
-}
-
-void Scene::init()
-{
-	//init draw ground
-	grdList = glGenLists(1);
-	glNewList(grdList, GL_COMPILE);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	GLfloat emission[] = { 0.0f, 0.0f, 0.5f, 0.0f };
-	glPushMatrix();
-	glTranslatef(0, -5, 0);
-	glBegin(GL_LINES);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, no_mat);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, no_mat);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, no_mat);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, no_mat);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, no_mat);
-	for (int a = -1000; a < 1001; a += 5)
-	{
-		glVertex3i(a, 0, 1000);
-		glVertex3i(a, 0, -1000);
-		glVertex3i(-1000, 0, a);
-		glVertex3i(1000, 0, a);
-	}
-	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, no_mat);
-	glEnd();
-	glPopMatrix();
-	glEndList();
 }
 
 uint8_t Scene::AddLight(const uint8_t type, const Vertex &comp, const Vertex &atte)
@@ -64,18 +70,10 @@ uint8_t Scene::AddLight(const uint8_t type, const Vertex &comp, const Vertex &at
 
 uint8_t Scene::AddSphere(const float radius)
 {
-	Material mtl;
-	mtl.name = "Sphere";
-	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1, 0.1, 0.1);
-	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1, 0.5, 0.8);
-	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0, 1.0, 1.0);
-	int a = Objects.size() * 10;
-	mtl.SetMtl(MY_MODEL_SHINESS, 100-a, 100-a, 100-a);
-
 	GLuint lnum = glGenLists(1);
 	Sphere *sphere = new Sphere(radius, lnum);
 	sphere->position = Vertex(0.0, radius, 0.0);
-	sphere->SetMtl(mtl);
+	sphere->SetMtl(MtlLiby[1]);
 	sphere->GLPrepare();
 
 	Objects.push_back(sphere);
@@ -84,18 +82,10 @@ uint8_t Scene::AddSphere(const float radius)
 
 uint8_t Scene::AddCube(const float len)
 {
-	Material mtl;
-	mtl.name = "Cube";
-	//黄铜材质
-	mtl.SetMtl(MY_MODEL_AMBIENT, 0.329412, 0.223529, 0.027451);
-	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.780392, 0.568627, 0.113725);
-	mtl.SetMtl(MY_MODEL_SPECULAR, 0.992157, 0.941176, 0.807843);
-	mtl.SetMtl(MY_MODEL_SHINESS, 27.897400, 27.897400, 27.897400);
-
 	GLuint lnum = glGenLists(1);
 	Box *box = new Box(len, lnum);
 	box->position = Vertex(0.0, len / 2, 0.0);
-	box->SetMtl(mtl);
+	box->SetMtl(MtlLiby[0]);//黄铜
 	box->GLPrepare();
 
 	Objects.push_back(box);
@@ -116,6 +106,9 @@ uint8_t Scene::AddPlane()
 {
 	GLuint lnum = glGenLists(1);
 	Plane *plane = new Plane(lnum);
+	Material mtl;
+	mtl.reflect = 0.8;
+	plane->SetMtl(mtl);
 	plane->GLPrepare();
 
 	Objects.push_back(plane);
@@ -131,7 +124,7 @@ bool Scene::ChgLightComp(const uint8_t type, const uint8_t num, const Vertex & v
 	float tmp;
 	switch (type)
 	{
-	case MY_MODEL_SWITCH:
+	case MY_LIGHT_COMPENT:
 		ta = light.ambient * v.x;
 		td = light.diffuse * v.y;
 		ts = light.specular * v.z;
@@ -145,13 +138,40 @@ bool Scene::ChgLightComp(const uint8_t type, const uint8_t num, const Vertex & v
 		light.SetProperty(MY_MODEL_DIFFUSE, td.x, td.y, td.z);
 		light.SetProperty(MY_MODEL_SPECULAR, ts.x, ts.y, ts.z);
 		break;
-	case MY_MODEL_ATTENUATION:
+	case MY_LIGHT_LUMI:
 		tmp = light.attenuation.alpha * v.alpha;
 		light.SetLumi(tmp);
 		break;
 	default:
 		return false;
 	}
+	return true;
+}
+
+bool Scene::ChgMtl(const uint8_t num, const Material &mtl)
+{
+	if (num >= Objects.size())
+		return false;
+	Objects[num]->SetMtl(mtl);
+	Objects[num]->GLPrepare();
+	return true;
+}
+
+bool Scene::ChgMtl(const uint8_t num, const Normal &clr)
+{
+	if (num >= Objects.size())
+		return false;
+	Vertex &mclr = Objects[num]->mtl.diffuse;
+	if (clr.w < 0.5f)
+	{
+		float sum = mclr.r + mclr.g + mclr.b;
+		mclr = clr * sum;
+	}
+	else
+	{
+		mclr = clr;
+	}
+	Objects[num]->GLPrepare();
 	return true;
 }
 
@@ -276,18 +296,16 @@ void Scene::DrawScene()
 	glPopMatrix();
 }
 
-void Scene::DrawLight(const uint8_t num)
+void Scene::DrawLight()
 {
-	if (num >= Lights.size())
-		return;
 	Vertex lgt(1, 1, 1);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, lgt);
-	Light &light = Lights[num];
-	if (light.bLight)
-	{
-		glPushMatrix();
-		glTranslatef(light.position.x, light.position.y, light.position.z);
-		glutWireSphere(0.1, 10, 10);
-		glPopMatrix();
-	}
+	for(Light &light:Lights)
+		if (light.bLight)
+		{
+			glPushMatrix();
+			glTranslatef(light.position.x, light.position.y, light.position.z);
+			glutWireSphere(0.1, 10, 10);
+			glPopMatrix();
+		}
 }

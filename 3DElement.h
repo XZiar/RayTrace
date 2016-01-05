@@ -45,12 +45,16 @@ public:
 		__m128 dat;
 		struct
 		{
-			float x, y, z, alpha;
+			float x, y, z, w;
+		};
+		struct
+		{
+			float r, g, b, alpha;
 		};
 	};
 	Vertex();
 	Vertex(const __m128 &idat);
-	Vertex(const float ix, const float iy, const float iz, const float ia = 0) :x(ix), y(iy), z(iz), alpha(ia) { };
+	Vertex(const float ix, const float iy, const float iz, const float ia = 0) :x(ix), y(iy), z(iz), w(ia) { };
 	operator float*() { return &x; };
 	operator __m128() const { return dat; };
 
@@ -75,7 +79,7 @@ class Normal : public Vertex
 {
 public:
 	Normal() : Vertex() { };
-	Normal(const float &ix, const float &iy, const float &iz) :Vertex(ix, iy, iz) { };
+	Normal(const float &ix, const float &iy, const float &iz, const float &iw = 0.0f) :Vertex(ix, iy, iz, iw) { };
 	Normal(const Vertex &v);//¹éÒ»»¯
 };
 
@@ -85,25 +89,27 @@ public:
 	string name;
 	int16_t w, h;
 	uint8_t *data = nullptr;
+	Texture(bool check = false);
 	Texture(const string &iname, const int16_t iw, const int16_t ih, const uint8_t *img);
 	~Texture();
 	Texture(const Texture& t);
 	Texture(Texture &&t);
+	Texture &operator=(const Texture &t);
 };
 
 class Material
 {
 public:
-	string name;
-	int16_t w, h;
 	Vertex ambient,
 		diffuse,
 		specular,
-		shiness,
 		emission;
+	float shiness, reflect, refract;
+	string name;
 	Material();
 	~Material();
-	void SetMtl(int8_t prop, float r, float g, float b, float a = 1.0f);
+	void SetMtl(const uint8_t prop, const float r, const float g, const float b, const float a = 1.0f);
+	void SetMtl(const uint8_t prop, const Vertex &v);
 };
 
 _MM_ALIGN16 struct clTri
@@ -125,15 +131,16 @@ public:
 	Triangle(const Vertex &va, const Normal &na, const Coord2D &ta, const Vertex &vb, const Normal &nb, const Coord2D &tb, const Vertex &vc, const Normal &nc, const Coord2D &tc);
 };
 
-class Color
+class Color : public Vertex
 {
 public:
-	uint8_t r, g, b;
-	Color(const bool black);
-	Color(const float depth, const float mindepth, const float maxdepth);
+	Color(const bool white = false);
+	Color(const float &ix, const float &iy, const float &iz) :Vertex(ix, iy, iz) { };
 	Color(const Vertex &v);
 	Color(const Normal &n);
-	Color(const int16_t &w, const int16_t &h, const uint8_t *data, const Coord2D &coord);
+	Color(const Texture* tex, const Coord2D &coord);
+
+	void set(const float depth, const float mindepth, const float maxdepth);
 	void put(uint8_t *addr);
 	void get(uint8_t *addr);
 };
@@ -169,14 +176,16 @@ public:
 class DrawObject
 {
 protected:
-	GLuint GLListNum, texList[30];
+	GLuint GLListNum;
 public:
 	Vertex position;
+	Material mtl;
 	uint8_t type;
 	bool bShow = true;
 
 	DrawObject(GLuint n) : GLListNum(n) { };
 	virtual ~DrawObject() { };
+	void SetMtl(const Material &mtl) { this->mtl = mtl; };
 	void GLDraw();
 	virtual void GLPrepare() = 0;
 	virtual void RTPrepare() { };

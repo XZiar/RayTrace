@@ -243,11 +243,14 @@ int32_t Model::loadmtl(const wstring &mtlname, const uint8_t code)
 		case pS('K', 'd', '*')://diffuse
 			mtl.SetMtl(MY_MODEL_DIFFUSE, atof(ele[1].c_str()), atof(ele[2].c_str()), atof(ele[3].c_str()));
 			break;
-		case pS('K', 's', '*')://shiness
-			mtl.SetMtl(MY_MODEL_SHINESS, atof(ele[1].c_str()), atof(ele[2].c_str()), atof(ele[3].c_str()));
+		case pS('K', 's', '*')://specular
+			mtl.SetMtl(MY_MODEL_SPECULAR, atof(ele[1].c_str()), atof(ele[2].c_str()), atof(ele[3].c_str()));
 			break;
 		case pS('K', 'e', '*')://emission
 			mtl.SetMtl(MY_MODEL_EMISSION, atof(ele[1].c_str()), atof(ele[2].c_str()), atof(ele[3].c_str()));
+			break;
+		case pS('N','s','*')://shiness
+			mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, atof(ele[1].c_str()));
 			break;
 		case pS('m', 'a', 'p')://Texture
 			if (ele[0] == "map_Kd****")
@@ -459,6 +462,7 @@ void Model::RTPrepare()
 		//cltpart.reserve(3000);
 		for (auto b = 0; b < 8; ++b)
 		{
+			octcltpart[b].push_back(clTri());
 			octcltpart[b].shrink_to_fit();
 			octclparts.push_back(move(octcltpart[b]));
 			octcltpart[b].reserve(500);
@@ -753,16 +757,17 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 			{
 				for (auto b = 0, pcur = a * 8; b < 8; ++b, ++pcur)//each oct-border
 				{
+					//if(true)
 					if (mask.m256i_i32[b])//oct-border may hit
 					{
-						int tcnt = octclparts[pcur].size();
+						int tcnt = octclparts[pcur].size() - 1;
 						for (auto c = 0; c < tcnt;)//each triangle in oct-border
 						{
 							clTri &t = octclparts[pcur][c++];
 							//early quit
 							if (hr.obj == (intptr_t)&t)
 								continue;
-							_mm_prefetch((char*)&octclparts[b][c], _MM_HINT_T0);
+							_mm_prefetch((char*)&octclparts[pcur][c], _MM_HINT_T0);
 							newans = TriangleTest(ray, t, tmpc);
 							if (newans < ans)
 							{
@@ -821,8 +826,8 @@ void Model::GLPrepare()
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mat.ambient);
 		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat.diffuse);
 		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat.specular);
-		glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, mat.shiness);
 		glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, mat.emission);
+		glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, mat.shiness);
 
 		int8_t tnum = mtl_tex[mnum];
 		if (tnum >= 0)
@@ -844,6 +849,7 @@ void Model::GLPrepare()
 		}
 		glEnd();
 	}
+	glBindTexture(GL_TEXTURE_2D, 0);
 	glEndList();
 }
 

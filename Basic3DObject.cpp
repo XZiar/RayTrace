@@ -105,20 +105,15 @@ Sphere::Sphere(const float r, GLuint lnum) : DrawObject(lnum)
 	radius_sqr = r * r;
 }
 
-void Sphere::SetMtl(const Material & mtl)
-{
-	this->mtl = mtl;
-}
-
 void Sphere::GLPrepare()
 {
 	glNewList(GLListNum, GL_COMPILE);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glMaterialfv(GL_FRONT, GL_AMBIENT, mtl.ambient);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, mtl.diffuse);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, mtl.specular);
-	glMaterialfv(GL_FRONT, GL_SHININESS, mtl.shiness);
-	glMaterialfv(GL_FRONT, GL_EMISSION, mtl.emission);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mtl.ambient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mtl.diffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mtl.specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, mtl.emission);
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, mtl.shiness);
 	glutSolidSphere(radius, 100, 100);
 	glEndList();
 }
@@ -171,20 +166,15 @@ Box::Box(const float l, const float w, const float h, GLuint lnum) : DrawObject(
 	max = max * -1;
 }
 
-void Box::SetMtl(const Material & mtl)
-{
-	this->mtl = mtl;
-}
-
 void Box::GLPrepare()
 {
 	glNewList(GLListNum, GL_COMPILE);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glMaterialfv(GL_FRONT, GL_AMBIENT, mtl.ambient);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, mtl.diffuse);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, mtl.specular);
-	glMaterialfv(GL_FRONT, GL_SHININESS, mtl.shiness);
-	glMaterialfv(GL_FRONT, GL_EMISSION, mtl.emission);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mtl.ambient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mtl.diffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mtl.specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, mtl.emission);
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, mtl.shiness);
 
 	glEnable(GL_RESCALE_NORMAL);
 	Vertex tmp = max - min;
@@ -267,51 +257,72 @@ HitRes Box::intersect(const Ray & ray, const HitRes &hr, const float dmin)
 Plane::Plane(GLuint lnum) : DrawObject(lnum)
 {
 	type = MY_OBJECT_PLANE;
+	tex = Texture(true);
+	glGenTextures(1, &texList);
 	rotate(Vertex(0, 36, 0));
 }
 
 void Plane::rotate(const Vertex & v)
 {
 	bool fix = false;
-	ang.x = mod(360 + ang.x + v.y * 5, 360);
-	ang.y = mod(360 + ang.y + v.x * 5, 360);
+	ang.x = mod(360 + ang.x - v.y * 5, 360);
+	ang.y = mod(360 + ang.y - v.x * 5, 360);
 	ang.z += v.z;
-	if (abs(ang.z) < 1e-5)
+	if (ang.z < 0.0f)
+		ang.z = 0.0f;
+	if (abs(ang.z) < 1e-5f)
 		fix = true, ang.z = 1;
 	Coord_sph2car2(ang.x, ang.y, ang.z, position);
 	normal = Normal(position * -1);
 	if (fix)
 		ang.z = 0, position = Vertex();
+
+	float tangy = mod(90 + ang.x, 360);
+	Coord_sph2car2(tangy, ang.y, 1, axisy);
+	axisx = axisy * normal;
 }
 
 void Plane::GLPrepare()
 {
-	glNewList(GLListNum, GL_COMPILE);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glMaterialfv(GL_FRONT, GL_AMBIENT, mtl.ambient);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, mtl.diffuse);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, mtl.specular);
-	glMaterialfv(GL_FRONT, GL_SHININESS, mtl.shiness);
-	glMaterialfv(GL_FRONT, GL_EMISSION, mtl.emission);
+	glBindTexture(GL_TEXTURE_2D, texList);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex.w, tex.h, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, tex.data);
 
-	float tangy = mod(90 + ang.x, 360);
-	Vertex tmpy;
-	Coord_sph2car2(tangy, ang.y, 1, tmpy);
-	Vertex tmpx = tmpy * normal;
+	glNewList(GLListNum, GL_COMPILE);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mtl.ambient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mtl.diffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mtl.specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, mtl.emission);
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, mtl.shiness);
+	glBindTexture(GL_TEXTURE_2D, texList);
+	
 	float range = 500;
-	tmpx *= range, tmpy *= range;
+	Vertex tmpx = axisx * range, tmpy = axisy * range;
+	range /= 5;
 	Vertex tmp;
 	glBegin(GL_QUADS);
 	glNormal3fv(normal);
 	tmp = tmpy + tmpx;
-	glVertex3fv(tmp);
+	glTexCoord2f(range, range); glVertex3fv(tmp);
 	tmp = tmpy + tmpx * -1;
-	glVertex3fv(tmp);
+	glTexCoord2f(-range, range); glVertex3fv(tmp);
 	tmp = tmpy * -1 + tmpx * -1;
-	glVertex3fv(tmp);
+	glTexCoord2f(-range, -range); glVertex3fv(tmp);
 	tmp = tmpy * -1 + tmpx;
-	glVertex3fv(tmp);
+	glTexCoord2f(range, -range); glVertex3fv(tmp);
 	glEnd();
+	/*glBegin(GL_TRIANGLES);
+	tmp = axisy;
+	glVertex3fv(tmp);
+	tmp = axisx + axisy;
+	glVertex3fv(tmp);
+	tmp = normal + axisy;
+	glVertex3fv(tmp);
+	glEnd();*/
+	glBindTexture(GL_TEXTURE_2D, 0);
 	glEndList();
 }
 
@@ -330,11 +341,20 @@ HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float min)
 	if (dis < 0)
 		return hr;
 	if (dis < hr.distance)
-	{
+	{//calculate coord for texture
+		Vertex tmp1 = ray.direction * axisy;
+		float f = 1.0f / (axisx & tmp1) / 5;
+		float u = (p2r & tmp1) * f;
+		Vertex tmp2 = p2r * axisx;
+		float v = (ray.direction & tmp2) * f;
+
 		HitRes newhr(dis);
 		newhr.normal = normal;
 		newhr.mtl = &mtl;
+		newhr.tex = &tex;
 		newhr.position = ray.origin + ray.direction*dis;
+		float ppdis = (newhr.position - position).length_sqr();
+		newhr.tcoord = Coord2D(u, v);
 		newhr.obj = (intptr_t)this;
 		return newhr;
 	}
