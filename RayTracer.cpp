@@ -24,7 +24,7 @@ void RayTracer::parallelRT(const int8_t tNum, const int8_t tID, const PR &worker
 			for (auto xcur = blk_xcur * 64 - width / 2, xmax = xcur + 64; xcur < xmax; ++xcur)//per pixel
 			{
 				Vertex dir = cam.n + cam.u*(xcur*dp) + cam.v*(ycur*dp);
-				Ray baseray(cam.position, dir);
+				Ray baseray(cam.position, dir, MY_RAY_BASERAY);
 				Color c = worker(zNear, zFar, baseray);
 				if (!isRun)
 				{
@@ -498,7 +498,7 @@ Color RayTracer::RTfrac(const float zNear, const float zFar, const Ray & baseray
 			Vertex v_ambient = hr.mtl->ambient.mixmul(light_a);
 			mix_va += v_ambient;
 			//shadow test
-			Ray shadowray(hr.position, p2l);
+			Ray shadowray(hr.position, p2l, MY_RAY_SHADOWRAY);
 			HitRes shr(dis);
 			shr.obj = newobj;
 			for (auto dobj : scene->Objects)
@@ -547,7 +547,7 @@ Color RayTracer::RTfrac(const float zNear, const float zFar, const Ray & baseray
 		*/
 		float n_n = 2 * (baseray.direction & hr.normal);
 		Normal r2p_r = baseray.direction - (hr.normal * n_n);
-		Ray flecray(hr.position, r2p_r);
+		Ray flecray(hr.position, r2p_r, MY_RAY_REFLECTRAY);
 		HitRes flechr;
 		flechr.obj = newobj;
 		Color c_flec = RTflec(0.0f, zFar, flecray, level + 1, bwc * flecrate, flechr);
@@ -556,20 +556,26 @@ Color RayTracer::RTfrac(const float zNear, const float zFar, const Ray & baseray
 	if (hr.mtl->refract > 0.01f)
 	{
 		const float &fracrate = hr.mtl->refract;
-		//reflection test
+		//refraction test
 		c_all *= (1 - fracrate);
-		/*
-		** r2p' = reflect normal that camera towards point
-		** r2p' = r2p - 2 * (r2p.normal) * normal
-		*/
-		float n_n = 2 * (baseray.direction & hr.normal);
-		Normal r2p_r = baseray.direction - (hr.normal * n_n);
-		Ray flecray(hr.position, r2p_r);
-		HitRes flechr;
-		flechr.obj = newobj;
-		Color c_flec = RTflec(0.0f, zFar, flecray, level + 1, bwc * fracrate, flechr);
+
+		float n = baseray.mtlrfr / hr.mtl->rfr;
+		float cosIn = -(baseray.direction & hr.normal);
+		float cosOut2 = 1.0f - (n * n) * (1.0f - cosIn * cosIn);
+		if (cosOut2 < 0.0f)//È«·´Éä
+			goto ____EOFR;
+		Vertex l2 = baseray.direction * n,
+			l1 = hr.normal * (n*cosIn - sqrt(cosOut2));
+
+		Ray fracray(hr.position, l1 + l2, MY_RAY_REFRACTRAY);
+		fracray.mtlrfr = hr.rfr;
+		fracray.isInside = hr.isInside;
+		HitRes frachr;
+		frachr.obj = newobj;
+		Color c_flec = RTflec(0.0f, zFar, fracray, level + 1, bwc * fracrate, frachr);
 		c_all += c_flec * fracrate;
 	}
+____EOFR:;//end of fraction test
 	return c_all;
 }
 

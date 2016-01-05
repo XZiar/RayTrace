@@ -24,6 +24,11 @@ const char MY_LIGHT_NAME[][10] =
 #define MY_MODEL_POSITION    0x100
 #define MY_MODEL_ATTENUATION 0x200
 
+#define MY_RAY_BASERAY    0x1
+#define MY_RAY_SHADOWRAY  0x2
+#define MY_RAY_REFLECTRAY 0x3
+#define MY_RAY_REFRACTRAY 0x4
+
 
 class Coord2D
 {
@@ -104,12 +109,13 @@ public:
 		diffuse,
 		specular,
 		emission;
-	float shiness, reflect, refract;
+	float shiness, reflect, refract, rfr;//高光权重，反射比率，折射比率，折射率
 	string name;
 	Material();
 	~Material();
 	void SetMtl(const uint8_t prop, const float r, const float g, const float b, const float a = 1.0f);
 	void SetMtl(const uint8_t prop, const Vertex &v);
+	void SetMtl(const uint8_t prop, const float val);
 };
 
 _MM_ALIGN16 struct clTri
@@ -150,9 +156,10 @@ class Ray
 public:
 	Vertex origin;
 	Normal direction;
-	uint8_t type = 0x0;
+	float mtlrfr = 1.0f;
+	uint8_t type, isInside = 0x0;
 
-	Ray(const Vertex &o, const Normal &dir) : origin(o), direction(dir) { };
+	Ray(const Vertex &o, const Normal &dir, const uint8_t type = 0x0) : origin(o), direction(dir), type(type) { };
 };
 
 class HitRes
@@ -161,10 +168,11 @@ public:
 	Vertex position;
 	Normal normal;
 	Coord2D tcoord;
-	float distance;
 	Material *mtl = nullptr;
 	Texture *tex = nullptr;
 	intptr_t obj = (intptr_t)this;
+	float distance, rfr = 1.0f;
+	uint8_t isInside = 0x0;
 
 	HitRes(bool b = false);
 	HitRes(float dis) : distance(dis){ };

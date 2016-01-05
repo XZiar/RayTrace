@@ -14,7 +14,7 @@ Scene::Scene()
 	mtl.SetMtl(MY_MODEL_AMBIENT, 0.329412f, 0.223529f, 0.027451f);
 	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.780392f, 0.568627f, 0.113725f);
 	mtl.SetMtl(MY_MODEL_SPECULAR, 0.992157f, 0.941176f, 0.807843f);
-	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 27.8974f);
+	mtl.SetMtl(MY_MODEL_SHINESS, 27.8974f);
 	MtlLiby.push_back(mtl);
 
 	mtl = Material();
@@ -22,7 +22,7 @@ Scene::Scene()
 	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.1f, 0.1f);
 	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1f, 0.5f, 0.8f);
 	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
-	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 100);
+	mtl.SetMtl(MY_MODEL_SHINESS, 100);
 	mtl.reflect = 0.35f;
 	MtlLiby.push_back(mtl);
 
@@ -31,7 +31,7 @@ Scene::Scene()
 	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.1f, 0.1f);
 	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1f, 0.1f, 0.1f);
 	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
-	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 127);
+	mtl.SetMtl(MY_MODEL_SHINESS, 127);
 	mtl.reflect = 0.95f;
 	MtlLiby.push_back(mtl);
 
@@ -40,7 +40,7 @@ Scene::Scene()
 	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.4f, 0.1f);
 	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1f, 0.5f, 0.1f);
 	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
-	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 127);
+	mtl.SetMtl(MY_MODEL_SHINESS, 127);
 	mtl.reflect = 0.55f;
 	MtlLiby.push_back(mtl);
 }

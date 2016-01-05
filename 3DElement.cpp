@@ -342,8 +342,9 @@ Material::Material()
 	name = "simple";
 	SetMtl(MY_MODEL_AMBIENT | MY_MODEL_DIFFUSE, 0.588f, 0.588f, 0.588f);
 	SetMtl(MY_MODEL_EMISSION | MY_MODEL_SPECULAR, 0.0f, 0.0f, 0.0f);
-	SetMtl(MY_MODEL_SHINESS, 10.0f, 10.0f, 10.0f, 10.0f);
-	reflect = refract = 0.0f;
+	SetMtl(MY_MODEL_SHINESS, 10.0f);
+	reflect = refract = 0.0f; 
+	rfr = 1.0f;
 }
 
 Material::~Material()
@@ -353,9 +354,8 @@ Material::~Material()
 void Material::SetMtl(const uint8_t prop, const float r, const float g, const float b, const float a)
 {
 	Vertex set(r, g, b, a);
-	if (prop & MY_MODEL_SHINESS)
-		shiness = a;
 	SetMtl(prop, set);
+	SetMtl(prop, a);
 }
 
 void Material::SetMtl(const uint8_t prop, const Vertex & v)
@@ -368,6 +368,12 @@ void Material::SetMtl(const uint8_t prop, const Vertex & v)
 		emission = v;
 	if (prop & MY_MODEL_SPECULAR)
 		specular = v;
+}
+
+void Material::SetMtl(const uint8_t prop, const float val)
+{
+	if (prop & MY_MODEL_SHINESS)
+		shiness = val;
 }
 
 

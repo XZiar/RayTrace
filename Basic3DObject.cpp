@@ -274,7 +274,10 @@ HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float min)
 {
 	//early quit
 	if (hr.obj == (intptr_t)this)
-		return hr;
+	{
+		if (!ray.isInside)
+			return hr;
+	}
 
 	float a = ray.direction & normal;
 	if (abs(a) < 1e-6)
@@ -300,6 +303,7 @@ HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float min)
 		float ppdis = (newhr.position - position).length_sqr();
 		newhr.tcoord = Coord2D(u, v);
 		newhr.obj = (intptr_t)this;
+		newhr.isInside = ~ray.isInside;
 		return newhr;
 	}
 	else
