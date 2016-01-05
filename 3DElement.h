@@ -100,16 +100,16 @@ public:
 class Material
 {
 public:
-	string name;
-	int16_t w, h;
 	Vertex ambient,
 		diffuse,
 		specular,
-		shiness,
 		emission;
+	float shiness, reflect, refract;
+	string name;
 	Material();
 	~Material();
-	void SetMtl(int8_t prop, float r, float g, float b, float a = 1.0f);
+	void SetMtl(const uint8_t prop, const float r, const float g, const float b, const float a = 1.0f);
+	void SetMtl(const uint8_t prop, const Vertex &v);
 };
 
 _MM_ALIGN16 struct clTri

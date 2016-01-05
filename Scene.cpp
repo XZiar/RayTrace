@@ -9,7 +9,17 @@ Scene::Scene()
 	for (Light &light : Lights)
 		light.bLight = false;
 	//init material library
-	//MtlLiby[0].SetMtl();
+	MtlLiby[0].name = "brass";//»ÆÍ­²ÄÖÊ
+	MtlLiby[0].SetMtl(MY_MODEL_AMBIENT, 0.329412, 0.223529, 0.027451);
+	MtlLiby[0].SetMtl(MY_MODEL_DIFFUSE, 0.780392, 0.568627, 0.113725);
+	MtlLiby[0].SetMtl(MY_MODEL_SPECULAR, 0.992157, 0.941176, 0.807843);
+	MtlLiby[0].SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 27.897400);
+
+	MtlLiby[1].name = "bas-sphere";//»ù±¾Çò²ÄÖÊ
+	MtlLiby[1].SetMtl(MY_MODEL_AMBIENT, 0.1, 0.1, 0.1);
+	MtlLiby[1].SetMtl(MY_MODEL_DIFFUSE, 0.1, 0.5, 0.8);
+	MtlLiby[1].SetMtl(MY_MODEL_SPECULAR, 1.0, 1.0, 1.0);
+	MtlLiby[1].SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 100);
 }
 
 Scene::~Scene()
@@ -37,18 +47,10 @@ uint8_t Scene::AddLight(const uint8_t type, const Vertex &comp, const Vertex &at
 
 uint8_t Scene::AddSphere(const float radius)
 {
-	Material mtl;
-	mtl.name = "Sphere";
-	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1, 0.1, 0.1);
-	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1, 0.5, 0.8);
-	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0, 1.0, 1.0);
-	int a = Objects.size() * 10;
-	mtl.SetMtl(MY_MODEL_SHINESS, 100-a, 100-a, 100-a);
-
 	GLuint lnum = glGenLists(1);
 	Sphere *sphere = new Sphere(radius, lnum);
 	sphere->position = Vertex(0.0, radius, 0.0);
-	sphere->SetMtl(mtl);
+	sphere->SetMtl(MtlLiby[1]);
 	sphere->GLPrepare();
 
 	Objects.push_back(sphere);
@@ -57,18 +59,10 @@ uint8_t Scene::AddSphere(const float radius)
 
 uint8_t Scene::AddCube(const float len)
 {
-	Material mtl;
-	mtl.name = "Cube";
-	//»ÆÍ­²ÄÖÊ
-	mtl.SetMtl(MY_MODEL_AMBIENT, 0.329412, 0.223529, 0.027451);
-	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.780392, 0.568627, 0.113725);
-	mtl.SetMtl(MY_MODEL_SPECULAR, 0.992157, 0.941176, 0.807843);
-	mtl.SetMtl(MY_MODEL_SHINESS, 27.897400, 27.897400, 27.897400);
-
 	GLuint lnum = glGenLists(1);
 	Box *box = new Box(len, lnum);
 	box->position = Vertex(0.0, len / 2, 0.0);
-	box->SetMtl(mtl);
+	box->SetMtl(MtlLiby[0]);//»ÆÍ­
 	box->GLPrepare();
 
 	Objects.push_back(box);

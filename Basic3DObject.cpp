@@ -109,11 +109,11 @@ void Sphere::GLPrepare()
 {
 	glNewList(GLListNum, GL_COMPILE);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glMaterialfv(GL_FRONT, GL_AMBIENT, mtl.ambient);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, mtl.diffuse);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, mtl.specular);
-	glMaterialfv(GL_FRONT, GL_SHININESS, mtl.shiness);
-	glMaterialfv(GL_FRONT, GL_EMISSION, mtl.emission);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mtl.ambient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mtl.diffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mtl.specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, mtl.emission);
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, mtl.shiness);
 	glutSolidSphere(radius, 100, 100);
 	glEndList();
 }
@@ -170,11 +170,11 @@ void Box::GLPrepare()
 {
 	glNewList(GLListNum, GL_COMPILE);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glMaterialfv(GL_FRONT, GL_AMBIENT, mtl.ambient);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, mtl.diffuse);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, mtl.specular);
-	glMaterialfv(GL_FRONT, GL_SHININESS, mtl.shiness);
-	glMaterialfv(GL_FRONT, GL_EMISSION, mtl.emission);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mtl.ambient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mtl.diffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mtl.specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, mtl.emission);
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, mtl.shiness);
 
 	glEnable(GL_RESCALE_NORMAL);
 	Vertex tmp = max - min;
@@ -289,11 +289,11 @@ void Plane::GLPrepare()
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex.w, tex.h, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, tex.data);
 
 	glNewList(GLListNum, GL_COMPILE);
-	glMaterialfv(GL_FRONT, GL_AMBIENT, mtl.ambient);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, mtl.diffuse);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, mtl.specular);
-	glMaterialfv(GL_FRONT, GL_SHININESS, mtl.shiness);
-	glMaterialfv(GL_FRONT, GL_EMISSION, mtl.emission);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mtl.ambient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mtl.diffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mtl.specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, mtl.emission);
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, mtl.shiness);
 	glBindTexture(GL_TEXTURE_2D, texList);
 	
 	float range = 500;

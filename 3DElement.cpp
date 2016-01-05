@@ -248,7 +248,7 @@ Texture::Texture()
 	for (auto b = 0; b < 4; ++b)
 	{
 		auto begin = (4 * a + b) * 3;
-		uint8_t color = (a & 0x2) == (b & 0x2) ? 0xff : 0x0;
+		uint8_t color = (a & 0x2) == (b & 0x2) ? 0xff : 0x7f;
 		data[begin] = data[begin + 1] = data[begin + 2] = color;
 	}
 }
@@ -332,26 +332,31 @@ Material::Material()
 	name = "simple";
 	SetMtl(MY_MODEL_AMBIENT | MY_MODEL_DIFFUSE, 0.588f, 0.588f, 0.588f);
 	SetMtl(MY_MODEL_EMISSION | MY_MODEL_SPECULAR, 0.0f, 0.0f, 0.0f);
-	SetMtl(MY_MODEL_SHINESS, 10.0f, 10.0f, 10.0f);
+	SetMtl(MY_MODEL_SHINESS, 10.0f, 10.0f, 10.0f, 10.0f);
 }
 
 Material::~Material()
 {
 }
 
-void Material::SetMtl(int8_t prop, float r, float g, float b, float a)
+void Material::SetMtl(const uint8_t prop, const float r, const float g, const float b, const float a)
 {
 	Vertex set(r, g, b, a);
-	if (prop & MY_MODEL_AMBIENT)
-		ambient = set;
-	if (prop & MY_MODEL_DIFFUSE)
-		diffuse = set;
 	if (prop & MY_MODEL_SHINESS)
-		shiness = set;
+		shiness = a;
+	SetMtl(prop, set);
+}
+
+void Material::SetMtl(const uint8_t prop, const Vertex & v)
+{
+	if (prop & MY_MODEL_AMBIENT)
+		ambient = v;
+	if (prop & MY_MODEL_DIFFUSE)
+		diffuse = v;
 	if (prop & MY_MODEL_EMISSION)
-		emission = set;
+		emission = v;
 	if (prop & MY_MODEL_SPECULAR)
-		specular = set;
+		specular = v;
 }
 
 

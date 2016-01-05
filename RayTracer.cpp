@@ -210,7 +210,7 @@ Color RayTracer::RTmtl(const float zNear, const float zFar, const Ray &baseray)
 			if (n_n > 0)
 			{
 				Vertex v_specular = hr.mtl->specular.mixmul(light_s);
-				Vertex vs = v_specular * pow(n_n, hr.mtl->shiness.x);
+				Vertex vs = v_specular * pow(n_n, hr.mtl->shiness);
 				mix_vsc += vc_specular.mixmul(vs);
 			}
 		}
@@ -311,7 +311,7 @@ Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 			if (n_n > 0)
 			{
 				Vertex v_specular = hr.mtl->specular.mixmul(light_s);
-				Vertex vs = v_specular * pow(n_n, hr.mtl->shiness.x);
+				Vertex vs = v_specular * pow(n_n, hr.mtl->shiness);
 				mix_vsc += vc_specular.mixmul(vs);
 			}
 		}
@@ -413,7 +413,7 @@ Color RayTracer::RTflc(const float zNear, const float zFar, const Ray & baseray,
 		if (n_n > 0)
 		{
 			Vertex v_specular = hr.mtl->specular.mixmul(light_s);
-			Vertex vs = v_specular * pow(n_n, hr.mtl->shiness.x);
+			Vertex vs = v_specular * pow(n_n, hr.mtl->shiness);
 			mix_vsc += vc_specular.mixmul(vs);
 		}
 	}

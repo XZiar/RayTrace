@@ -16,6 +16,7 @@
 
 #ifndef _DEBUG
 #define NDEBUG
+#define _SECURE_SCL 0
 #endif
 
 #include <GL/glew.h>
