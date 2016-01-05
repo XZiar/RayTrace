@@ -20,6 +20,7 @@ void RayTracer::parallelRT(const int8_t tNum, const int8_t tID, const PR &worker
 		uint8_t *out_cur = output + blk_ycur * 64 * (3 * width) + blk_xcur * 64 * 3;
 		for (auto ycur = blk_ycur * 64 - height / 2, ymax = ycur + 64; ycur < ymax; ++ycur)//pur y-line
 		{
+			
 			for (auto xcur = blk_xcur * 64 - width / 2, xmax = xcur + 64; xcur < xmax; ++xcur)//per pixel
 			{
 				Vertex dir = cam.n + cam.u*(xcur*dp) + cam.v*(ycur*dp);
