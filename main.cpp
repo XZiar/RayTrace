@@ -66,42 +66,59 @@ void InitMenu()
 	
 	for (auto a = 0; a < scene.Lights.size(); ++a)
 	{
-		int base = 0x200 + (a << 4);
+		int base = 0x2000 + (a << 8);
 		int ID = glutCreateMenu(onMenu);
 		char label[32];
 		sprintf(label, "===%s===", MY_LIGHT_NAME[scene.Lights[a].type]);
 		glutAddMenuEntry(label, 0x0);
-		glutAddMenuEntry("Toggle", base + 0x0);
-		glutAddMenuEntry("Enable/Disable", base + 0x1);
-		glutAddMenuEntry("Delete", base + 0x2);
+		glutAddMenuEntry("Toggle", base + 0x00);
+		glutAddMenuEntry("Enable/Disable", base + 0x10);
+		glutAddMenuEntry("Delete", base + 0x20);
 		menuID.push_back(ID);
 	}
 	for (auto a = 0; a < scene.Objects.size(); ++a)
 	{
-		int base = 0x100 + (a << 4);
+		int base = 0x1000 + (a << 8);
+		//material part
+		int mcID = glutCreateMenu(onMenu);
+		for (auto b = 0; b < scene.MtlLiby.size(); ++b)
+			glutAddMenuEntry(scene.MtlLiby[b].name.c_str(), base + 0x40 + b);
+		int ccID = glutCreateMenu(onMenu);
+		{
+			glutAddMenuEntry("Red", base + 0x50);
+			glutAddMenuEntry("Green", base + 0x51);
+			glutAddMenuEntry("Blue", base + 0x52);
+			glutAddMenuEntry("cyan", base + 0x53);
+			glutAddMenuEntry("Magenta", base + 0x54);
+			glutAddMenuEntry("Yellwow", base + 0x55);
+			glutAddMenuEntry("Black", base + 0x56);
+			glutAddMenuEntry("White", base + 0x57);
+		}
 		int ID = glutCreateMenu(onMenu);
 		char label[32];
 		sprintf(label, "===%s===", MY_OBJECT_NAME[scene.Objects[a]->type]);
 		glutAddMenuEntry(label, 0x0);
-		glutAddMenuEntry("Toggle", base + 0x0);
-		glutAddMenuEntry("Enable/Disable", base + 0x1);
-		glutAddMenuEntry("Delete", base + 0x2);
+		glutAddMenuEntry("Toggle", base + 0x00);
+		glutAddMenuEntry("Enable/Disable", base + 0x10);
+		glutAddMenuEntry("Delete", base + 0x20);
 		if(dynamic_cast<Model*>(scene.Objects[a]) != NULL)
-			glutAddMenuEntry("Z-axis Rotate", base + 0x3);
+			glutAddMenuEntry("Z-axis Rotate", base + 0x30);
+		glutAddSubMenu("Chg Material", mcID);
+		glutAddSubMenu("Chg Color", ccID);
 		menuID.push_back(ID);
 	}
 	//Add Light Menu
 	int ID = glutCreateMenu(onMenu);
-	glutAddMenuEntry("Parallel Light", 0x011);
-	glutAddMenuEntry("Point Light", 0x012);
-	glutAddMenuEntry("Spot Light", 0x013);
+	glutAddMenuEntry("Parallel Light", 0x0011);
+	glutAddMenuEntry("Point Light", 0x0012);
+	glutAddMenuEntry("Spot Light", 0x0013);
 
 	glutCreateMenu(onMenu);
 	glutAddSubMenu("Add Light", ID);
-	glutAddMenuEntry("Add Sphere", 0x001);
-	glutAddMenuEntry("Add Cube", 0x002);
-	glutAddMenuEntry("Add Model", 0x003);
-	glutAddMenuEntry("Add Plane", 0x004);
+	glutAddMenuEntry("Add Sphere", 0x0001);
+	glutAddMenuEntry("Add Cube", 0x0002);
+	glutAddMenuEntry("Add Model", 0x0003);
+	glutAddMenuEntry("Add Plane", 0x0004);
 	glutAddMenuEntry("---Lights---", 0x0);
 	int a = 0;
 	for (; a < scene.Lights.size(); ++a)
@@ -174,7 +191,7 @@ void display(void)
 		//draw scene
 		scene.DrawScene();
 		//draw light
-		scene.DrawLight(1);
+		scene.DrawLight();
 	}
 	else//RayTrace Mode
 	{
@@ -501,11 +518,11 @@ void BaseTest(bool isAuto)
 
 void onMenu(int val)
 {
-	uint8_t obj = (val & 0xf0) >> 4;
-	switch (val & 0xf00)
+	uint8_t obj = (val & 0xf00) >> 8;
+	switch (val & 0xf000)
 	{
-	case 0x000://system
-		switch (val)
+	case 0x0000://system
+		switch (val & 0xff)
 		{
 		case 0x01://Add Sphere
 			obj_toggle = scene.AddSphere(1.0f);
@@ -535,42 +552,72 @@ void onMenu(int val)
 		}
 		InitMenu();
 		break;
-	case 0x100://objects
-		switch (val & 0xf)
+	case 0x1000://objects
+		switch (val & 0xf0)
 		{
 		default:
 			return;
-		case 0://toggle
+		case 0x00://toggle
 			obj_toggle = obj;
 			return;
-		case 1://Enable/Disable
+		case 0x10://Enable/Disable
 			scene.Switch(MY_MODEL_OBJECT | MY_MODEL_SWITCH, obj, true);
 			break;
-		case 2://Delete
+		case 0x20://Delete
 			scene.Delete(MY_MODEL_OBJECT, obj);
 			obj_toggle = 0xff;
 			InitMenu();
 			break;
-		case 4://change material
-			break;
-		case 3://z-rotate
+		case 0x30://z-rotate
+		{
 			Model &model = dynamic_cast<Model&>(*scene.Objects[obj]);
 			model.zRotate();
+		}
+			break;
+		case 0x40://change material
+			scene.ChgMtl(obj, scene.MtlLiby[val & 0xf]);
+			break;
+		case 0x50://change color
+		{
+			Normal clr;
+			switch (val & 0xf)
+			{
+			case 0x0://red
+				clr = Normal(1, 0, 0); break;
+			case 0x1://green
+				clr = Normal(0, 1, 0); break;
+			case 0x2://blue
+				clr = Normal(0, 0, 1); break;
+			case 0x3://cyan
+				clr = Vertex(0, 1, 1); break;
+			case 0x4://magenta
+				clr = Vertex(0, 1, 1); break;
+			case 0x5://yellow
+				clr = Vertex(1, 1, 0); break;
+			case 0x6://black
+				clr = Normal(0, 0, 0); break;
+			case 0x7://white
+				clr = Normal(1, 1, 1, 1); break;
+			default:
+				return;
+			}
+			scene.ChgMtl(obj, clr);
+		}
 			break;
 		}
 		break;
-	case 0x200://lights
-		switch (val & 0xf)
+	case 0x2000://lights
+		switch (val & 0xf0)
 		{
 		default:
 			return;
-		case 0://toggle
+		case 0x00://toggle
 			lgt_toggle = obj;
 			return;
-		case 1://Enable/Disable
+		case 0x10://Enable/Disable
 			scene.Switch(MY_MODEL_LIGHT | MY_MODEL_SWITCH, obj, true);
 			break;
-		case 2://Delete
+		case 0x20://Delete
 			scene.Delete(MY_MODEL_LIGHT, obj);
 			lgt_toggle = 0xff;
 			InitMenu();
@@ -611,7 +658,7 @@ void showdata()
 		}
 		else
 			wprintf(L"目前未选中任何物体\n");
-		wprintf(L"目前RayTrace深度%d\n", rayt.maxLevel);
+		wprintf(L"目前RayTrace深度:%4d\n", rayt.maxLevel);
 		if (rayt.isFinish)
 			wprintf(L"Finish in %4f s\n", rayt.useTime);
 		else

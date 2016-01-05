@@ -79,7 +79,7 @@ class Normal : public Vertex
 {
 public:
 	Normal() : Vertex() { };
-	Normal(const float &ix, const float &iy, const float &iz) :Vertex(ix, iy, iz) { };
+	Normal(const float &ix, const float &iy, const float &iz, const float &iw = 0.0f) :Vertex(ix, iy, iz, iw) { };
 	Normal(const Vertex &v);//πÈ“ªªØ
 };
 
@@ -176,10 +176,10 @@ public:
 class DrawObject
 {
 protected:
-	Material mtl;
 	GLuint GLListNum;
 public:
 	Vertex position;
+	Material mtl;
 	uint8_t type;
 	bool bShow = true;
 

@@ -320,7 +320,8 @@ Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 	return vc.mixmul(mix_vd + mix_va) + mix_vsc;
 }
 
-Color RayTracer::RTflec(const float zNear, const float zFar, const Ray & baseray, const int level, const float bwc, HitRes hr)
+Color RayTracer::RTflec(const float zNear, const float zFar, const Ray & baseray,
+	const uint8_t level, const float bwc, HitRes hr)
 {
 	if (level > maxLevel || bwc < 1e-5f)//deep limit
 		return Color(false);

@@ -148,11 +148,30 @@ bool Scene::ChgLightComp(const uint8_t type, const uint8_t num, const Vertex & v
 	return true;
 }
 
-bool Scene::ChgMtl(const uint8_t num, const Material & mtl)
+bool Scene::ChgMtl(const uint8_t num, const Material &mtl)
 {
 	if (num >= Objects.size())
 		return false;
-	//
+	Objects[num]->SetMtl(mtl);
+	Objects[num]->GLPrepare();
+	return true;
+}
+
+bool Scene::ChgMtl(const uint8_t num, const Normal &clr)
+{
+	if (num >= Objects.size())
+		return false;
+	Vertex &mclr = Objects[num]->mtl.diffuse;
+	if (clr.w < 0.5f)
+	{
+		float sum = mclr.r + mclr.g + mclr.b;
+		mclr = clr * sum;
+	}
+	else
+	{
+		mclr = clr;
+	}
+	Objects[num]->GLPrepare();
 	return true;
 }
 
@@ -280,18 +299,16 @@ void Scene::DrawScene()
 	glPopMatrix();
 }
 
-void Scene::DrawLight(const uint8_t num)
+void Scene::DrawLight()
 {
-	if (num >= Lights.size())
-		return;
 	Vertex lgt(1, 1, 1);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, lgt);
-	Light &light = Lights[num];
-	if (light.bLight)
-	{
-		glPushMatrix();
-		glTranslatef(light.position.x, light.position.y, light.position.z);
-		glutWireSphere(0.1, 10, 10);
-		glPopMatrix();
-	}
+	for(Light &light:Lights)
+		if (light.bLight)
+		{
+			glPushMatrix();
+			glTranslatef(light.position.x, light.position.y, light.position.z);
+			glutWireSphere(0.1, 10, 10);
+			glPopMatrix();
+		}
 }

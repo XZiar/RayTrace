@@ -30,13 +30,13 @@ private:
 	Color RTmtl(const float zNear, const float zFar, const Ray &baseray);
 	Color RTshd(const float zNear, const float zFar, const Ray &baseray);
 	Color RTflec(const float zNear, const float zFar, const Ray &baseray,
-		const int level, const float bwc, HitRes hr);//loop count , benefit weight , base hitres
+		const uint8_t level, const float bwc, HitRes hr);//loop count , benefit weight , base hitres
 public:
 	GLuint texID;
 	uint8_t *output;
 	volatile bool isFinish = true;
 	volatile double useTime;
-	int8_t maxLevel = 1;
+	uint8_t maxLevel = 1;
 	int width, height;
 	RayTracer(Scene &scene);
 	~RayTracer();

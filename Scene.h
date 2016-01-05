@@ -9,6 +9,8 @@
 #define MY_MODEL_OBJECT 0x2
 #define MY_LIGHT_COMPENT 0x1
 #define MY_LIGHT_LUMI 0x2
+#define MY_OBJECT_MATERIAL 0x1
+#define MY_OBJECT_COLOR 0x2
 #define MY_MODEL_SWITCH 0x80
 
 class Scene
@@ -34,9 +36,10 @@ public:
 	bool Delete(const uint8_t type, const uint8_t num);
 	bool ChgLightComp(const uint8_t type, const uint8_t num, const Vertex &v);
 	bool ChgMtl(const uint8_t num, const Material &mtl);
+	bool ChgMtl(const uint8_t num, const Normal &clr);
 	bool MovePos(const uint8_t type, const uint8_t num, const Vertex &v);
 	bool Switch(const uint8_t type, const uint8_t num, const bool isShow);
 	void DrawScene();
-	void DrawLight(const uint8_t num);
+	void DrawLight();
 };
 
