@@ -28,6 +28,7 @@ private:
 	Color RTtex(const float zNear, const float zFar, const Ray &baseray);
 	Color RTmtl(const float zNear, const float zFar, const Ray &baseray);
 	Color RTshd(const float zNear, const float zFar, const Ray &baseray);
+	Color RTflc(const float zNear, const float zFar, const Ray &baseray, const int level);
 public:
 	GLuint texID;
 	uint8_t *output;

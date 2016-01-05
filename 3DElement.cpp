@@ -349,47 +349,33 @@ Triangle::Triangle(const Vertex &va, const Normal &na, const Coord2D &ta, const 
 
 
 
-Color::Color(const bool black)
+Color::Color(const bool white)
 {
-	if (black)
-		r = g = b = 0;
+	if (white)
+		r = g = b = 1.0f;
 	else
-		r = g = b = 255;
-}
-
-Color::Color(const float depth, const float mindepth, const float maxdepth)
-{
-	if (depth <= mindepth)
-	{
-		r = 255, g = b = 0;
-		return;
-	}
-	if (depth >= maxdepth)
-	{
-		r = g = 0, b = 0;
-		return;
-	}
-	float after = log(depth), max = log(maxdepth);
-	r = g = b = (max - after) * 255 / max;
+		r = g = b = 0.0f;
 }
 
 Color::Color(const Vertex &v)
 {
-	r = v.x > 255 ? 255 : (uint8_t)v.x;
-	g = v.y > 255 ? 255 : (uint8_t)v.y;
-	b = v.z > 255 ? 255 : (uint8_t)v.z;
+	r = v.x, g = v.y, b = v.z;
 }
 
 Color::Color(const Normal &n)
 {
-	r = 127 * (n.x + 1);
-	g = 127 * (n.y + 1);
-	b = 127 * (n.z + 1);
+	r = 0.5 * (n.x + 1);
+	g = 0.5 * (n.y + 1);
+	b = 0.5 * (n.z + 1);
 }
 
-Color::Color(const int16_t & w, const int16_t & h, const uint8_t *data, const Coord2D &coord)
+Color::Color(const Texture * tex, const Coord2D & coord)
 {
-
+	if (tex == nullptr)
+	{
+		b = g = r = 1.0f;
+		return;
+	}
 	float empty,
 		nu = modf(coord.u, &empty),
 		nv = modf(coord.v, &empty);
@@ -397,22 +383,34 @@ Color::Color(const int16_t & w, const int16_t & h, const uint8_t *data, const Co
 		nu += 1;
 	if (nv < 0)
 		nv += 1;
-	int16_t x = (int16_t)(nu * w),
-		y = (int16_t)(nv * h);
-	int32_t offset = (y * w + x) * 3;
-	b = data[offset];
-	g = data[offset + 1];
-	r = data[offset + 2];
+	int16_t x = (int16_t)(nu * tex->w),
+		y = (int16_t)(nv * tex->h);
+	int32_t offset = (y * tex->w + x) * 3;
+	b = tex->data[offset] / 255.0f;
+	g = tex->data[offset + 1] / 255.0f;
+	r = tex->data[offset + 2] / 255.0f;
 }
-
+void Color::set(const float depth, const float mindepth, const float maxdepth)
+{
+	if (depth <= mindepth)
+		r = 1.0f, g = b = 0.0f;
+	else if (depth >= maxdepth)
+		r = g = b = 0.0f;
+	else
+	{
+		float after = log(depth), max = log(maxdepth);
+		r = g = b = (max - after) / max;
+	}
+}
 void Color::put(uint8_t * addr)
 {
-	*addr = r, *(addr + 1) = g, *(addr + 2) = b;
+	*addr = r > 1.0f ? 255 : (r < 0.0f ? 0 : r * 255);
+	*(addr + 1) = g > 1.0f ? 255 : (g < 0.0f ? 0 : g * 255);
+	*(addr + 2) = b > 1.0f ? 255 : (b < 0.0f ? 0 : b * 255);
 }
-
 void Color::get(uint8_t * addr)
 {
-	r = *addr, g = *(addr + 1), b = *(addr + 2);
+	r = (*addr) / 255.0f, g = (*(addr + 1)) / 255.0f, b = (*(addr + 2)) / 255.0f;
 }
 
 

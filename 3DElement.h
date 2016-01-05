@@ -45,12 +45,16 @@ public:
 		__m128 dat;
 		struct
 		{
-			float x, y, z, alpha;
+			float x, y, z, w;
+		};
+		struct
+		{
+			float r, g, b, alpha;
 		};
 	};
 	Vertex();
 	Vertex(const __m128 &idat);
-	Vertex(const float ix, const float iy, const float iz, const float ia = 0) :x(ix), y(iy), z(iz), alpha(ia) { };
+	Vertex(const float ix, const float iy, const float iz, const float ia = 0) :x(ix), y(iy), z(iz), w(ia) { };
 	operator float*() { return &x; };
 	operator __m128() const { return dat; };
 
@@ -125,15 +129,16 @@ public:
 	Triangle(const Vertex &va, const Normal &na, const Coord2D &ta, const Vertex &vb, const Normal &nb, const Coord2D &tb, const Vertex &vc, const Normal &nc, const Coord2D &tc);
 };
 
-class Color
+class Color : public Vertex
 {
 public:
-	uint8_t r, g, b;
-	Color(const bool black);
-	Color(const float depth, const float mindepth, const float maxdepth);
+	Color(const bool white = false);
+	Color(const float &ix, const float &iy, const float &iz) :Vertex(ix, iy, iz) { };
 	Color(const Vertex &v);
 	Color(const Normal &n);
-	Color(const int16_t &w, const int16_t &h, const uint8_t *data, const Coord2D &coord);
+	Color(const Texture* tex, const Coord2D &coord);
+
+	void set(const float depth, const float mindepth, const float maxdepth);
 	void put(uint8_t *addr);
 	void get(uint8_t *addr);
 };

@@ -86,7 +86,9 @@ Color RayTracer::RTdepth(const float zNear, const float zFar, const Ray &baseray
 		if (dobj->bShow)
 			hr = dobj->intersect(baseray, hr);
 	}
-	return Color(hr.distance, zNear, zFar);
+	Color c(true);
+	c.set(hr.distance, zNear, zFar);
+	return c;
 }
 
 Color RayTracer::RTnorm(const float zNear, const float zFar, const Ray &baseray)
@@ -98,9 +100,9 @@ Color RayTracer::RTnorm(const float zNear, const float zFar, const Ray &baseray)
 			hr = dobj->intersect(baseray, hr);
 	}
 	if (hr.distance > zFar)
-		return Color(true);
-	if (hr.distance < zNear)
 		return Color(false);
+	if (hr.distance < zNear)
+		return Color(true);
 	return Color(hr.normal);
 }
 
@@ -113,39 +115,29 @@ Color RayTracer::RTtex(const float zNear, const float zFar, const Ray &baseray)
 			hr = dobj->intersect(baseray, hr);
 	}
 	if (hr.distance > zFar)
-		return Color(true);
-	if (hr.distance < zNear)
 		return Color(false);
+	if (hr.distance < zNear)
+		return Color(true);
 	if (hr.tex != nullptr)//has texture
-	{
-		return Color(hr.tex->w, hr.tex->h, hr.tex->data, hr.tcoord);
-	}
+		return Color(hr.tex, hr.tcoord);
 	else
-	{
-		Color c(false);
-		c.r = c.g = c.b = 150;
-		return c;
-	}
+		return Color(0.588f, 0.588f, 0.588f);
 }
 
 Color RayTracer::RTmtl(const float zNear, const float zFar, const Ray &baseray)
 {
 	HitRes hr;
-	Color c(false);
-	//c.r = c.g = c.b = 0.588 * 255;
 	for (auto dobj : scene->Objects)
 	{
 		if (dobj->bShow)
 			hr = dobj->intersect(baseray, hr);
 	}
 	if (hr.distance > zFar)
-		return Color(true);
-	if (hr.distance < zNear)
 		return Color(false);
-	if (hr.tex != nullptr)//has texture
-		c = Color(hr.tex->w, hr.tex->h, hr.tex->data, hr.tcoord);
-	Vertex vc_specular(255, 255, 255),
-		vc(c.r, c.g, c.b),
+	if (hr.distance < zNear)
+		return Color(true);
+	Color vc_specular(1.0f, 1.0f, 1.0f),
+		vc(hr.tex, hr.tcoord),
 		mix_vd, mix_va, mix_vsc;
 	for (auto &lit : scene->Lights)
 	{
@@ -224,27 +216,23 @@ Color RayTracer::RTmtl(const float zNear, const float zFar, const Ray &baseray)
 		}
 	}
 	mix_va += hr.mtl->ambient.mixmul(scene->EnvLight);//environment ambient color
-	return Color(vc.mixmul(mix_vd + mix_va) + mix_vsc);
+	return vc.mixmul(mix_vd + mix_va) + mix_vsc;
 }
 
 Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 {
 	HitRes hr;
-	Color c(false);
-	//c.r = c.g = c.b = 0.588 * 255;
 	for (auto dobj : scene->Objects)
 	{
 		if (dobj->bShow)
 			hr = dobj->intersect(baseray, hr);
 	}
 	if (hr.distance > zFar)
-		return Color(true);
-	if (hr.distance < zNear)
 		return Color(false);
-	if (hr.tex != nullptr)//has texture
-		c = Color(hr.tex->w, hr.tex->h, hr.tex->data, hr.tcoord);
-	Vertex vc_specular(255, 255, 255),
-		vc(c.r, c.g, c.b),
+	if (hr.distance < zNear)
+		return Color(true);
+	Color vc_specular(1.0f, 1.0f, 1.0f),
+		vc(hr.tex, hr.tcoord),
 		mix_vd, mix_va, mix_vsc;
 	for (auto &lit : scene->Lights)
 	{
@@ -329,7 +317,109 @@ Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 		}
 	}
 	mix_va += hr.mtl->ambient.mixmul(scene->EnvLight);//environment ambient color
-	return Color(vc.mixmul(mix_vd + mix_va) + mix_vsc);
+	return vc.mixmul(mix_vd + mix_va) + mix_vsc;
+}
+
+Color RayTracer::RTflc(const float zNear, const float zFar, const Ray & baseray, const int level)
+{
+	if (level > 1)
+		return Color(false);
+	HitRes hr;
+	//intersect
+	for (auto dobj : scene->Objects)
+		if (dobj->bShow)
+			hr = dobj->intersect(baseray, hr);
+	//early cut
+	if (hr.distance > zFar)
+		return Color(false);
+	if (hr.distance < zNear)
+		return Color(true);
+	Color vc_specular(1.0f, 1.0f, 1.0f),
+		vc(hr.tex, hr.tcoord),
+		mix_vd, mix_vsc;
+	Vertex mix_va = hr.mtl->ambient.mixmul(scene->EnvLight);//environment ambient color
+	//accept light
+	for (auto &lit : scene->Lights)
+	if (lit.bLight)
+	{
+		Vertex light_a, light_d, light_s;
+		Normal p2l;
+		float dis;
+		//consider light type
+		if (lit.type == MY_LIGHT_POINT)
+		{//point light
+			Vertex p2l_v = lit.position - hr.position;
+			dis = p2l_v.length_sqr();
+			float step = lit.attenuation.x
+				+ lit.attenuation.z * dis;
+			dis = sqrt(dis);
+			step += lit.attenuation.y * dis;
+			float light_lum = 1 / step;
+			light_a = lit.ambient * light_lum;
+			light_d = lit.diffuse * light_lum;
+			light_s = lit.specular * light_lum;
+			p2l = Normal(p2l_v);
+		}
+		else
+		{//parallel light
+			dis = 1e10;
+			light_a = lit.ambient;
+			light_d = lit.diffuse;
+			light_s = lit.specular;
+			p2l = Normal(lit.position);
+		}
+		/*
+		** ambient_color = base_map (*) mat_ambient (*) light_ambient
+		*/
+		Vertex v_ambient = hr.mtl->ambient.mixmul(light_a);
+		mix_va += v_ambient;
+		//shadow test
+		Ray shadowray(hr.position, p2l);
+		HitRes shr(dis);
+		shr.obj = hr.obj;
+		for (auto dobj : scene->Objects)
+		{
+			if (dobj->bShow)
+				//quick test to find nearest blocking object
+				shr = dobj->intersect(shadowray, shr, dis);
+			//early quick
+			if (shr.distance < dis)
+				break;
+		}
+		if (shr.distance < dis)//something block the light
+		{
+			//mix_vd += Vertex(1, 0, 0);
+			continue;
+		}
+		/*
+		** diffuse_color = base_map * normal.p2l (*) mat_diffuse (*) light_diffuse
+		** p2l = normal that point towards light
+		*/
+		float n_n = hr.normal & p2l;
+		if (n_n > 0)
+		{
+			Vertex v_diffuse = hr.mtl->diffuse.mixmul(light_d);
+			mix_vd += v_diffuse * n_n;
+		}
+		/*
+		** blinn-phong model
+		** specular_color = (normal.h)^shiness * mat_diffuse (*) light_diffuse
+		** h = Normalized(p2r + p2l)
+		** p2r = normal that point towards camera = -r2p
+		** p2l = normal that point towards light
+		*/
+		Normal h = Normal(p2l - baseray.direction);
+		n_n = hr.normal & h;
+		if (n_n > 0)
+		{
+			Vertex v_specular = hr.mtl->specular.mixmul(light_s);
+			Vertex vs = v_specular * pow(n_n, hr.mtl->shiness.x);
+			mix_vsc += vc_specular.mixmul(vs);
+		}
+	}
+	//accept reflection
+	
+	return vc.mixmul(mix_vd + mix_va) + mix_vsc;
 }
 
 
