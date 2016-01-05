@@ -161,15 +161,25 @@ bool Scene::ChgMtl(const uint8_t num, const Normal &clr)
 {
 	if (num >= Objects.size())
 		return false;
-	Vertex &mclr = Objects[num]->mtl.diffuse;
-	if (clr.w < 0.5f)
+	auto chgclr = [clr](Vertex &mclr) 
 	{
-		float sum = mclr.r + mclr.g + mclr.b;
-		mclr = clr * sum;
+		if (clr.w < 0.5f)
+		{
+			float sum = mclr.r + mclr.g + mclr.b;
+			mclr = clr * sum;
+		}
+		else//rewrite color
+			mclr = clr;
+	};
+	if (Objects[num]->type == MY_OBJECT_MODEL)
+	{
+		Model &m = dynamic_cast<Model&>(*Objects[num]);
+		for (Material &mtl : m.mtls)
+			chgclr(mtl.diffuse);
 	}
 	else
 	{
-		mclr = clr;
+		chgclr(Objects[num]->mtl.diffuse);
 	}
 	Objects[num]->GLPrepare();
 	return true;

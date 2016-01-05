@@ -1,62 +1,6 @@
 #include "rely.h"
 #include "Basic3DObject.h"
 
-float BorderTestOld(const Ray & ray, const Vertex &Min, const Vertex &Max)
-{
-	Vertex dismin = Min - ray.origin, dismax = Max - ray.origin;
-	//test z
-	if (ray.direction.z != 0.0)
-	{
-		dismin.z /= ray.direction.z;
-		dismax.z /= ray.direction.z;
-		if (dismin.z > dismax.z)
-			swap(dismin.z, dismax.z);
-	}
-	else
-	{
-		if (ray.origin.z > Max.z || ray.origin.z < Min.z)
-			return 1e20;
-		dismin.z = -1, dismax.z = 1e10;
-	}
-	//test y
-	if (ray.direction.y != 0.0)
-	{
-		dismin.y /= ray.direction.y;
-		dismax.y /= ray.direction.y;
-		if (dismin.y > dismax.y)
-			swap(dismin.y, dismax.y);
-	}
-	else
-	{
-		if (ray.origin.y > Max.y || ray.origin.y < Min.y)
-			return 1e20;
-		dismin.y = -1, dismax.y = 1e10;
-	}
-	//test x
-	if (ray.direction.x != 0.0)
-	{
-		dismin.x /= ray.direction.x;
-		dismax.x /= ray.direction.x;
-		if (dismin.x > dismax.x)
-			swap(dismin.x, dismax.x);
-	}
-	else
-	{
-		if (ray.origin.x > Max.x || ray.origin.x < Min.x)
-			return 1e20;
-		dismin.x = -1, dismax.x = 1e10;
-	}
-
-	float dmin = dismin.x < dismin.y ? dismin.y : dismin.x,
-		dmax = dismax.x < dismax.y ? dismax.x : dismax.y;
-	dmin = dmin < dismin.z ? dismin.z : dmin,
-		dmax = dmax < dismax.z ? dmax : dismax.z;
-	dmin = dmin < 0 ? 0 : dmin;
-	if (dmax < dmin)
-		return 1e20;
-	return dmin;
-}
-
 float BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max, float *getMax)
 {
 	Vertex tdismin = Min - ray.origin, tdismax = Max - ray.origin;

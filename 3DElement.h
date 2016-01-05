@@ -185,7 +185,7 @@ public:
 
 	DrawObject(GLuint n) : GLListNum(n) { };
 	virtual ~DrawObject() { };
-	void SetMtl(const Material &mtl) { this->mtl = mtl; };
+	virtual void SetMtl(const Material &mtl) { this->mtl = mtl; };
 	void GLDraw();
 	virtual void GLPrepare() = 0;
 	virtual void RTPrepare() { };

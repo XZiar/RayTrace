@@ -44,6 +44,7 @@ public:
 	~Model() override;
 	int32_t loadOBJ(const wstring &objname, const wstring &mtlname, const uint8_t code = 0x0);
 	void zRotate();
+	virtual void SetMtl(const Material &mtl) override;
 	virtual void RTPrepare() override;
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float min = 0) override;
 };

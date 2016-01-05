@@ -332,6 +332,8 @@ void onKeyboard(unsigned char key, int x, int y)
 				rayt.start(MY_MODEL_SHADOWTEST, tnum); break;
 			case '7':
 				rayt.start(MY_MODEL_REFLECTTEST, tnum); break;
+			case '8':
+				rayt.start(MY_MODEL_REFRACTTEST, tnum); break;
 			}
 			glutTimerFunc(50, onTimer, 1);
 		}

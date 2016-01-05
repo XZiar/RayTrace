@@ -392,6 +392,13 @@ void Model::zRotate()
 	GLPrepare();
 }
 
+void Model::SetMtl(const Material & mtl)
+{
+	for (auto &old : mtls)
+		old = mtl;
+	//mtls[0] = mtl;
+}
+
 void Model::RTPrepare()
 {
 	BorderMin = VerMin + position, BorderMax = VerMax + position;
