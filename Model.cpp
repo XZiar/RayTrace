@@ -1,4 +1,5 @@
 #include "rely.h"
+#include "Basic3DObject.h"
 #include "Model.h"
 
 #define pS(a,b,c) (a)*65536+(b)*256+(c)
@@ -27,7 +28,7 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 	txcs.reserve(8000);
 	//load
 	vector<Triangle> tris;
-	tris.reserve(4000);
+	tris.reserve(2000);
 	Vertex v;
 	Normal n;
 	Coord2D tc;
@@ -80,7 +81,7 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 			nors.push_back(n);
 			break;
 		case pS('v', 't', '*')://texture coord
-			tc = Coord2D(atof(ele[1].c_str()), atof(ele[2].c_str())/*, atof(ele[3].c_str())*/);
+			tc = Coord2D(atof(ele[1].c_str()), atof(ele[2].c_str()));
 			txcs.push_back(tc);
 			break;
 		case pS('f', '*', '*')://triangle
@@ -127,13 +128,10 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 						vers[ti[6]], nors[ti[8]], txcs[ti[7]]);
 				tris.push_back(t);
 			#ifdef SSE2
-				__m128 v0dat = _mm_load_ps(vers[ti[0]].dat.m128_f32);
-				__m128 v3dat = _mm_load_ps(vers[ti[3]].dat.m128_f32);
-				__m128 v6dat = _mm_load_ps(vers[ti[6]].dat.m128_f32);
-				__m128 i1dat = _mm_min_ps(v3dat, v0dat);
-				__m128 a1dat = _mm_max_ps(v3dat, v0dat);
-				__m128 i2dat = _mm_min_ps(VerMin.dat, v6dat);
-				__m128 a2dat = _mm_max_ps(VerMax.dat, v6dat);
+				__m128 i1dat = _mm_min_ps(vers[ti[0]].dat, vers[ti[3]].dat);
+				__m128 a1dat = _mm_max_ps(vers[ti[0]].dat, vers[ti[3]].dat);
+				__m128 i2dat = _mm_min_ps(VerMin.dat, vers[ti[6]].dat);
+				__m128 a2dat = _mm_max_ps(VerMax.dat, vers[ti[6]].dat);
 				VerMin.dat = _mm_min_ps(i1dat, i2dat);
 				VerMax.dat = _mm_max_ps(a1dat, a2dat);
 			#else
@@ -146,11 +144,11 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 		case pS('u', 's', 'e')://object part
 			if (!bFirstO)
 			{
-				parts.push_back(tris);
-				tris.clear();
+				tris.shrink_to_fit();
+				parts.push_back(move(tris));
+				tris.reserve(2000);
 				borders.push_back(VerMin);
 				borders.push_back(VerMax);
-				//tris.reserve(4000);
 			}
 			VerMin = Vertex(1000, 1000, 1000);
 			VerMax = Vertex(-1000, -1000, -1000);
@@ -167,8 +165,9 @@ int32_t Model::loadobj(const wstring &objname, const uint8_t code)
 	{
 		part_mtl.push_back(0);
 	}
-	parts.push_back(tris);
-	tris.swap(vector<Triangle>());
+	tris.shrink_to_fit();
+	parts.push_back(move(tris));
+
 	borders.push_back(VerMin);
 	borders.push_back(VerMax);
 
@@ -232,7 +231,7 @@ int32_t Model::loadmtl(const wstring &mtlname, const uint8_t code)
 			{
 				mtls.push_back(mtl);
 				mtl_tex.push_back(cur_tex_id);
-				mtl = Material();
+				//mtl = Material();
 			}
 			mtl.name = ele[1];
 			cur_tex_id = -1;
@@ -303,7 +302,7 @@ int32_t Model::loadtex(const string &texname, const uint8_t code)
 	//for (int a = 0; a < size; a += 3)
 		//swap(image[a], image[a + 2]);
 
-	texs.push_back(Texture(texname, width, height, image));
+	texs.push_back(move(Texture(texname, width, height, image)));
 	delete[] image;
 	fclose(fp);
 	return int32_t();
@@ -321,14 +320,14 @@ void Model::reset()
 	texs.swap(vector<Texture>());
 	mtls.swap(vector<Material>());
 	parts.swap(vector<vector<Triangle>>());
-	newparts.swap(vector<vector<Triangle>>());
+	//clparts.swap(vector<vector<clTri>>());
+	octclparts.swap(vector<vector<clTri>>());
 	borders.swap(vector<Vertex>());
 	bboxs.swap(vector<Vertex>());
 
 	vers.swap(vector<Vertex>());
 	nors.swap(vector<Normal>());
 	txcs.swap(vector<Coord2D>());
-	
 }
 
 Model::~Model()
@@ -371,11 +370,18 @@ void Model::zRotate()
 				t.norms[a].z *= -1;
 			}
 	//rotate border-box
-	for(Vertex &v : borders)
+	for (auto a = 0; a < borders.size(); a += 2)
+	{
+		Vertex &va = borders[a], &vb = borders[a + 1];
+		swap(va.y, va.z); swap(vb.y, vb.z);
+		va.z *= -1; vb.z *= -1;
+		swap(va.z, vb.z);
+	}
+	/*for(Vertex &v : borders)
 	{
 		swap(v.y, v.z);
 		v.z *= -1;
-	}
+	}*/
 	swap(VerMin.y, VerMin.z);
 	VerMin.z *= -1;
 	swap(VerMax.y, VerMax.z);
@@ -387,50 +393,392 @@ void Model::RTPrepare()
 {
 	BorderMin = VerMin + position, BorderMax = VerMax + position;
 	bboxs.clear();
-	for (Vertex &v : borders)
-		bboxs.push_back(v + position);
-	newparts.clear();
-	vector<Triangle> tmppart;
-	for (vector<Triangle> &part : parts)
+	//for (Vertex &v : borders)
+	//bboxs.push_back(v + position);
+	//clparts.clear();
+	octclparts.clear();
+	//vector<clTri> cltpart;
+	vector<clTri> octcltpart[8];
+	int bbnum = 0;
+	for (auto cnta = 0; cnta < parts.size(); ++cnta)
+	//for (vector<Triangle> &part : parts)
 	{
-		for (Triangle &t : part)
+		vector<Triangle> &part = parts[cnta];
+
+		Vertex va = borders[bbnum], vb = borders[bbnum + 1];
+		bboxs.push_back(va + position), bboxs.push_back(vb + position);
+		va = (va + vb) * 0.5;
+		bbnum += 2;
+		for (auto cntb = 0; cntb < part.size(); ++cntb)
+		//for (Triangle &t : part)
 		{
-			Triangle newt = t;
-			newt.points[0] += position;
-			newt.points[1] += position;
-			newt.points[2] += position;
-			newt.axisu = newt.points[1] - newt.points[0];
-			newt.axisv = newt.points[2] - newt.points[0];
-			tmppart.push_back(newt);
+			Triangle &t = part[cntb];
+			clTri clt(t.points[1] - t.points[0], t.points[2] - t.points[0], t.points[0] + position);
+			clt.numa = cnta, clt.numb = cntb;
+
+			//cltpart.push_back(clt);
+			__m128 tmin = _mm_min_ps(t.points[0].dat, _mm_min_ps(t.points[1].dat, t.points[2].dat));
+			__m128 tmax = _mm_max_ps(t.points[0].dat, _mm_max_ps(t.points[1].dat, t.points[2].dat));
+			if (tmin.m128_f32[0] <= va.x)
+			{
+				if (tmin.m128_f32[2] <= va.z)
+				{
+					if (tmin.m128_f32[1] <= va.y)
+						octcltpart[0].push_back(clt);
+					if (tmax.m128_f32[1] >= va.y)
+						octcltpart[1].push_back(clt);
+				}
+				if (tmax.m128_f32[2] >= va.z)
+				{
+					if (tmin.m128_f32[1] <= va.y)
+						octcltpart[2].push_back(clt);
+					if (tmax.m128_f32[1] >= va.y)
+						octcltpart[3].push_back(clt);
+				}
+			}
+			if (tmax.m128_f32[0] >= va.x)
+			{
+				if (tmin.m128_f32[2] <= va.z)
+				{
+					if (tmin.m128_f32[1] <= va.y)
+						octcltpart[4].push_back(clt);
+					if (tmax.m128_f32[1] >= va.y)
+						octcltpart[5].push_back(clt);
+				}
+				if (tmax.m128_f32[2] >= va.z)
+				{
+					if (tmin.m128_f32[1] <= va.y)
+						octcltpart[6].push_back(clt);
+					if (tmax.m128_f32[1] >= va.y)
+						octcltpart[7].push_back(clt);
+				}
+			}
 		}
-		newparts.push_back(tmppart);
-		tmppart.clear();
+		//cltpart.shrink_to_fit();
+		//clparts.push_back(move(cltpart));
+		//cltpart.reserve(3000);
+		for (auto b = 0; b < 8; ++b)
+		{
+			octcltpart[b].shrink_to_fit();
+			octclparts.push_back(move(octcltpart[b]));
+			octcltpart[b].reserve(500);
+		}
 	}
+	return;
+
 }
 
-HitRes Model::intersect(const Ray &ray, const HitRes &hr)
+static float BorderTestEx(const Ray & ray, const Vertex &Min, const Vertex &Max, __m256i *mask)
 {
-	float ans = BorderTest(ray, BorderMin, BorderMax);
+	const Vertex Mid = (Min + Max) * 0.5;
+	Vertex tmin = Min - ray.origin, tmax = Max - ray.origin, tmid = Mid - ray.origin;
+	Vertex rrd = _mm_div_ps(_mm_set1_ps(1.0f), ray.direction);
+	tmin = tmin.mixmul(rrd);
+	tmax = tmax.mixmul(rrd);
+	tmid = tmid.mixmul(rrd);
+
+	__m256 min_mid, mid_max, xa, xb, ya, yb, za, zb;
+	min_mid = _mm256_set_m128(tmid, tmin);
+	mid_max = _mm256_set_m128(tmax, tmid);
+	xa = _mm256_permute_ps(min_mid, 0x00);
+	xb = _mm256_permute_ps(mid_max, 0x00);
+	ya = _mm256_permutevar8x32_ps(min_mid, _mm256_set_epi32(5, 1, 5, 1, 5, 1, 5, 1));
+	yb = _mm256_permutevar8x32_ps(mid_max, _mm256_set_epi32(5, 1, 5, 1, 5, 1, 5, 1));
+	za = _mm256_permutevar8x32_ps(min_mid, _mm256_set_epi32(6, 6, 2, 2, 6, 6, 2, 2));
+	zb = _mm256_permutevar8x32_ps(mid_max, _mm256_set_epi32(6, 6, 2, 2, 6, 6, 2, 2));
+
+	__m256 txansmin = _mm256_min_ps(xa, xb),
+		txansmax = _mm256_max_ps(xa, xb),
+		tyansmin = _mm256_min_ps(ya, yb),
+		tyansmax = _mm256_max_ps(ya, yb),
+		tzansmin = _mm256_min_ps(za, zb),
+		tzansmax = _mm256_max_ps(za, zb);
+
+	//test y
+	if (abs(ray.direction.y) < 1e-6)
+	{
+		if (ray.origin.y > Max.y || ray.origin.y < Min.y)
+			return 1e20f;
+		if (ray.origin.y > Mid.y)
+			tyansmin = _mm256_setr_ps(1e20f, 0, 1e20f, 0, 1e20f, 0, 1e20f, 0),
+			tyansmax = _mm256_setr_ps(0, 1e20f, 0, 1e20f, 0, 1e20f, 0, 1e20f);
+		else if(ray.origin.y < Mid.y)
+			tyansmin = _mm256_setr_ps(0, 1e20f, 0, 1e20f, 0, 1e20f, 0, 1e20f),
+			tyansmax = _mm256_setr_ps(1e20f, 0, 1e20f, 0, 1e20f, 0, 1e20f, 0);
+		else
+			tyansmin = _mm256_setzero_ps(),//_mm256_set_ps(0, 0, 0, 0, 0, 0, 0, 0),
+			tyansmax = _mm256_set_ps(1e20f, 1e20f, 1e20f, 1e20f, 1e20f, 1e20f, 1e20f, 1e20f);
+		
+	}
+	//test x
+	if (abs(ray.direction.x) < 1e-6)
+	{
+		if (ray.origin.x > Max.x || ray.origin.x < Min.x)
+			return 1e20f;
+		if (ray.origin.x > Mid.x)
+			txansmin = _mm256_setr_ps(1e20f, 1e20f, 1e20f, 1e20f, 0, 0, 0, 0),
+			txansmax = _mm256_setr_ps(0, 0, 0, 0, 1e20f, 1e20f, 1e20f, 1e20f);
+		else if(ray.origin.x < Mid.x)
+			txansmin = _mm256_setr_ps(0, 0, 0, 0, 1e20f, 1e20f, 1e20f, 1e20f),
+			txansmax = _mm256_setr_ps(1e20f, 1e20f, 1e20f, 1e20f, 0, 0, 0, 0);
+		else
+			txansmin = _mm256_setzero_ps(),//_mm256_set_ps(0, 0, 0, 0, 0, 0, 0, 0),
+			txansmax = _mm256_set_ps(1e20f, 1e20f, 1e20f, 1e20f, 1e20f, 1e20f, 1e20f, 1e20f);
+	}
+	//test z
+	if (abs(ray.direction.z) < 1e-6)
+	{
+		if (ray.origin.z > Max.z || ray.origin.z < Min.z)
+			return 1e20f;
+		if (ray.origin.z > Mid.z)
+			tzansmin = _mm256_setr_ps(1e20f, 1e20f, 0, 0, 1e20f, 1e20f, 0, 0),
+			tzansmax = _mm256_setr_ps(0, 0, 1e20f, 1e20f, 0, 0, 1e20f, 1e20f);
+		else if (ray.origin.z < Mid.z)
+			tzansmin = _mm256_setr_ps(0, 0, 1e20f, 1e20f, 0, 0, 1e20f, 1e20f),
+			tzansmax = _mm256_setr_ps(1e20f, 1e20f, 0, 0, 1e20f, 1e20f, 0, 0);
+		else
+			tzansmin = _mm256_setzero_ps(),//_mm256_set_ps(0, 0, 0, 0, 0, 0, 0, 0),
+			tzansmax = _mm256_set_ps(1e20f, 1e20f, 1e20f, 1e20f, 1e20f, 1e20f, 1e20f, 1e20f);
+	}
+
+	__m256 ansmin = _mm256_max_ps(txansmin, tyansmin),
+		ansmax = _mm256_min_ps(txansmax, tyansmax),
+		ttansmin = _mm256_max_ps(tzansmin, _mm256_setzero_ps());
+	ansmin = _mm256_max_ps(ansmin, ttansmin);
+	ansmax = _mm256_min_ps(ansmax, tzansmax);
+
+	
+	__m256i state = *(__m256i*)&_mm256_cmp_ps(ansmin, ansmax, _CMP_LE_OS);
+	*mask = state;
+	float minist = 1e20f;
+#pragma region dataspy
+	/*if (ansmax.m256_f32[7] < ansmin.m256_f32[7] && ansmax.m256_f32[3] > ansmin.m256_f32[3] && false)
+	{
+		printf("catch you\n");
+
+		printf("\nMin:\t");
+		for (auto k : Min.dat.m128_f32)
+			printf("%.2ef\t,", k);
+		printf("\nMid:\t");
+		for (auto k : Mid.dat.m128_f32)
+			printf("%.2ef\t,", k);
+		printf("\nMax:\t");
+		for (auto k : Max.dat.m128_f32)
+			printf("%.2ef\t,", k);
+		printf("\nrrd:\t");
+		for (auto k : rrd.dat.m128_f32)
+			printf("%.2ef\t,", k);
+		printf("\ntMin:\t");
+		for (auto k : tmin.dat.m128_f32)
+			printf("%.2ef\t,", k);
+		printf("\ntMid:\t");
+		for (auto k : tmid.dat.m128_f32)
+			printf("%.2ef\t,", k);
+		printf("\ntMax:\t");
+		for (auto k : tmax.dat.m128_f32)
+			printf("%.2ef\t,", k);
+
+		printf("\n\nmin-mid:\t");
+		for (auto k : min_mid.m256_f32)
+			printf("%.2ef\t,", k);
+		printf("\nmid-max:\t");
+		for (auto k : mid_max.m256_f32)
+			printf("%.2ef\t,", k);
+
+		printf("\n\nxa:\t");
+		for (auto k : xa.m256_f32)
+			printf("%.2ef\t,", k);
+		printf("\nxb:\t");
+		for (auto k : xb.m256_f32)
+			printf("%.2ef\t,", k);
+		printf("\nya:\t");
+		for (auto k : ya.m256_f32)
+			printf("%.2ef\t,", k);
+		printf("\nyb:\t");
+		for (auto k : yb.m256_f32)
+			printf("%.2ef\t,", k);
+		printf("\nza:\t");
+		for (auto k : za.m256_f32)
+			printf("%.2ef\t,", k);
+		printf("\nzb:\t");
+		for (auto k : zb.m256_f32)
+			printf("%.2ef\t,", k);
+
+		printf("\n\nxmin:\t");
+		for (auto k : txansmin.m256_f32)
+			printf("%.2ef\t,", k);
+		printf("\nxmax:\t");
+		for (auto k : txansmax.m256_f32)
+			printf("%.2ef\t,", k);
+		printf("\nymin:\t");
+		for (auto k : tyansmin.m256_f32)
+			printf("%.2ef\t,", k);
+		printf("\nymax:\t");
+		for (auto k : tyansmax.m256_f32)
+			printf("%.2ef\t,", k);
+		printf("\nzmin:\t");
+		for (auto k : tzansmin.m256_f32)
+			printf("%.2ef\t,", k);
+		printf("\nzmax:\t");
+		for (auto k : tzansmax.m256_f32)
+			printf("%.2ef\t,", k);
+
+		printf("\n\nansmin:\t");
+		for (auto k : ansmin.m256_f32)
+			printf("%.2ef\t,", k);
+		printf("\nansmax:\t");
+		for (auto k : ansmax.m256_f32)
+			printf("%.2ef\t,", k);
+
+		printf("\nresult:\t");
+		for (auto k : state.m256i_i32)
+			printf("%6s\t,", k ? "true" : "false");
+		printf("\nover\n");
+	}*/
+#pragma endregion dataspy code to show data in progress
+	//memcpy(mask, &state, 32);
+	for (auto a = 0; a < 8; ++a)
+	{
+		/*Vertex ttmin(a & 0x4 ? Mid.x : Min.x, a & 0x1 ? Mid.y : Min.y, a & 0x2 ? Mid.z : Min.z);
+		Vertex ttmax(a & 0x4 ? Max.x : Mid.x, a & 0x1 ? Max.y : Mid.y, a & 0x2 ? Max.z : Mid.z);
+		float empty;
+		float ttans = BorderTest(ray, ttmin, ttmax, &empty);*/
+		//save[a] = ansmin.m256_f32[a];
+		//save[a + 8] = ansmax.m256_f32[a];
+		if (state.m256i_i32[a])//min<=max
+			minist = min(minist, ansmin.m256_f32[a]);
+
+	}
+	return minist;
+}
+
+inline static float TriangleTest(const Ray & ray, const clTri & tri, Vertex &coord)
+{
+#pragma region avx_triangletest
+#ifdef AVX_
+
+	__m256 mg14 = _mm256_set_m128(ray.direction, tri.axisv),
+		mg23 = _mm256_set_m128(tri.axisv, ray.direction);
+	__m256 mg23bak = mg23;
+	__m256 t14 = _mm256_permute_ps(mg14, _MM_SHUFFLE(3, 0, 2, 1)),
+		t23 = _mm256_permute_ps(mg23, _MM_SHUFFLE(3, 1, 0, 2));
+	__m256 lr = _mm256_mul_ps(t14, t23);//l~r->tmp1
+	__m128 *r = (__m128*)&lr.m256_f32[0], *l = (__m128*)&lr.m256_f32[4];
+
+	__m256 dpa = _mm256_set_m128(_mm_sub_ps(*l, *r), _mm_sub_ps(*l, *r));//tmp1~tmp1
+	mg14 = _mm256_set_m128(_mm_sub_ps(ray.origin, tri.p0), tri.axisu);//t2r~axu
+	__m256 dpans = _mm256_dp_ps(dpa, mg14, 0b01110001);//tmp1&t2r ~ a(tmp1&axu)
+
+	mg23 = _mm256_set_m128(tri.axisu, _mm_sub_ps(ray.origin, tri.p0));//axu~t2r
+	t14 = _mm256_permute_ps(mg14, _MM_SHUFFLE(3, 0, 2, 1)),
+		t23 = _mm256_permute_ps(mg23, _MM_SHUFFLE(3, 1, 0, 2));
+	lr = _mm256_mul_ps(t14, t23);//l~r->tmp2
+
+	__m256 ansmix = _mm256_insertf128_ps(dpans, _mm_set1_ps(1.0f), 0);//tmp1&t2r ~ 1
+	__m256 aexp = _mm256_permute2f128_ps(dpans, dpans, 0x00);//a`a`a`a`a`a`a`a
+															 //__m256 dpfm = _mm256_permute2f128_ps(_mm256_set1_ps(1.0f), dpans, 0x20);
+	__m256 divans = _mm256_div_ps(ansmix, aexp);//u(tmp1&t2r/a) ~ f(1/a)
+												//divans:***u***f
+	float u = divans.m256_f32[4], f = divans.m256_f32[0];
+	if (u < 0.0f || u > 1.0f)
+		return 1e20f;
+
+	dpa = _mm256_set_m128(_mm_sub_ps(*l, *r), _mm_sub_ps(*l, *r));//tmp2~tmp2
+	mg23bak;//axv~rdir
+
+	dpans = _mm256_dp_ps(dpa, mg23bak, 0b01110001);//tmp2&axv ~ tmp2&rdir
+	aexp = _mm256_permute2f128_ps(divans, divans, 0x00);//f`f`f`f`f`f`f`f
+	__m256 mulans = _mm256_mul_ps(dpans, aexp);
+	//mulans:***t***v
+	float v = mulans.m256_f32[0], t = mulans.m256_f32[4];
+	if (v < 0.0f || v > 1.0f || t < 1e-6f)
+		return 1e20f;
+	else
+	{
+		coord = Vertex(1.0f - u - v, u, v);
+		return t;
+	}
+#else
+#pragma endregion a wrong way to do triangletest using avx2
+	/*
+	** Point(u,v) = (1-u-v)*p0 + u*p1 + v*p2
+	** Ray:Point(t) = o + t*dir
+	** o + t*dir = (1-u-v)*p0 + u*p1 + v*p2
+	*/
+
+	Vertex tmp1 = ray.direction * tri.axisv;
+	Vertex t2r = ray.origin - tri.p0;
+
+	float f = tri.axisu & tmp1;
+	//if (abs(f) < 1e-6f)
+	//return 1e20f;
+	f = 1.0f / f;
+
+	float u = (t2r & tmp1) * f;
+
+	if (u < 0.0f || u > 1.0f)
+		return 1e20f;
+	Vertex tmp2 = t2r * tri.axisu;
+	float v = (ray.direction & tmp2) * f,
+		duv = 1 - u - v;
+	if (v < 0.0f || duv < 0.0f)
+		return 1e20f;
+	float t = (tri.axisv & tmp2) * f;
+	if (t > 1e-5f)
+	{
+		coord = Vertex(duv, u, v);
+		return t;
+	}
+	else
+		return 1e20f;
+#endif
+}
+
+HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
+{
+	float empty;
+	__m256i mask;
+	float ans = BorderTest(ray, BorderMin, BorderMax, &empty);
 	if (ans < hr.distance)//inside and maybe nearer
 	{
 		ans = hr.distance;
 		float newans;
 		int objpart = -1;
 		Triangle *objt = nullptr;
+		clTri *objclt = nullptr;
 		Vertex coord, tmpc;
-		for (auto a = 0; a < newparts.size(); ++a)
-			if (BorderTest(ray, bboxs[a * 2], bboxs[a * 2 + 1]) < hr.distance)
-				for (Triangle &t : newparts[a])
+		int pcnt = parts.size();
+		for (auto a = 0; a < pcnt; ++a)//each part
+			if (BorderTestEx(ray, bboxs[a * 2], bboxs[a * 2 + 1], &mask) < hr.distance)//part may hit
+			{
+				for (auto b = 0, pcur = a * 8; b < 8; ++b, ++pcur)//each oct-border
 				{
-					newans = TriangleTest(ray, t, tmpc);
-					if (ans > newans)
+					if (mask.m256i_i32[b])//oct-border may hit
 					{
-						objpart = a;
-						objt = &t;
-						ans = newans;
-						coord = tmpc;
+						int tcnt = octclparts[pcur].size();
+						for (auto c = 0; c < tcnt;)//each triangle in oct-border
+						{
+							clTri &t = octclparts[pcur][c++];
+							//early quit
+							if (hr.obj == (intptr_t)&t)
+								continue;
+							_mm_prefetch((char*)&octclparts[b][c], _MM_HINT_T0);
+							newans = TriangleTest(ray, t, tmpc);
+							if (newans < ans)
+							{
+								objpart = a;
+								objclt = &t;
+								objt = &parts[t.numa][t.numb];
+								ans = newans;
+								coord = tmpc;
+								if (newans < min)
+									goto ____EOS;
+							}
+						}
 					}
 				}
+			}
+	____EOS:
 		if (ans < hr.distance)
 		{
 			HitRes newhr(ans);
@@ -442,6 +790,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 			auto tnum = mtl_tex[mnum];
 			if (tnum >= 0)
 				newhr.tex = &texs[tnum];
+			newhr.obj = (intptr_t)objclt;
 			return newhr;
 		}
 	}
@@ -450,6 +799,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr)
 
 void Model::GLPrepare()
 {
+	glDeleteTextures(texs.size(), texList);
 	glGenTextures(texs.size(), texList);
 	for (auto a = 0; a < texs.size(); ++a)
 	{
@@ -497,36 +847,7 @@ void Model::GLPrepare()
 	glEndList();
 }
 
-float Model::TriangleTest(const Ray & ray, const Triangle & tri, Vertex &coord)
-{
-	/*
-	** Point(u,v) = (1-u-v)*p0 + u*p1 + v*p2
-	** Ray:Point(t) = o + t*dir
-	** o + t*dir = (1-u-v)*p0 + u*p1 + v*p2
-	*/
-	Vertex tmp1 = ray.direction * tri.axisv;
-	float a = tri.axisu & tmp1;
-	if (abs(a) < 1e-6)
-		return 1e20;
-	float f = 1 / a;
-	Vertex t2r = ray.origin - tri.points[0];
-	float u = (t2r & tmp1) * f;
-	if (u < 0.0 || u > 1.0)
-		return 1e20;
-	Vertex tmp2 = t2r * tri.axisu;
-	float v = (ray.direction & tmp2) * f,
-		duv = 1 - u - v;
-	if (v < 0.0 || duv < 0)
-		return 1e20;
-	float t = (tri.axisv & tmp2) * f;
-	if (t > 1e-6)
-	{
-		coord = Vertex(duv, u, v);
-		return t;
-	}
-	else
-		return 1e20;
-}
+
 
 
 

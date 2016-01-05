@@ -1,5 +1,6 @@
 #include "rely.h"
 #include "3DElement.h"
+#include "Basic3DObject.h"
 #include "Model.h"
 #include "Scene.h"
 #include "RayTracer.h"
@@ -11,11 +12,10 @@ static RayTracer rayt(scene);
 static volatile uint8_t obj_toggle = 0xff, lgt_toggle = 0xff;
 static Camera &cam = scene.cam;
 static wstring filename[2];
-
-static volatile bool Mode = true;
+static volatile bool Mode = true, isRun = true;
 
 void onMenu(int val);
-void BaseTest();
+void BaseTest(bool isAuto = false);
 
 
 static void ChgMode(const bool b)
@@ -63,10 +63,14 @@ void InitMenu()
 		glutRemoveMenuItem(a);
 
 	vector<int> menuID;
+	
 	for (auto a = 0; a < scene.Lights.size(); ++a)
 	{
 		int base = 0x200 + (a << 4);
 		int ID = glutCreateMenu(onMenu);
+		char label[32];
+		sprintf(label, "===%s===", MY_LIGHT_NAME[scene.Lights[a].type]);
+		glutAddMenuEntry(label, 0x0);
 		glutAddMenuEntry("Toggle", base + 0x0);
 		glutAddMenuEntry("Enable/Disable", base + 0x1);
 		glutAddMenuEntry("Delete", base + 0x2);
@@ -76,10 +80,13 @@ void InitMenu()
 	{
 		int base = 0x100 + (a << 4);
 		int ID = glutCreateMenu(onMenu);
+		char label[32];
+		sprintf(label, "===%s===", MY_OBJECT_NAME[scene.Objects[a]->type]);
+		glutAddMenuEntry(label, 0x0);
 		glutAddMenuEntry("Toggle", base + 0x0);
 		glutAddMenuEntry("Enable/Disable", base + 0x1);
 		glutAddMenuEntry("Delete", base + 0x2);
-		if(dynamic_cast<Model*>(get<0>(scene.Objects[a])) != NULL)
+		if(dynamic_cast<Model*>(scene.Objects[a]) != NULL)
 			glutAddMenuEntry("Z-axis Rotate", base + 0x3);
 		menuID.push_back(ID);
 	}
@@ -88,13 +95,13 @@ void InitMenu()
 	glutAddMenuEntry("Parallel Light", 0x011);
 	glutAddMenuEntry("Point Light", 0x012);
 	glutAddMenuEntry("Spot Light", 0x013);
-	menuID.push_back(ID);
 
 	glutCreateMenu(onMenu);
 	glutAddSubMenu("Add Light", ID);
 	glutAddMenuEntry("Add Sphere", 0x001);
 	glutAddMenuEntry("Add Cube", 0x002);
 	glutAddMenuEntry("Add Model", 0x003);
+	glutAddMenuEntry("Add Plane", 0x004);
 	glutAddMenuEntry("---Lights---", 0x0);
 	int a = 0;
 	for (; a < scene.Lights.size(); ++a)
@@ -102,13 +109,12 @@ void InitMenu()
 		char label[32];
 		sprintf(label, "Light %d", a);
 		glutAddSubMenu(label, menuID[a]);
-			
 	}
 	glutAddMenuEntry("---Objects---", 0x0);
 	for (auto b = 0; a < menuID.size(); ++a, ++b)
 	{
 		char label[32];
-		sprintf(label, "Object %d", b);
+		sprintf(label, "Object %2d", b);
 		glutAddSubMenu(label, menuID[a]);
 	}
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
@@ -139,9 +145,9 @@ void init(void)
 
 	//set light
 	scene.EnvLight = Vertex(0.05f, 0.05f, 0.05f, 1.0f);
-	lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
+	lgt_toggle = scene.AddLight(MY_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
 	scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(-45, 45, 0));
-	lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_POINT, Vertex(0.15f, 0.55f, 0.3f), Vertex(0.0f, 0.0f, 1.0f, 256));
+	lgt_toggle = scene.AddLight(MY_LIGHT_POINT, Vertex(0.15f, 0.55f, 0.3f), Vertex(0.0f, 0.0f, 1.0f, 256));
 	/*scene.Lights[0] = Light();
 	Light *lit = &scene.Lights[0];
 	lit->SetProperty(MY_MODEL_SPECULAR, 0.5f, 0.5f, 0.5f);
@@ -156,8 +162,9 @@ void init(void)
 
 	//init scene
 	scene.init();
-	scene.Switch(MY_MODEL_LIGHT, 0, true);
-	scene.Switch(MY_MODEL_LIGHT, 1, true);
+	//add ground
+	scene.AddPlane();
+	//add basic sphere
 	obj_toggle = scene.AddSphere(1.0);
 
 }
@@ -255,8 +262,7 @@ void onKeyboard(int key, int x, int y)
 	case GLUT_KEY_DOWN:
 		cam.pitch(-3);break;
 	case GLUT_KEY_END:
-		BaseTest();
-		InitMenu();break;
+		BaseTest();break;
 	case GLUT_KEY_F1:
 	case GLUT_KEY_F2:
 	case GLUT_KEY_F3:
@@ -317,6 +323,8 @@ void onKeyboard(unsigned char key, int x, int y)
 				rayt.start(MY_MODEL_TEXTURETEST, tnum);break;
 			case '5':
 				rayt.start(MY_MODEL_MATERIALTEST, tnum);break;
+			case '6':
+				rayt.start(MY_MODEL_SHADOWTEST, tnum); break;
 			}
 			glutTimerFunc(50, onTimer, 1);
 		}
@@ -438,14 +446,14 @@ void onMouse(int x, int y)
 	}
 }
 
-void BaseTest()
+void BaseTest(bool isAuto)
 {
-	SetCurrentDirectory(L"F:\\Project\\RayTrace\\objs");
+	scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(-42, -57, 1));
 	{
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\0.obj";
 		filename[1] = L"F:\\Project\\RayTrace\\objs\\0.mtl";
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
-		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		Model &model = dynamic_cast<Model&>(*scene.Objects[obj_toggle]);
 		model.zRotate();
 		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -9,0,-2 });
 	}
@@ -453,9 +461,9 @@ void BaseTest()
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\1.obj";
 		filename[1] = L"F:\\Project\\RayTrace\\objs\\1.mtl";
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
-		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		Model &model = dynamic_cast<Model&>(*scene.Objects[obj_toggle]);
 		model.zRotate();
-		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,-2,4 });
+		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { -2,0,4 });
 	}
 	{
 		obj_toggle = scene.AddCube(1.0);
@@ -465,7 +473,7 @@ void BaseTest()
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\2.obj";
 		filename[1] = L"F:\\Project\\RayTrace\\objs\\2.mtl";
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
-		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		Model &model = dynamic_cast<Model&>(*scene.Objects[obj_toggle]);
 		model.zRotate();
 		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 3,0,0 });
 	}
@@ -473,13 +481,26 @@ void BaseTest()
 		filename[0] = L"F:\\Project\\RayTrace\\objs\\3.obj";
 		filename[1] = L"F:\\Project\\RayTrace\\objs\\3.mtl";
 		obj_toggle = scene.AddModel(filename[0], filename[1]);
-		Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj_toggle]));
+		Model &model = dynamic_cast<Model&>(*scene.Objects[obj_toggle]);
 		model.zRotate();
 		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 7,0,3 });
 	}
 	{
 		obj_toggle = scene.AddCube(1.0);
 		scene.MovePos(MY_MODEL_OBJECT, obj_toggle, { 2.5,5,2 });
+	}
+	InitMenu();
+	if (isAuto)
+	{
+		ChgMode(false);
+		rayt.start(MY_MODEL_SHADOWTEST, 8);
+		glutTimerFunc(50, onTimer, 1);
+		thread([] 
+		{ 
+			Sleep(5000);
+			while (!rayt.isFinish) { Sleep(1000); }
+			exit(0);
+		}).detach();
 	}
 }
 
@@ -505,11 +526,15 @@ void onMenu(int val)
 			obj_toggle = scene.AddModel(filename[0], filename[1]);
 			InitMenu();
 			break;
+		case 0x04:
+			obj_toggle = scene.AddPlane();
+			InitMenu();
+			break;
 		case 0x11://Parallel Light
-			lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
+			lgt_toggle = scene.AddLight(MY_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
 			break;
 		case 0x12://Point Light
-			lgt_toggle = scene.AddLight(MY_MODEL_LIGHT_POINT, Vertex(0.15f, 0.55f, 0.3f), Vertex(0.0f, 0.0f, 1.0f, 256));
+			lgt_toggle = scene.AddLight(MY_LIGHT_POINT, Vertex(0.15f, 0.55f, 0.3f), Vertex(0.0f, 0.0f, 1.0f, 256));
 			break;
 		case 0x13://Spot Light
 			break;
@@ -534,7 +559,7 @@ void onMenu(int val)
 			InitMenu();
 			break;
 		case 3://z-rotate
-			Model &model = dynamic_cast<Model&>(*get<0>(scene.Objects[obj]));
+			Model &model = dynamic_cast<Model&>(*scene.Objects[obj]);
 			model.zRotate();
 			break;
 		}
@@ -552,7 +577,7 @@ void onMenu(int val)
 			break;
 		case 2://Delete
 			scene.Delete(MY_MODEL_LIGHT, obj);
-			obj_toggle = 0xff;
+			lgt_toggle = 0xff;
 			InitMenu();
 			break;
 		}
@@ -561,14 +586,14 @@ void onMenu(int val)
 	glutPostRedisplay();
 }
 
-DWORD WINAPI showdata(LPVOID lpParam)
+void showdata()
 {
 	wprintf(L"Triangle size=%zd\tHitRes size=%zd\n", sizeof(Triangle), sizeof(HitRes));
 	HANDLE hOut;
 	COORD pos = { 0,1 };
 	hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 	std::locale::global(std::locale(""));
-	while (true)
+	while (isRun)
 	{
 		SetConsoleCursorPosition(hOut, pos);
 		wprintf(L"方向键移动摄像机，wasd键移动灯，+-号缩放，12键开关灯\n");
@@ -587,7 +612,7 @@ DWORD WINAPI showdata(LPVOID lpParam)
 			wprintf(L"目前未选中任何灯\n无该灯光的详细信息");
 		if (obj_toggle != 0xff)
 		{
-			Vertex &pos = get<0>(scene.Objects[obj_toggle])->position;
+			Vertex &pos = scene.Objects[obj_toggle]->position;
 			wprintf(L"%d号物体坐标：\t%4f，%4f，%4f\n", obj_toggle, pos.x, pos.y, pos.z);
 		}
 		else
@@ -598,17 +623,22 @@ DWORD WINAPI showdata(LPVOID lpParam)
 			wprintf(L"Running... ...\t\t\n");
 		Sleep(33);
 	}
-	return 0;
+	return;
 }
 
 
-int main(int argc, char** argv)
+int wmain(int argc, wchar_t *argv[])
 {
-	glutInit(&argc, argv);
+	char* tv[] = { "good" };
+	int tc = 1;
+	//_CrtSetBreakAlloc(1322268);
+	SetCurrentDirectory(L"F:\\Project\\RayTrace\\objs");
+	glutInit(&tc, tv);
+	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(cam.width, cam.height);
 	glutInitWindowPosition(100, 100);
-	glutCreateWindow(argv[0]);
+	glutCreateWindow("");
 	init();
 	InitMenu();
 	glutDisplayFunc(display);
@@ -618,9 +648,19 @@ int main(int argc, char** argv)
 	glutMouseFunc(onMouse);
 	glutMotionFunc(onMouse);
 	glutMouseWheelFunc(onWheel);
+	glutCloseFunc([] 
+	{ 
+		isRun = false;
+		rayt.stop();
+		while (!rayt.isFinish)
+			Sleep(10);
+	});
 
-	HANDLE th = CreateThread(NULL, 0, showdata, NULL, 0, NULL);
-
+	thread(showdata).detach();
+	if (argc > 1)
+		thread([] { Sleep(100); BaseTest(true); }).detach();
 	glutMainLoop();
+
+	//_CrtDumpMemoryLeaks();
 	return 0;
 }

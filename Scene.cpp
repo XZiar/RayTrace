@@ -13,11 +13,8 @@ Scene::Scene()
 Scene::~Scene()
 {
 	for (auto &obj : Objects)
-	{
-		auto a = get<0>(obj);
-		if(a != nullptr)
-			delete a;
-	}
+		if(obj != nullptr)
+			delete obj;
 }
 
 void Scene::init()
@@ -65,7 +62,7 @@ uint8_t Scene::AddLight(const uint8_t type, const Vertex &comp, const Vertex &at
 	return Lights.size() - 1;
 }
 
-uint8_t Scene::AddSphere(float radius)
+uint8_t Scene::AddSphere(const float radius)
 {
 	Material mtl;
 	mtl.name = "Sphere";
@@ -81,11 +78,11 @@ uint8_t Scene::AddSphere(float radius)
 	sphere->SetMtl(mtl);
 	sphere->GLPrepare();
 
-	Objects.push_back(make_tuple(sphere, true));
+	Objects.push_back(sphere);
 	return Objects.size() - 1;
 }
 
-uint8_t Scene::AddCube(float len)
+uint8_t Scene::AddCube(const float len)
 {
 	Material mtl;
 	mtl.name = "Cube";
@@ -101,7 +98,7 @@ uint8_t Scene::AddCube(float len)
 	box->SetMtl(mtl);
 	box->GLPrepare();
 
-	Objects.push_back(make_tuple(box, true));
+	Objects.push_back(box);
 	return Objects.size() - 1;
 }
 
@@ -111,7 +108,17 @@ uint8_t Scene::AddModel(const wstring & objname, const wstring & mtlname, uint8_
 	Model *model = new Model(lnum);
 	model->loadOBJ(objname, mtlname, code);
 
-	Objects.push_back(make_tuple(model, true));
+	Objects.push_back(model);
+	return Objects.size() - 1;
+}
+
+uint8_t Scene::AddPlane()
+{
+	GLuint lnum = glGenLists(1);
+	Plane *plane = new Plane(lnum);
+	plane->GLPrepare();
+
+	Objects.push_back(plane);
 	return Objects.size() - 1;
 }
 
@@ -155,7 +162,7 @@ bool Scene::Delete(uint8_t type, const uint8_t num)
 	case MY_MODEL_OBJECT:
 		if (num >= Objects.size())
 			return false;
-		delete get<0>(Objects[num]);
+		delete Objects[num];
 		Objects.erase(Objects.begin() + num);
 		break;
 	case MY_MODEL_LIGHT:
@@ -173,7 +180,15 @@ bool Scene::MovePos(const uint8_t type, const uint8_t num, const Vertex & v)
 	case MY_MODEL_OBJECT:
 		if (num >= Objects.size())
 			return false;
-		get<0>(Objects[num])->position += v;
+		if (Objects[num]->type == MY_OBJECT_PLANE)
+		{
+			Plane &p = dynamic_cast<Plane&>(*Objects[num]);
+			//p.position += p.normal * -v.z;
+			p.rotate(v);
+			p.GLPrepare();
+		}
+		else
+			Objects[num]->position += v;
 		break;
 	case MY_MODEL_LIGHT:
 		if (num >= Lights.size())
@@ -200,8 +215,8 @@ bool Scene::Switch(uint8_t type, const uint8_t num, const bool isShow)
 	case MY_MODEL_OBJECT:
 		if (num >= Objects.size())
 			return false;
-		old = get<1>(Objects[num]);
-		get<1>(Objects[num]) = isSwitch ? !old : isShow;
+		old = Objects[num]->bShow;
+		Objects[num]->bShow = isSwitch ? !old : isShow;
 		return old;
 	}
 	return false;
@@ -241,17 +256,14 @@ void Scene::DrawScene()
 	}
 
 	//draw object
-	DrawObject *dobj;
-	bool isDraw;
-	for (auto a = 0; a < Objects.size(); ++a)
+	for (auto obj : Objects)
 	{
-		tie(dobj, isDraw) = Objects[a];
-		if (isDraw)
+		if (obj->bShow)
 		{
-			Vertex &pos = dobj->position;
+			Vertex &pos = obj->position;
 			glPushMatrix();
 			glTranslated(pos.x, pos.y, pos.z);
-			dobj->GLDraw();
+			obj->GLDraw();
 			glPopMatrix();
 		}
 	}

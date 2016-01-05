@@ -1,16 +1,27 @@
 #pragma once
 #include "rely.h"
 
-#define MY_MODEL_LIGHT_PARALLEL 0x1
-#define MY_MODEL_LIGHT_POINT 0x2
-#define MY_MODEL_LIGHT_SPOT 0x4
+#define MY_OBJECT_SPHERE 0x1
+#define MY_OBJECT_CUBE   0x2
+#define MY_OBJECT_MODEL  0x3
+#define MY_OBJECT_PLANE  0x4
 
-#define MY_MODEL_AMBIENT 0x1
-#define MY_MODEL_DIFFUSE 0x2
-#define MY_MODEL_SPECULAR 0x4
-#define MY_MODEL_SHINESS 0x8
-#define MY_MODEL_EMISSION 0x10
-#define MY_MODEL_POSITION 0x100
+const char MY_OBJECT_NAME[][10] =
+{ "ERROR","sphere","cube","model","plane" };
+
+#define MY_LIGHT_PARALLEL 0x1
+#define MY_LIGHT_POINT    0x2
+#define MY_LIGHT_SPOT     0x3
+
+const char MY_LIGHT_NAME[][10] =
+{ "ERROR","parallel","point","spot" };
+
+#define MY_MODEL_AMBIENT     0x1
+#define MY_MODEL_DIFFUSE     0x2
+#define MY_MODEL_SPECULAR    0x4
+#define MY_MODEL_SHINESS     0x8
+#define MY_MODEL_EMISSION    0x10
+#define MY_MODEL_POSITION    0x100
 #define MY_MODEL_ATTENUATION 0x200
 
 
@@ -40,6 +51,9 @@ public:
 	Vertex();
 	Vertex(const __m128 &idat);
 	Vertex(const float ix, const float iy, const float iz, const float ia = 0) :x(ix), y(iy), z(iz), alpha(ia) { };
+	operator float*() { return &x; };
+	operator __m128() const { return dat; };
+
 	float length() const;
 	float length_sqr() const;
 	Vertex muladd(const float &n, const Vertex &v) const;
@@ -55,7 +69,6 @@ public:
 	Vertex &operator*=(const float &right);
 	Vertex operator*(const Vertex &v) const;
 	float operator&(const Vertex &v) const;//µã»ý
-	operator float*() { return &x; };
 };
 
 class Normal : public Vertex
@@ -75,6 +88,7 @@ public:
 	Texture(const string &iname, const int16_t iw, const int16_t ih, const uint8_t *img);
 	~Texture();
 	Texture(const Texture& t);
+	Texture(Texture &&t);
 };
 
 class Material
@@ -92,11 +106,16 @@ public:
 	void SetMtl(int8_t prop, float r, float g, float b, float a = 1.0f);
 };
 
+_MM_ALIGN16 struct clTri
+{
+	Vertex axisu, axisv, p0;
+	int16_t numa, numb;
+	clTri(const Vertex &u = Vertex(), const Vertex &v = Vertex(), const Vertex &p = Vertex()) :axisu(u), axisv(v), p0(p) { };
+};
 class Triangle
 {
 public:
 	Vertex points[3];
-	Vertex axisu, axisv;
 	Normal norms[3];
 	Coord2D tcoords[3];
 	
@@ -138,6 +157,7 @@ public:
 	float distance;
 	Material *mtl = nullptr;
 	Texture *tex = nullptr;
+	intptr_t obj = (intptr_t)this;
 
 	HitRes(bool b = false);
 	HitRes(float dis) : distance(dis){ };
@@ -150,44 +170,17 @@ class DrawObject
 {
 protected:
 	GLuint GLListNum, texList[30];
-	virtual void GLPrepare() = 0;
 public:
 	Vertex position;
+	uint8_t type;
+	bool bShow = true;
 
 	DrawObject(GLuint n) : GLListNum(n) { };
 	virtual ~DrawObject() { };
 	void GLDraw();
+	virtual void GLPrepare() = 0;
 	virtual void RTPrepare() { };
-	virtual HitRes intersect(const Ray &ray, const HitRes &hr) = 0;
-};
-
-class Sphere : public DrawObject
-{
-private:
-	float radius, radius_sqr;
-	//Material mtl;
-public:
-	Material mtl;
-	Sphere(const float r = 1.0, GLuint lnum = 0);
-
-	void SetMtl(const Material &mtl);
-	virtual void GLPrepare() override;
-	virtual HitRes intersect(const Ray &ray, const HitRes &hr) override;
-};
-
-class Box : public DrawObject
-{
-private:
-	float width, height, length;
-	Vertex min, max;
-	Material mtl;
-public:
-	
-	Box(const float len = 2.0, GLuint lnum = 0);
-	Box(const float l, const float w, const float h, GLuint lnum = 0);
-	void SetMtl(const Material &mtl);
-	virtual void GLPrepare() override;
-	virtual HitRes intersect(const Ray &ray, const HitRes &hr) override;
+	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float min = 0) = 0;
 };
 
 class Light
@@ -226,7 +219,9 @@ public:
 
 
 void Coord_sph2car(float &angy, float &angz, const float dis, Vertex &v);
+void Coord_sph2car2(float &angy, float &angz, const float dis, Vertex &v);
 void Coord_car2sph(const Vertex &v, float &angy, float &angz, float &dis);
-float BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max);
+float mod(const float &l, const float &r);
+
 
 

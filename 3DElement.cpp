@@ -1,7 +1,7 @@
 #include "rely.h"
 #include "3DElement.h"
 
-static float mod(const float &l, const float &r)
+inline float mod(const float &l, const float &r)
 {
 	float t, e;
 	modf(l / r, &t);
@@ -37,61 +37,7 @@ inline void Coord_car2sph(const Vertex &v, float &angy, float &angz, float &dis)
 	angz = atan2(v.x, v.z) * 180 / PI;
 }
 
-float BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max)
-{
-	Vertex dismin = Min - ray.origin, dismax = Max - ray.origin;
-	//test z
-	if (ray.direction.z != 0.0)
-	{
-		dismin.z /= ray.direction.z;
-		dismax.z /= ray.direction.z;
-		if (dismin.z > dismax.z)
-			swap(dismin.z, dismax.z);
-	}
-	else
-	{
-		if (ray.origin.z > Max.z || ray.origin.z < Min.z)
-			return 1e20;
-		dismin.z = -1, dismax.z = 1e10;
-	}
-	//test y
-	if (ray.direction.y != 0.0)
-	{
-		dismin.y /= ray.direction.y;
-		dismax.y /= ray.direction.y;
-		if (dismin.y > dismax.y)
-			swap(dismin.y, dismax.y);
-	}
-	else
-	{
-		if (ray.origin.y > Max.y || ray.origin.y < Min.y)
-			return 1e20;
-		dismin.y = -1, dismax.y = 1e10;
-	}
-	//test x
-	if (ray.direction.x != 0.0)
-	{
-		dismin.x /= ray.direction.x;
-		dismax.x /= ray.direction.x;
-		if (dismin.x > dismax.x)
-			swap(dismin.x, dismax.x);
-	}
-	else
-	{
-		if (ray.origin.x > Max.x || ray.origin.x < Min.x)
-			return 1e20;
-		dismin.x = -1, dismax.x = 1e10;
-	}
 
-	float dmin = dismin.x < dismin.y ? dismin.y : dismin.x,
-		dmax = dismax.x < dismax.y ? dismax.x : dismax.y;
-	dmin = dmin < dismin.z ? dismin.z : dmin,
-		dmax = dmax < dismax.z ? dmax : dismax.z;
-	dmin = dmin < 0 ? 0 : dmin;
-	if (dmax < dmin)
-		return 1e20;
-	return dmin;
-}
 
 
 
@@ -117,32 +63,39 @@ Vertex::Vertex()
 }
 Vertex::Vertex(const __m128 &idat)
 {
-	_mm_store_ps((float*)&dat, idat);
-	//dat = idat;
+	dat = idat;
 }
 float Vertex::length() const
 {
+#ifdef SSE4
+	__m128 ans = _mm_dp_ps(dat, dat, 0b01110001);
+	return _mm_cvtss_f32(_mm_sqrt_ss(ans));
+#else
 	return sqrt(x*x + y*y + z*z);
+#endif
 }
 float Vertex::length_sqr() const
 {
-#ifdef SSE2
+#ifdef SSE4
 	__m128 ans = _mm_dp_ps(dat, dat, 0b01110001);
-	return ans.m128_f32[0];
+	return _mm_cvtss_f32(ans);
 #else
 	return x*x + y*y + z*z;
 #endif
 }
 Vertex Vertex::muladd(const float & n, const Vertex & v) const
 {
-	//__m256d tmp = _mm256_set1_pd(n);
-	//return _mm256_fmadd_pd(dat, tmp, v.dat);
+#ifdef FMA
+	__m128 tmp = _mm_set1_ps(n);
+	return _mm_fmadd_ps(dat, tmp, v);
+#else
 	return Vertex();
+#endif
 }
 Vertex Vertex::mixmul(const Vertex & v) const
 {
 #ifdef SSE2
-	return _mm_mul_ps(dat, v.dat);
+	return _mm_mul_ps(dat, v);
 #else
 	return Vertex(x * v.x, y * v.y, z * v.z);
 #endif
@@ -150,7 +103,7 @@ Vertex Vertex::mixmul(const Vertex & v) const
 Vertex Vertex::operator+(const Vertex &v) const
 {
 #ifdef SSE2
-	return _mm_add_ps(dat, v.dat);
+	return _mm_add_ps(dat, v);
 #else
 	return Vertex(x + v.x, y + v.y, z + v.z);
 #endif
@@ -158,16 +111,16 @@ Vertex Vertex::operator+(const Vertex &v) const
 Vertex &Vertex::operator+=(const Vertex & right)
 {
 #ifdef SSE2
-	dat = _mm_add_ps(dat, right.dat);
+	return *this = _mm_add_ps(dat, right);
 #else
 	x += right.x, y += right.y, z += right.z;
-#endif
 	return *this;
+#endif
 }
 Vertex Vertex::operator-(const Vertex &v) const
 {
 #ifdef SSE2
-	return _mm_sub_ps(dat, v.dat);
+	return _mm_sub_ps(dat, v);
 #else
 	return Vertex(x - v.x, y - v.y, z - v.z);
 #endif
@@ -175,11 +128,11 @@ Vertex Vertex::operator-(const Vertex &v) const
 Vertex &Vertex::operator-=(const Vertex & right)
 {
 #ifdef SSE2
-	dat = _mm_sub_ps(dat, right.dat);
+	return *this = _mm_sub_ps(dat, right);
 #else
 	x += right.x, y += right.y, z += right.z;
-#endif
 	return *this;
+#endif
 }
 Vertex Vertex::operator/(const float &n) const
 {
@@ -197,11 +150,11 @@ Vertex &Vertex::operator/=(const float & right)
 	float rec = 1 / right;
 #ifdef SSE2
 	__m128 tmp = _mm_set1_ps(rec);
-	dat = _mm_mul_ps(dat, tmp);
+	return *this = _mm_mul_ps(dat, tmp);
 #else
 	x *= rec, y *= rec, z *= rec;
-#endif
 	return *this;
+#endif
 }
 Vertex Vertex::operator*(const float &n) const
 {
@@ -216,40 +169,45 @@ Vertex &Vertex::operator*=(const float & right)
 {
 #ifdef SSE2
 	__m128 tmp = _mm_set1_ps(right);
-	dat = _mm_mul_ps(dat, tmp);
+	return *this = _mm_mul_ps(dat, tmp);
 #else
 	x *= right, y *= right, z *= right;
-#endif
 	return *this;
+#endif
 }
 Vertex Vertex::operator*(const Vertex &v) const
 {
-#ifdef SSE2
-	//return _mm_dp_ps(dat, v.dat, 0x55);
+#ifdef AVX_
+	__m256 mg14 = _mm256_set_m128(dat, v.dat),
+	mg23 = _mm256_set_m128(v.dat, dat);
+	__m256 t14 = _mm256_permute_ps(mg14, _MM_SHUFFLE(3, 0, 2, 1)),
+	t23 = _mm256_permute_ps(mg23, _MM_SHUFFLE(3, 1, 0, 2));
+	__m256 lr = _mm256_mul_ps(t14, t23);
+	__m128 *r = (__m128*)&lr.m256_f32[0], *l = (__m128*)&lr.m256_f32[4];
+	//__m256 tmp1a = _mm256_set_m128(_mm_sub_ps(*l, *r), _mm_sub_ps(*l, *r));
+	//return _mm256_extractf128_ps(tmp1a, 1);
+	return _mm_sub_ps(*l, *r);
+#elif defined(AVX)
+	__m128 t1 = _mm_permute_ps(dat, _MM_SHUFFLE(3, 0, 2, 1)),
+		t2 = _mm_permute_ps(v.dat, _MM_SHUFFLE(3, 1, 0, 2)),
+		t3 = _mm_permute_ps(dat, _MM_SHUFFLE(3, 1, 0, 2)),
+		t4 = _mm_permute_ps(v.dat, _MM_SHUFFLE(3, 0, 2, 1));
+	__m128 l = _mm_mul_ps(t1, t2),
+		r = _mm_mul_ps(t3, t4);
+	return _mm_sub_ps(l, r);
 #else
-
-	__m256d t1 = _mm256_permute4x64_pd(dat, _MM_SHUFFLE(3, 0, 2, 1)),
-		t4 = _mm256_permute4x64_pd(v.dat, _MM_SHUFFLE(3, 0, 2, 1)),
-		t2 = _mm256_permute4x64_pd(v.dat, _MM_SHUFFLE(3, 1, 0, 2)),
-		t3 = _mm256_permute4x64_pd(dat, _MM_SHUFFLE(3, 1, 0, 2));
-	__m256d left = _mm256_mul_pd(t1, t2),
-		right = _mm256_mul_pd(t3, t4);
-	return _mm256_sub_pd(left, right);
-
-#endif
-
 	float a, b, c;
 	a = y*v.z - z*v.y;
 	b = z*v.x - x*v.z;
 	c = x*v.y - y*v.x;
 	return Vertex(a, b, c);
-//#endif
+#endif
 }
 float Vertex::operator&(const Vertex &v) const
 {
 #ifdef SSE4
 	__m128 ans = _mm_dp_ps(dat, v.dat, 0b01110001);
-	return ans.m128_f32[0];
+	return _mm_cvtss_f32(ans);
 #else
 	return x*v.x + y*v.y + z*v.z;
 #endif
@@ -259,11 +217,24 @@ float Vertex::operator&(const Vertex &v) const
 
 Normal::Normal(const Vertex &v)//¹éÒ»»¯
 {
+#ifdef AVX2
+	__m128 ans = _mm_dp_ps(v.dat, v.dat, 0b01110001);
+	__m128 tmp = _mm_broadcastss_ps(_mm_sqrt_ss(ans));
+	dat = _mm_div_ps(v.dat, tmp);
+#else
+  #ifdef SSE4
+	__m128 ans = _mm_dp_ps(v.dat, v.dat, 0b01110001);
+	ans = _mm_sqrt_ss(ans);
+	__m128 tmp = _mm_set1_ps(_mm_cvtss_f32(ans));
+	dat = _mm_div_ps(v.dat, tmp);
+  #else
 	float s = v.x*v.x + v.y*v.y + v.z*v.z;
-	s = sqrt(s);
-	x = v.x / s;
-	y = v.y / s;
-	z = v.z / s;
+	s = 1 / sqrt(s);
+	x = v.x * s;
+	y = v.y * s;
+	z = v.z * s;
+  #endif
+#endif
 }
 
 
@@ -305,6 +276,18 @@ Texture::Texture(const Texture & t)
 	{
 		data = new uint8_t[size];
 		memcpy(data, t.data, size);
+	}
+}
+
+Texture::Texture(Texture && t)
+{
+	name = move(t.name);
+	w = t.w, h = t.h;
+	swap(data, t.data);
+	if (t.data != nullptr)
+	{
+		delete[] t.data;
+		t.data = nullptr;
 	}
 }
 
@@ -436,7 +419,7 @@ void Color::get(uint8_t * addr)
 
 HitRes::HitRes(bool b)
 {
-	distance = b ? 1e10 : 1e20;
+	distance = b ? 1e8 : 1e20;
 }
 
 bool HitRes::operator<(const HitRes & right)
@@ -446,7 +429,7 @@ bool HitRes::operator<(const HitRes & right)
 
 HitRes::operator bool()
 {
-	return distance < 1e15;
+	return distance < 1e8;
 }
 
 
@@ -458,150 +441,7 @@ void DrawObject::GLDraw()
 
 
 
-Sphere::Sphere(const float r, GLuint lnum) : DrawObject(lnum)
-{
-	radius = r;
-	radius_sqr = r * r;
-}
 
-void Sphere::SetMtl(const Material & mtl)
-{
-	this->mtl = mtl;
-}
-
-void Sphere::GLPrepare()
-{
-	glNewList(GLListNum, GL_COMPILE);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glMaterialfv(GL_FRONT, GL_AMBIENT, mtl.ambient);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, mtl.diffuse);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, mtl.specular);
-	glMaterialfv(GL_FRONT, GL_SHININESS, mtl.shiness);
-	glMaterialfv(GL_FRONT, GL_EMISSION, mtl.emission);
-	glutSolidSphere(radius, 100, 100);
-	glEndList();
-}
-
-HitRes Sphere::intersect(const Ray &ray, const HitRes &hr)
-{
-	/*
-	** s2r->vector that sphere's origin towards ray
-	** t = -d.s2r-sqrt[(d.s2r)^2-(s2r^2-r^2)]
-	*/
-	Vertex s2r = ray.origin - position;
-	float rdDOTr2s = ray.direction & s2r;
-	if (rdDOTr2s > 0)
-		return hr;
-	float dis = rdDOTr2s * rdDOTr2s - s2r.length_sqr() + radius_sqr;
-	if (dis < 0)
-		return hr;
-	float t = -((ray.direction & s2r) + sqrt(dis));
-	if (t < hr.distance)
-	{
-		HitRes newhr(t);
-		newhr.position = ray.origin + ray.direction * t;
-		newhr.normal = Normal(newhr.position - position);
-		newhr.mtl = &mtl;
-		return newhr;
-	}
-	return hr;
-}
-
-
-
-Box::Box(const float len, GLuint lnum) : DrawObject(lnum)
-{
-	width = height = length = len;
-	float l = len / 2;
-	max = Vertex(l, l, l);
-	min = max * -1;
-}
-
-Box::Box(const float l, const float w, const float h, GLuint lnum) : DrawObject(lnum)
-{
-	length = l, width = w, height = h;
-	max = Vertex(l / 2, w / 2, h / 2);
-	max = max * -1;
-}
-
-void Box::SetMtl(const Material & mtl)
-{
-	this->mtl = mtl;
-}
-
-void Box::GLPrepare()
-{
-	glNewList(GLListNum, GL_COMPILE);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glMaterialfv(GL_FRONT, GL_AMBIENT, mtl.ambient);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, mtl.diffuse);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, mtl.specular);
-	glMaterialfv(GL_FRONT, GL_SHININESS, mtl.shiness);
-	glMaterialfv(GL_FRONT, GL_EMISSION, mtl.emission);
-	glBegin(GL_QUADS);
-	//fornt
-	glNormal3d(0, 0, 1);
-	glVertex3f(max.x, min.y, max.z);
-	glVertex3f(max.x, max.y, max.z);
-	glVertex3f(min.x, max.y, max.z);
-	glVertex3f(min.x, min.y, max.z);
-	//right
-	glNormal3d(1, 0, 0);
-	glVertex3f(max.x, min.y, max.z);
-	glVertex3f(max.x, max.y, max.z);
-	glVertex3f(max.x, max.y, min.z);
-	glVertex3f(max.x, min.y, min.z);
-	//back
-	glNormal3d(0, 0, -1);
-	glVertex3f(min.x, min.y, min.z);
-	glVertex3f(min.x, max.y, min.z);
-	glVertex3f(max.x, max.y, min.z);
-	glVertex3f(max.x, min.y, min.z);
-	//left
-	glNormal3d(-1, 0, 0);
-	glVertex3f(min.x, min.y, max.z);
-	glVertex3f(min.x, max.y, max.z);
-	glVertex3f(min.x, max.y, min.z);
-	glVertex3f(min.x, min.y, min.z);
-	//up
-	glNormal3d(0, 1, 0);
-	glVertex3f(max.x, max.y, max.z);
-	glVertex3f(max.x, max.y, min.z);
-	glVertex3f(min.x, max.y, min.z);
-	glVertex3f(min.x, max.y, max.z);
-	//down
-	glNormal3d(0, -1, 0);
-	glVertex3f(max.x, min.y, min.z);
-	glVertex3f(max.x, min.y, max.z);
-	glVertex3f(min.x, min.y, max.z);
-	glVertex3f(min.x, min.y, min.z);
-
-	glEnd();
-	glEndList();
-}
-
-HitRes Box::intersect(const Ray & ray, const HitRes &hr)
-{
-	float res = BorderTest(ray, min + position, max + position);
-	if (hr.distance > res)
-	{
-		HitRes newhr(res);
-		newhr.position = ray.origin + ray.direction * res;
-		Vertex b2p = newhr.position - position;
-		Vertex point;
-		if (abs(abs(b2p.z) - max.z) < 1e-6)//front or back
-			point.z = b2p.z>0 ? 1 : -1;
-		if (abs(abs(b2p.y) - max.y) < 1e-6)//up or down
-			point.y = b2p.y>0 ? 1 : -1;
-		if (abs(abs(b2p.x) - max.x) < 1e-6)//left or right
-			point.x = b2p.x>0 ? 1 : -1;
-		newhr.normal = Normal(point);
-		newhr.mtl = &mtl;
-		return newhr;
-	}
-	else
-		return hr;
-}
 
 
 
@@ -616,13 +456,13 @@ Light::Light(const uint8_t type)
 	SetProperty(MY_MODEL_ATTENUATION, 1.0f, 0.0f, 0.0f);
 	switch (type)
 	{
-	case MY_MODEL_LIGHT_PARALLEL:
+	case MY_LIGHT_PARALLEL:
 		position.alpha = 0.0f;
 		break;
-	case MY_MODEL_LIGHT_POINT:
+	case MY_LIGHT_POINT:
 		position.alpha = 1.0f;
 		break;
-	case MY_MODEL_LIGHT_SPOT:
+	case MY_LIGHT_SPOT:
 		position.alpha = 1.0f;
 		break;
 	}

@@ -24,7 +24,8 @@ public:
 	vector<Normal> nors;
 	vector<Coord2D> txcs;
 	vector<vector<Triangle>> parts;
-	vector<vector<Triangle>> newparts;
+	//vector<vector<clTri>> clparts;
+	vector<vector<clTri>> octclparts;
 	vector<Vertex> borders;
 	vector<Vertex> bboxs;
 	vector<Material> mtls;
@@ -33,18 +34,17 @@ public:
 	wstring objname, mtlname;
 private:
 	virtual void GLPrepare() override;
-	float TriangleTest(const Ray &ray, const Triangle &tri, Vertex &coord);
 	int32_t loadobj(const wstring &objname, const uint8_t code);
 	int32_t loadmtl(const wstring &mtlname, const uint8_t code);
 	int32_t loadtex(const string &texname, const uint8_t code);
 	void reset();
 public:
-	Model(GLuint num = 0) : DrawObject(num) { };
+	Model(GLuint num = 0) : DrawObject(num) { type = MY_OBJECT_MODEL; };
 	~Model() override;
 	int32_t loadOBJ(const wstring &objname, const wstring &mtlname, const uint8_t code = 0x0);
 	void zRotate();
 	virtual void RTPrepare() override;
-	virtual HitRes intersect(const Ray &ray, const HitRes &hr) override;
+	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float min = 0) override;
 };
 
 

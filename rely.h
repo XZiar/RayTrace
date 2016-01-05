@@ -4,11 +4,12 @@
 #define USING_FREEGLUT
 #define SSE2
 #ifdef SSE2
-  //#define SSE4
+  #define SSE4
   #ifdef SSE4
-    //#define AVX
+    #define AVX
     #ifdef AVX
-      //#define FMA
+      #define FMA
+      #define AVX2
     #endif
   #endif
 #endif
