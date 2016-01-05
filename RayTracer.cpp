@@ -289,7 +289,8 @@ Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 			for (auto dobj : scene->Objects)
 			{
 				if (dobj->bShow)
-					shr = dobj->intersect(shadowray, shr);
+					//quick test to find nearest blocking object
+					shr = dobj->intersect(shadowray, shr, dis);
 				//early quick
 				if (shr.distance < dis)
 					break;

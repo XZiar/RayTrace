@@ -320,7 +320,7 @@ void Model::reset()
 	texs.swap(vector<Texture>());
 	mtls.swap(vector<Material>());
 	parts.swap(vector<vector<Triangle>>());
-	clparts.swap(vector<vector<clTri>>());
+	//clparts.swap(vector<vector<clTri>>());
 	octclparts.swap(vector<vector<clTri>>());
 	borders.swap(vector<Vertex>());
 	bboxs.swap(vector<Vertex>());
@@ -395,9 +395,9 @@ void Model::RTPrepare()
 	bboxs.clear();
 	//for (Vertex &v : borders)
 	//bboxs.push_back(v + position);
-	clparts.clear();
+	//clparts.clear();
 	octclparts.clear();
-	vector<clTri> cltpart;
+	//vector<clTri> cltpart;
 	vector<clTri> octcltpart[8];
 	int bbnum = 0;
 	for (auto cnta = 0; cnta < parts.size(); ++cnta)
@@ -416,7 +416,7 @@ void Model::RTPrepare()
 			clTri clt(t.points[1] - t.points[0], t.points[2] - t.points[0], t.points[0] + position);
 			clt.numa = cnta, clt.numb = cntb;
 
-			cltpart.push_back(clt);
+			//cltpart.push_back(clt);
 			__m128 tmin = _mm_min_ps(t.points[0].dat, _mm_min_ps(t.points[1].dat, t.points[2].dat));
 			__m128 tmax = _mm_max_ps(t.points[0].dat, _mm_max_ps(t.points[1].dat, t.points[2].dat));
 			if (tmin.m128_f32[0] <= va.x)
@@ -454,9 +454,9 @@ void Model::RTPrepare()
 				}
 			}
 		}
-		cltpart.shrink_to_fit();
-		clparts.push_back(move(cltpart));
-		cltpart.reserve(3000);
+		//cltpart.shrink_to_fit();
+		//clparts.push_back(move(cltpart));
+		//cltpart.reserve(3000);
 		for (auto b = 0; b < 8; ++b)
 		{
 			octcltpart[b].shrink_to_fit();
@@ -468,7 +468,7 @@ void Model::RTPrepare()
 
 }
 
-static float BorderTestEx(const Ray & ray, const Vertex &Min, const Vertex &Max, int8_t *mask, float *save)
+static float BorderTestEx(const Ray & ray, const Vertex &Min, const Vertex &Max, __m256i *mask)
 {
 	const Vertex Mid = (Min + Max) * 0.5;
 	Vertex tmin = Min - ray.origin, tmax = Max - ray.origin, tmid = Mid - ray.origin;
@@ -549,8 +549,9 @@ static float BorderTestEx(const Ray & ray, const Vertex &Min, const Vertex &Max,
 
 	
 	__m256i state = *(__m256i*)&_mm256_cmp_ps(ansmin, ansmax, _CMP_LE_OS);
+	*mask = state;
 	float minist = 1e20f;
-
+#pragma region dataspy
 	/*if (ansmax.m256_f32[7] < ansmin.m256_f32[7] && ansmax.m256_f32[3] > ansmin.m256_f32[3] && false)
 	{
 		printf("catch you\n");
@@ -634,25 +635,19 @@ static float BorderTestEx(const Ray & ray, const Vertex &Min, const Vertex &Max,
 			printf("%6s\t,", k ? "true" : "false");
 		printf("\nover\n");
 	}*/
-
+#pragma endregion dataspy code to show data in progress
+	//memcpy(mask, &state, 32);
 	for (auto a = 0; a < 8; ++a)
 	{
 		/*Vertex ttmin(a & 0x4 ? Mid.x : Min.x, a & 0x1 ? Mid.y : Min.y, a & 0x2 ? Mid.z : Min.z);
 		Vertex ttmax(a & 0x4 ? Max.x : Mid.x, a & 0x1 ? Max.y : Mid.y, a & 0x2 ? Max.z : Mid.z);
 		float empty;
 		float ttans = BorderTest(ray, ttmin, ttmax, &empty);*/
-		save[a] = ansmin.m256_f32[a];
-		save[a + 8] = ansmax.m256_f32[a];
+		//save[a] = ansmin.m256_f32[a];
+		//save[a + 8] = ansmax.m256_f32[a];
 		if (state.m256i_i32[a])//min<=max
-		{
-			mask[a] = 0xff;
 			minist = min(minist, ansmin.m256_f32[a]);
-		}
-		else
-		{
-			mask[a] = 0x0;
-		}
-		
+
 	}
 	return minist;
 }
@@ -729,7 +724,7 @@ inline static float TriangleTest(const Ray & ray, const clTri & tri, Vertex &coo
 	if (v < 0.0f || duv < 0.0f)
 		return 1e20f;
 	float t = (tri.axisv & tmp2) * f;
-	if (t > 1e-6f)
+	if (t > 1e-5f)
 	{
 		coord = Vertex(duv, u, v);
 		return t;
@@ -742,8 +737,7 @@ inline static float TriangleTest(const Ray & ray, const clTri & tri, Vertex &coo
 HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 {
 	float empty;
-	int8_t mask[16];
-	float save[16];
+	__m256i mask;
 	float ans = BorderTest(ray, BorderMin, BorderMax, &empty);
 	if (ans < hr.distance)//inside and maybe nearer
 	{
@@ -753,33 +747,27 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 		Triangle *objt = nullptr;
 		clTri *objclt = nullptr;
 		Vertex coord, tmpc;
-		for (auto a = 0; a < clparts.size(); ++a)
-			if (BorderTestEx(ray, bboxs[a * 2], bboxs[a * 2 + 1], mask, save) < hr.distance)
+		int pcnt = parts.size();
+		for (auto a = 0; a < pcnt; ++a)//each part
+			if (BorderTestEx(ray, bboxs[a * 2], bboxs[a * 2 + 1], &mask) < hr.distance)//part may hit
 			{
-				for (auto c = 0; c < 8; ++c)
+				for (auto b = 0, pcur = a * 8; b < 8; ++b, ++pcur)//each oct-border
 				{
-					Vertex &Min = bboxs[a * 2], &Max = bboxs[a * 2 + 1];
-					Vertex &Mid = (Min + Max) * 0.5;
-					Vertex ttmin(c & 0x4 ? Mid.x : Min.x, c & 0x1 ? Mid.y : Min.y, c & 0x2 ? Mid.z : Min.z);
-					Vertex ttmax(c & 0x4 ? Max.x : Mid.x, c & 0x1 ? Max.y : Mid.y, c & 0x2 ? Max.z : Mid.z);
-					float empty;
-					float ttans = BorderTest(ray, ttmin, ttmax, &empty);
-					if (mask[c])
-					//if (true)
+					if (mask.m256i_i32[b])//oct-border may hit
 					{
-						for (auto b = 0; b < octclparts[a*8+c].size(); ++b)
+						int tcnt = octclparts[pcur].size();
+						for (auto c = 0; c < tcnt;)//each triangle in oct-border
 						{
-							//clTri &t = clparts[a][b];
-							clTri &t = octclparts[a * 8 + c][b];
+							clTri &t = octclparts[pcur][c++];
 							//early quit
 							if (hr.obj == (intptr_t)&t)
 								continue;
+							_mm_prefetch((char*)&octclparts[b][c], _MM_HINT_T0);
 							newans = TriangleTest(ray, t, tmpc);
-							if (newans < ans && newans > 1e-5)
+							if (newans < ans)
 							{
 								objpart = a;
 								objclt = &t;
-								//objt = &parts[a][b];
 								objt = &parts[t.numa][t.numb];
 								ans = newans;
 								coord = tmpc;
@@ -789,7 +777,6 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 						}
 					}
 				}
-				
 			}
 	____EOS:
 		if (ans < hr.distance)
