@@ -330,21 +330,12 @@ HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float min)
 	if (dis < 0)
 		return hr;
 	if (dis < hr.distance)
-	{
+	{//calculate coord for texture
 		Vertex tmp1 = ray.direction * axisy;
-		Vertex t2r = ray.origin;
-
-		float f = axisx & tmp1;
-
-		f = 0.2f / f;
-
-		float u = (t2r & tmp1) * f;
-
-		Vertex tmp2 = t2r * axisx;
+		float f = 1.0f / (axisx & tmp1) / 5;
+		float u = (p2r & tmp1) * f;
+		Vertex tmp2 = p2r * axisx;
 		float v = (ray.direction & tmp2) * f;
-
-
-
 
 		HitRes newhr(dis);
 		newhr.normal = normal;

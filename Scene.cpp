@@ -8,6 +8,8 @@ Scene::Scene()
 	EnvLight = Vertex(0.2f, 0.2f, 0.2f, 1.0f);
 	for (Light &light : Lights)
 		light.bLight = false;
+	//init material library
+	//MtlLiby[0].SetMtl();
 }
 
 Scene::~Scene()
@@ -15,35 +17,6 @@ Scene::~Scene()
 	for (auto &obj : Objects)
 		if(obj != nullptr)
 			delete obj;
-}
-
-void Scene::init()
-{
-	//init draw ground
-	grdList = glGenLists(1);
-	glNewList(grdList, GL_COMPILE);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	GLfloat emission[] = { 0.0f, 0.0f, 0.5f, 0.0f };
-	glPushMatrix();
-	glTranslatef(0, -5, 0);
-	glBegin(GL_LINES);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, no_mat);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, no_mat);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, no_mat);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, no_mat);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, no_mat);
-	for (int a = -1000; a < 1001; a += 5)
-	{
-		glVertex3i(a, 0, 1000);
-		glVertex3i(a, 0, -1000);
-		glVertex3i(-1000, 0, a);
-		glVertex3i(1000, 0, a);
-	}
-	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, no_mat);
-	glEnd();
-	glPopMatrix();
-	glEndList();
 }
 
 uint8_t Scene::AddLight(const uint8_t type, const Vertex &comp, const Vertex &atte)
@@ -155,6 +128,14 @@ bool Scene::ChgLightComp(const uint8_t type, const uint8_t num, const Vertex & v
 	return true;
 }
 
+bool Scene::ChgMtl(const uint8_t num, const Material & mtl)
+{
+	if (num >= Objects.size())
+		return false;
+	//
+	return true;
+}
+
 bool Scene::Delete(uint8_t type, const uint8_t num)
 {
 	switch (type)
@@ -226,9 +207,12 @@ void Scene::DrawScene()
 {
 	//set camera
 	Vertex poi = cam.position + cam.n;
+	//gluLookAt(cam.position.x, cam.position.y, cam.position.z,
+		//poi.x, poi.y, poi.z,
+		//cam.v.x, cam.v.y, cam.v.z);
 	gluLookAt(cam.position.x, cam.position.y, cam.position.z,
 		poi.x, poi.y, poi.z,
-		cam.v.x, cam.v.y, cam.v.z);
+		0, 1, 0);
 
 	glPushMatrix();
 

@@ -148,20 +148,8 @@ void init(void)
 	lgt_toggle = scene.AddLight(MY_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
 	scene.MovePos(MY_MODEL_LIGHT, lgt_toggle, Vertex(-45, 45, 0));
 	lgt_toggle = scene.AddLight(MY_LIGHT_POINT, Vertex(0.15f, 0.55f, 0.3f), Vertex(0.0f, 0.0f, 1.0f, 256));
-	/*scene.Lights[0] = Light();
-	Light *lit = &scene.Lights[0];
-	lit->SetProperty(MY_MODEL_SPECULAR, 0.5f, 0.5f, 0.5f);
-	lit->SetProperty(MY_MODEL_DIFFUSE, 0.5f, 0.5f, 0.5f);
-	lit->SetProperty(MY_MODEL_POSITION, 10.0f, 10.0f, 5.0f, 0.0f);
-	scene.Lights[1] = Light(MY_MODEL_LIGHT_POINT);
-	lit = &scene.Lights[1];
-	lit->SetProperty(MY_MODEL_SPECULAR, 0.6f, 0.6f, 0.6f);
-	lit->SetProperty(MY_MODEL_DIFFUSE, 0.4f, 0.4f, 0.4f);
-	lit->SetProperty(MY_MODEL_ATTENUATION, 0.0f, 0.0f, 1.0f);
-	lit->SetLumi(256);*/
 
 	//init scene
-	scene.init();
 	//add ground
 	scene.AddPlane();
 	//add basic sphere
@@ -325,6 +313,8 @@ void onKeyboard(unsigned char key, int x, int y)
 				rayt.start(MY_MODEL_MATERIALTEST, tnum);break;
 			case '6':
 				rayt.start(MY_MODEL_SHADOWTEST, tnum); break;
+			case '7':
+				rayt.start(MY_MODEL_REFLECTTEST, tnum); break;
 			}
 			glutTimerFunc(50, onTimer, 1);
 		}

@@ -12,7 +12,7 @@ void RayTracer::parallelRT(const int8_t tNum, const int8_t tID, const PR &worker
 	const Camera &cam = scene->cam;
 	const int32_t blk_h = height / 64, blk_w = width / 64;
 	const double dp = tan(cam.fovy * PI / 360) / (height / 2);
-	const float zNear = cam.zNear, zFar = cam.zFar;
+	const float zNear = cam.zNear, zFar = sqrt(2)*cam.zFar;
 
 	int16_t blk_cur = tID, blk_xcur = tID % blk_w, blk_ycur = tID / blk_w;
 	while (blk_ycur < blk_h)
@@ -468,6 +468,9 @@ void RayTracer::start(const uint8_t type, const int8_t tnum)
 		break;
 	case MY_MODEL_SHADOWTEST:
 		fun = bind(&RayTracer::RTshd, this, _1, _2, _3);
+		break;
+	case MY_MODEL_REFLECTTEST:
+		fun = bind(&RayTracer::RTflc, this, _1, _2, _3, 0);
 		break;
 	case MY_MODEL_RAYTRACE:
 		fun = bind(&RayTracer::RTshd, this, _1, _2, _3);
