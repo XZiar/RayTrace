@@ -513,17 +513,14 @@ void onMenu(int val)
 			break;
 		case 0x02://Add Cube
 			obj_toggle = scene.AddCube(1.6f);
-			InitMenu();
 			break;
 		case 0x03://Add Model
 			if (FileDlg(filename[0], filename[1]) == -1)
 				return;
 			obj_toggle = scene.AddModel(filename[0], filename[1]);
-			InitMenu();
 			break;
-		case 0x04:
+		case 0x04://Add Plane
 			obj_toggle = scene.AddPlane();
-			InitMenu();
 			break;
 		case 0x11://Parallel Light
 			lgt_toggle = scene.AddLight(MY_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
@@ -536,6 +533,7 @@ void onMenu(int val)
 		default:
 			return;
 		}
+		InitMenu();
 		break;
 	case 0x100://objects
 		switch (val & 0xf)
@@ -552,6 +550,8 @@ void onMenu(int val)
 			scene.Delete(MY_MODEL_OBJECT, obj);
 			obj_toggle = 0xff;
 			InitMenu();
+			break;
+		case 4://change material
 			break;
 		case 3://z-rotate
 			Model &model = dynamic_cast<Model&>(*scene.Objects[obj]);

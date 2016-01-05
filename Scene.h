@@ -16,7 +16,7 @@ class Scene
 private:
 	GLuint grdList;
 public:
-	Material MtlLiby[4];
+	vector<Material> MtlLiby;
 
 	Camera cam;
 	Vertex EnvLight;

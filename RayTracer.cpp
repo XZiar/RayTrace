@@ -408,7 +408,7 @@ Color RayTracer::RTflec(const float zNear, const float zFar, const Ray & baseray
 		}
 	____EOLT:;//end of light test this turn
 	}
-	Color c_all = vc.mixmul(mix_vd + mix_va);
+	Color c_all = vc.mixmul(mix_vd + mix_va) + mix_vsc;
 	//accept reflection
 	if (hr.mtl->reflect > 0.01f)
 	{
@@ -427,7 +427,7 @@ Color RayTracer::RTflec(const float zNear, const float zFar, const Ray & baseray
 		Color c_flec = RTflec(0.0f, zFar, flecray, level + 1, bwc * flecrate, flechr);
 		c_all += c_flec * flecrate;
 	}
-	return c_all + mix_vsc;
+	return c_all ;
 }
 
 

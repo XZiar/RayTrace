@@ -757,6 +757,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 			{
 				for (auto b = 0, pcur = a * 8; b < 8; ++b, ++pcur)//each oct-border
 				{
+					//if(true)
 					if (mask.m256i_i32[b])//oct-border may hit
 					{
 						int tcnt = octclparts[pcur].size() - 1;

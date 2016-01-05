@@ -257,6 +257,7 @@ HitRes Box::intersect(const Ray & ray, const HitRes &hr, const float dmin)
 Plane::Plane(GLuint lnum) : DrawObject(lnum)
 {
 	type = MY_OBJECT_PLANE;
+	tex = Texture(true);
 	glGenTextures(1, &texList);
 	rotate(Vertex(0, 36, 0));
 }

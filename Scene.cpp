@@ -9,17 +9,40 @@ Scene::Scene()
 	for (Light &light : Lights)
 		light.bLight = false;
 	//init material library
-	MtlLiby[0].name = "brass";//黄铜材质
-	MtlLiby[0].SetMtl(MY_MODEL_AMBIENT, 0.329412, 0.223529, 0.027451);
-	MtlLiby[0].SetMtl(MY_MODEL_DIFFUSE, 0.780392, 0.568627, 0.113725);
-	MtlLiby[0].SetMtl(MY_MODEL_SPECULAR, 0.992157, 0.941176, 0.807843);
-	MtlLiby[0].SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 27.897400);
+	Material mtl;
+	mtl.name = "brass";//黄铜材质
+	mtl.SetMtl(MY_MODEL_AMBIENT, 0.329412f, 0.223529f, 0.027451f);
+	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.780392f, 0.568627f, 0.113725f);
+	mtl.SetMtl(MY_MODEL_SPECULAR, 0.992157f, 0.941176f, 0.807843f);
+	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 27.8974f);
+	MtlLiby.push_back(mtl);
 
-	MtlLiby[1].name = "bas-sphere";//基本球材质
-	MtlLiby[1].SetMtl(MY_MODEL_AMBIENT, 0.1, 0.1, 0.1);
-	MtlLiby[1].SetMtl(MY_MODEL_DIFFUSE, 0.1, 0.5, 0.8);
-	MtlLiby[1].SetMtl(MY_MODEL_SPECULAR, 1.0, 1.0, 1.0);
-	MtlLiby[1].SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 100);
+	mtl = Material();
+	mtl.name = "bas-sphere";//基本球材质
+	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.1f, 0.1f);
+	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1f, 0.5f, 0.8f);
+	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
+	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 100);
+	mtl.reflect = 0.35f;
+	MtlLiby.push_back(mtl);
+
+	mtl = Material();
+	mtl.name = "mirror";//全反射
+	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.1f, 0.1f);
+	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1f, 0.1f, 0.1f);
+	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
+	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 127);
+	mtl.reflect = 0.95f;
+	MtlLiby.push_back(mtl);
+
+	mtl = Material();
+	mtl.name = "green grass";//带颜色反射
+	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.4f, 0.1f);
+	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1f, 0.5f, 0.1f);
+	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
+	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 127);
+	mtl.reflect = 0.55f;
+	MtlLiby.push_back(mtl);
 }
 
 Scene::~Scene()
