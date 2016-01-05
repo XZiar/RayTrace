@@ -265,10 +265,12 @@ Plane::Plane(GLuint lnum) : DrawObject(lnum)
 void Plane::rotate(const Vertex & v)
 {
 	bool fix = false;
-	ang.x = mod(360 + ang.x + v.y * 5, 360);
-	ang.y = mod(360 + ang.y + v.x * 5, 360);
+	ang.x = mod(360 + ang.x - v.y * 5, 360);
+	ang.y = mod(360 + ang.y - v.x * 5, 360);
 	ang.z += v.z;
-	if (abs(ang.z) < 1e-5)
+	if (ang.z < 0.0f)
+		ang.z = 0.0f;
+	if (abs(ang.z) < 1e-5f)
 		fix = true, ang.z = 1;
 	Coord_sph2car2(ang.x, ang.y, ang.z, position);
 	normal = Normal(position * -1);
@@ -312,6 +314,14 @@ void Plane::GLPrepare()
 	tmp = tmpy * -1 + tmpx;
 	glTexCoord2f(range, -range); glVertex3fv(tmp);
 	glEnd();
+	/*glBegin(GL_TRIANGLES);
+	tmp = axisy;
+	glVertex3fv(tmp);
+	tmp = axisx + axisy;
+	glVertex3fv(tmp);
+	tmp = normal + axisy;
+	glVertex3fv(tmp);
+	glEnd();*/
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glEndList();
 }

@@ -21,6 +21,7 @@ private:
 	bool state[32];
 	volatile double costtime[32];
 	atomic_int16_t aBlock_Cur;
+	HitRes tmphr; bool isPrt = false;
 
 	void parallelRT(const int8_t tNum, const int8_t tID, const PR &worker);
 	void RTcheck(const int8_t tNum, const int8_t tID);

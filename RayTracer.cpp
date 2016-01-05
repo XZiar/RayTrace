@@ -321,14 +321,21 @@ Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 }
 
 Color RayTracer::RTflec(const float zNear, const float zFar, const Ray & baseray,
-	const uint8_t level, const float bwc, HitRes hr)
+	const uint8_t level, const float bwc, HitRes basehr)
 {
 	if (level > maxLevel || bwc < 1e-5f)//deep limit
 		return Color(false);
+	HitRes hr = basehr;
+	intptr_t newobj = basehr.obj;
 	//intersect
 	for (auto dobj : scene->Objects)
 		if (dobj->bShow)
+		{
+			hr.obj = basehr.obj;
 			hr = dobj->intersect(baseray, hr);
+			if (hr.obj != basehr.obj)
+				newobj = hr.obj;
+		}
 	//early cut
 	if (hr.distance > zFar || hr.distance < zNear)
 		return Color(false);
@@ -375,7 +382,7 @@ Color RayTracer::RTflec(const float zNear, const float zFar, const Ray & baseray
 			//shadow test
 			Ray shadowray(hr.position, p2l);
 			HitRes shr(dis);
-			shr.obj = hr.obj;
+			shr.obj = newobj;
 			for (auto dobj : scene->Objects)
 			{
 				if (dobj->bShow)
@@ -424,7 +431,7 @@ Color RayTracer::RTflec(const float zNear, const float zFar, const Ray & baseray
 		Normal r2p_r = baseray.direction - (hr.normal * n_n);
 		Ray flecray(hr.position, r2p_r);
 		HitRes flechr;
-		flechr.obj = hr.obj;
+		flechr.obj = newobj;
 		Color c_flec = RTflec(0.0f, zFar, flecray, level + 1, bwc * flecrate, flechr);
 		c_all += c_flec * flecrate;
 	}
@@ -479,7 +486,7 @@ void RayTracer::start(const uint8_t type, const int8_t tnum)
 		fun = bind(&RayTracer::RTshd, this, _1, _2, _3);
 		break;
 	case MY_MODEL_REFLECTTEST:
-		fun = bind(&RayTracer::RTflec, this, _1, _2, _3, 0, 1.0f, HitRes());
+		fun = bind(&RayTracer::RTflec, this, _1, _2, _3, 0, 1.0f, tmphr);
 		break;
 	case MY_MODEL_RAYTRACE:
 		fun = bind(&RayTracer::RTshd, this, _1, _2, _3);

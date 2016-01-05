@@ -246,12 +246,9 @@ void Scene::DrawScene()
 {
 	//set camera
 	Vertex poi = cam.position + cam.n;
-	//gluLookAt(cam.position.x, cam.position.y, cam.position.z,
-		//poi.x, poi.y, poi.z,
-		//cam.v.x, cam.v.y, cam.v.z);
 	gluLookAt(cam.position.x, cam.position.y, cam.position.z,
 		poi.x, poi.y, poi.z,
-		0, 1, 0);
+		cam.v.x, cam.v.y, cam.v.z);
 
 	glPushMatrix();
 

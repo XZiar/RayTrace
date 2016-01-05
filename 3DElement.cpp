@@ -607,14 +607,16 @@ void Camera::pitch(float angy)
 	Coord_sph2car(oangy, oangz, 1, n);
 
 	//rotate v(up)
-	oangy = acos(v.y / 1) * 180 / PI,
+	v = u * n;
+	/*oangy = acos(v.y / 1) * 180 / PI,
 	oangz = atan2(v.x, v.z) * 180 / PI;
-	oangy += angy;
+	oangy -= angy;
 	oangy = abs(oangy);
 	if (oangy > 90.0)
 		oangy = 90.0;
 
-	Coord_sph2car(oangy, oangz, 1, v);
+	Coord_sph2car(oangy, oangz, 1, v);*/
+	
 }
 
 void Camera::resize(GLint w, GLint h)
