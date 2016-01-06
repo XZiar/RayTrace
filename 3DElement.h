@@ -141,7 +141,7 @@ class Color : public Vertex
 {
 public:
 	Color(const bool white = false);
-	Color(const float &ix, const float &iy, const float &iz) :Vertex(ix, iy, iz) { };
+	Color(const float &ix, const float &iy, const float &iz) :Vertex(ix, iy, iz, 1e20f) { };
 	Color(const Vertex &v);
 	Color(const Normal &n);
 	Color(const Texture* tex, const Coord2D &coord);

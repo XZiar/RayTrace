@@ -411,11 +411,13 @@ Color::Color(const bool white)
 		r = g = b = 1.0f;
 	else
 		r = g = b = 0.0f;
+	alpha = 1e20f;
 }
 
 Color::Color(const Vertex &v)
 {
 	r = v.x, g = v.y, b = v.z;
+	alpha = 1e20f;
 }
 
 Color::Color(const Normal &n)

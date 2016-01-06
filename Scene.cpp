@@ -47,7 +47,7 @@ Scene::Scene()
 	mtl = Material();
 	mtl.name = "grass";//È«·´Éä
 	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.1f, 0.1f);
-	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1f, 0.1f, 0.1f);
+	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.9f, 0.9f, 0.9f);
 	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
 	mtl.SetMtl(MY_MODEL_SHINESS, 127);
 	mtl.reflect = 0.15f;

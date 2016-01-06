@@ -74,8 +74,6 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr, const float min)
 			return HitRes(radius);
 		Vertex s2r = ray.origin - position;
 		float rdDOTr2s = ray.direction & s2r;
-		//if (rdDOTr2s < 0)
-			//return hr;
 		float dis = rdDOTr2s * rdDOTr2s - s2r.length_sqr() + radius_sqr;
 		float t = -(ray.direction & s2r) + sqrt(dis);
 		if (t < hr.distance && t > 1e-6)
@@ -86,6 +84,10 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr, const float min)
 			newhr.mtl = &mtl;
 			newhr.obj = (intptr_t)this;
 			newhr.isInside = ~ray.isInside;
+			if (ray.type == MY_RAY_REFRACTRAY)
+				newhr.rfr = 1.0f;//leave sphere,set back rfr
+			else
+				newhr.rfr = mtl.rfr;//still in sphere
 			return newhr;
 		}
 		else
@@ -111,6 +113,7 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr, const float min)
 		newhr.mtl = &mtl;
 		newhr.obj = (intptr_t)this;
 		newhr.isInside = ~ray.isInside;
+		newhr.rfr = mtl.rfr;
 		return newhr;
 	}
 	return hr;

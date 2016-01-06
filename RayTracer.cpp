@@ -559,7 +559,7 @@ Color RayTracer::RTfrac(const float zNear, const float zFar, const Ray & baseray
 		//refraction test
 		c_all *= (1 - fracrate);
 
-		float n = baseray.mtlrfr / hr.mtl->rfr;
+		float n = baseray.mtlrfr / hr.rfr;
 		float cosIn = -(baseray.direction & hr.normal);
 		float cosOut2 = 1.0f - (n * n) * (1.0f - cosIn * cosIn);
 		if (cosOut2 < 0.0f)//È«·´Éä
@@ -573,9 +573,16 @@ Color RayTracer::RTfrac(const float zNear, const float zFar, const Ray & baseray
 		HitRes frachr;
 		frachr.obj = newobj;
 		Color c_frac = RTfrac(0.0f, zFar, fracray, level + 1, bwc * fracrate, frachr);
-		c_all += c_frac * fracrate;
+		Color vc_frac(1, 1, 1);
+		if (hr.isInside)//peer's law, not sure if useful
+		{
+			vc_frac = hr.mtl->diffuse * 0.15f * -c_frac.alpha;
+			vc_frac = Vertex(exp(vc_frac.r), exp(vc_frac.g), exp(vc_frac.b));
+		}
+		c_all += c_frac.mixmul(vc_frac) * fracrate;
 	}
 ____EOFR:;//end of fraction test
+	c_all.alpha = hr.distance;
 	return c_all;
 }
 
