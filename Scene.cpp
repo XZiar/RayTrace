@@ -45,13 +45,23 @@ Scene::Scene()
 	MtlLiby.push_back(mtl);
 
 	mtl = Material();
-	mtl.name = "grass";//È«·´Éä
+	mtl.name = "grass";//È«ÕÛÉä
 	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.1f, 0.1f);
 	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.9f, 0.9f, 0.9f);
 	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
 	mtl.SetMtl(MY_MODEL_SHINESS, 127);
 	mtl.reflect = 0.15f;
 	mtl.refract = 0.75f; mtl.rfr = 1.5f;
+	MtlLiby.push_back(mtl);
+
+	mtl = Material();
+	mtl.name = "wall";//Ç½±Ú
+	mtl.SetMtl(MY_MODEL_AMBIENT, 0.2f, 0.2f, 0.2f);
+	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.7f, 0.7f, 0.7f);
+	mtl.SetMtl(MY_MODEL_SPECULAR, 0.5f, 0.5f, 0.5f);
+	mtl.SetMtl(MY_MODEL_SHINESS, 5);
+	mtl.reflect = 0.15f;
+	mtl.refract = 0;
 	MtlLiby.push_back(mtl);
 }
 
@@ -117,11 +127,22 @@ uint8_t Scene::AddPlane()
 	GLuint lnum = glGenLists(1);
 	Plane *plane = new Plane(lnum);
 	Material mtl;
-	mtl.reflect = 0.8;
+	mtl.reflect = 0.6f;
 	plane->SetMtl(mtl);
 	plane->GLPrepare();
 
 	Objects.push_back(plane);
+	return Objects.size() - 1;
+}
+
+uint8_t Scene::AddBallPlane(const float radius)
+{
+	GLuint lnum = glGenLists(1);
+	BallPlane *ballp = new BallPlane(radius, lnum);
+	ballp->SetMtl(MtlLiby[1]);
+	ballp->GLPrepare();
+
+	Objects.push_back(ballp);
 	return Objects.size() - 1;
 }
 
@@ -163,6 +184,9 @@ bool Scene::ChgMtl(const uint8_t num, const Material &mtl)
 	if (num >= Objects.size())
 		return false;
 	Objects[num]->SetMtl(mtl);
+	Plane *p = dynamic_cast<Plane*>(Objects[num]);
+	if (mtl.name == "wall" && p != nullptr)
+		p->setTex(Texture(false));
 	Objects[num]->GLPrepare();
 	return true;
 }
@@ -226,6 +250,12 @@ bool Scene::MovePos(const uint8_t type, const uint8_t num, const Vertex & v)
 			//p.position += p.normal * -v.z;
 			p.rotate(v);
 			p.GLPrepare();
+		}
+		else if (Objects[num]->type == MY_OBJECT_BALLPLANE)
+		{
+			BallPlane &bp = dynamic_cast<BallPlane&>(*Objects[num]);
+			bp.rotate(v);
+			bp.GLPrepare();
 		}
 		else
 			Objects[num]->position += v;

@@ -1,13 +1,14 @@
 #pragma once
 #include "rely.h"
 
-#define MY_OBJECT_SPHERE 0x1
-#define MY_OBJECT_CUBE   0x2
-#define MY_OBJECT_MODEL  0x3
-#define MY_OBJECT_PLANE  0x4
+#define MY_OBJECT_SPHERE    0x1
+#define MY_OBJECT_CUBE      0x2
+#define MY_OBJECT_MODEL     0x3
+#define MY_OBJECT_PLANE     0x4
+#define MY_OBJECT_BALLPLANE 0x5
 
 const char MY_OBJECT_NAME[][10] =
-{ "ERROR","sphere","cube","model","plane" };
+{ "ERROR","sphere","cube","model","plane","ballplane" };
 
 #define MY_LIGHT_PARALLEL 0x1
 #define MY_LIGHT_POINT    0x2
@@ -210,6 +211,7 @@ public:
 		attenuation;
 	float rangy, rangz, rdis,
 		angy, angz, dis;
+	float coang, exponent;//for spot light
 	uint8_t type;
 	bool bLight;
 

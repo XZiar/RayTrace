@@ -32,6 +32,7 @@ public:
 	uint8_t AddCube(const float len);
 	uint8_t AddModel(const wstring &objname, const wstring &mtlname, uint8_t code = 0x0);
 	uint8_t AddPlane();
+	uint8_t AddBallPlane(const float radius);
 
 	bool Delete(const uint8_t type, const uint8_t num);
 	bool ChgLightComp(const uint8_t type, const uint8_t num, const Vertex &v);

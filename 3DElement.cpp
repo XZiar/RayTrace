@@ -520,6 +520,7 @@ Light::Light(const uint8_t type)
 		break;
 	case MY_LIGHT_SPOT:
 		position.alpha = 1.0f;
+
 		break;
 	}
 }

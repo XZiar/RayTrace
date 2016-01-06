@@ -333,3 +333,125 @@ HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float min)
 	else
 		return hr;
 }
+
+
+
+BallPlane::BallPlane(const float r, GLuint lnum) : DrawObject(lnum)
+{
+	type = MY_OBJECT_BALLPLANE;
+	radius = r;
+	radius_sqr = r * r;
+	rotate(Vertex(0, 36, 0));
+}
+
+void BallPlane::rotate(const Vertex & v)
+{
+	bool fix = false;
+	ang.x = mod(360 + ang.x - v.y * 5, 360);
+	ang.y = mod(360 + ang.y - v.x * 5, 360);
+	ang.z += v.z;
+	if (ang.z < 0.0f)
+		ang.z = 0.0f;
+	if (abs(ang.z) < 1e-5f)
+		fix = true, ang.z = 1;
+	Coord_sph2car2(ang.x, ang.y, ang.z, position);
+	normal = Normal(position * -1);
+	if (fix)
+		ang.z = 0, position = Vertex();
+
+	float tangy = mod(90 + ang.x, 360);
+	Coord_sph2car2(tangy, ang.y, 1, axisy);
+	axisx = axisy * normal;
+}
+
+void BallPlane::GLPrepare()
+{
+	glNewList(GLListNum, GL_COMPILE);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mtl.ambient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mtl.diffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mtl.specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, mtl.emission);
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, mtl.shiness);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	Vertex tmp;
+
+	for (auto cx = radius * -6; cx < radius * 8; cx += radius*4)
+		for (auto cy = radius * -6; cy < radius * 8; cy += radius * 4)
+		{
+			tmp = axisx * cx + axisy * cy;
+			glPushMatrix();
+			glTranslatef(tmp.x, tmp.y, tmp.z);
+			glutSolidSphere(radius, 100, 100);
+			glPopMatrix();
+		}
+	glEndList();
+}
+
+HitRes BallPlane::intersect(const Ray & ray, const HitRes & hr, const float min)
+{
+	//series of intersect of sphere
+	Vertex tmp;
+	int cnt = 0;
+	HitRes newhr = hr;
+	for (auto cx = radius * -6; cx < radius * 8; cx += radius * 4)
+	for (auto cy = radius * -6; cy < radius * 8; cy += radius * 4)
+	{
+		++cnt;
+		tmp = axisx * cx + axisy * cy;
+		Vertex tposition = tmp + position;
+		//early quit
+		if (hr.obj == (intptr_t)this + cnt)
+		{
+			if (!ray.isInside)
+				continue;
+			//InSide
+			if (ray.type == MY_RAY_SHADOWRAY)
+				return HitRes(radius);
+			Vertex s2r = ray.origin - tposition;
+			float rdDOTr2s = ray.direction & s2r;
+			float dis = rdDOTr2s * rdDOTr2s - s2r.length_sqr() + radius_sqr;
+			float t = -(ray.direction & s2r) + sqrt(dis);
+			if (t < newhr.distance && t > 1e-6)
+			{
+				newhr = HitRes(t);
+				newhr.position = ray.origin + ray.direction * t;
+				newhr.normal = Normal(tposition - newhr.position);
+				newhr.mtl = &mtl;
+				newhr.obj = (intptr_t)this + cnt;
+				newhr.isInside = ~ray.isInside;
+				if (ray.type == MY_RAY_REFRACTRAY)
+					newhr.rfr = 1.0f;//leave sphere,set back rfr
+				else
+					newhr.rfr = mtl.rfr;//still in sphere
+				continue;
+			}
+			else
+				continue;
+		}
+		Vertex s2r = ray.origin - tposition;
+		float rdDOTr2s = ray.direction & s2r;
+		if (rdDOTr2s > 0)
+			continue;
+		float dis = rdDOTr2s * rdDOTr2s - s2r.length_sqr() + radius_sqr;
+		if (dis < 0)
+			continue;
+		float t = -((ray.direction & s2r) + sqrt(dis));
+		if (t < newhr.distance && t > 1e-6)
+		{
+			newhr = HitRes(t);
+			newhr.position = ray.origin + ray.direction * t;
+			newhr.normal = Normal(newhr.position - tposition);
+			newhr.mtl = &mtl;
+			newhr.obj = (intptr_t)this + cnt;
+			newhr.isInside = ~ray.isInside;
+			newhr.rfr = mtl.rfr;
+			continue;
+		}
+		continue;
+	}
+	if (newhr.distance < hr.distance)
+		return newhr;
+	else
+		return hr;
+}
