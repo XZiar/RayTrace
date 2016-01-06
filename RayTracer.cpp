@@ -550,7 +550,7 @@ Color RayTracer::RTfrac(const float zNear, const float zFar, const Ray & baseray
 		Ray flecray(hr.position, r2p_r, MY_RAY_REFLECTRAY);
 		HitRes flechr;
 		flechr.obj = newobj;
-		Color c_flec = RTflec(0.0f, zFar, flecray, level + 1, bwc * flecrate, flechr);
+		Color c_flec = RTfrac(0.0f, zFar, flecray, level + 1, bwc * flecrate, flechr);
 		c_all += c_flec * flecrate;
 	}
 	if (hr.mtl->refract > 0.01f)
@@ -572,8 +572,8 @@ Color RayTracer::RTfrac(const float zNear, const float zFar, const Ray & baseray
 		fracray.isInside = hr.isInside;
 		HitRes frachr;
 		frachr.obj = newobj;
-		Color c_flec = RTflec(0.0f, zFar, fracray, level + 1, bwc * fracrate, frachr);
-		c_all += c_flec * fracrate;
+		Color c_frac = RTfrac(0.0f, zFar, fracray, level + 1, bwc * fracrate, frachr);
+		c_all += c_frac * fracrate;
 	}
 ____EOFR:;//end of fraction test
 	return c_all;

@@ -43,6 +43,16 @@ Scene::Scene()
 	mtl.SetMtl(MY_MODEL_SHINESS, 127);
 	mtl.reflect = 0.55f;
 	MtlLiby.push_back(mtl);
+
+	mtl = Material();
+	mtl.name = "grass";//È«·´Éä
+	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.1f, 0.1f);
+	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1f, 0.1f, 0.1f);
+	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
+	mtl.SetMtl(MY_MODEL_SHINESS, 127);
+	mtl.reflect = 0.15f;
+	mtl.refract = 0.75f; mtl.rfr = 1.5f;
+	MtlLiby.push_back(mtl);
 }
 
 Scene::~Scene()

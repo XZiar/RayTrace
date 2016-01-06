@@ -66,7 +66,31 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr, const float min)
 {
 	//early quit
 	if (hr.obj == (intptr_t)this)
-		return hr;
+	{
+		if (!ray.isInside)
+			return hr;
+		//InSide
+		if (ray.type == MY_RAY_SHADOWRAY)
+			return HitRes(radius);
+		Vertex s2r = ray.origin - position;
+		float rdDOTr2s = ray.direction & s2r;
+		//if (rdDOTr2s < 0)
+			//return hr;
+		float dis = rdDOTr2s * rdDOTr2s - s2r.length_sqr() + radius_sqr;
+		float t = -(ray.direction & s2r) + sqrt(dis);
+		if (t < hr.distance && t > 1e-6)
+		{
+			HitRes newhr(t);
+			newhr.position = ray.origin + ray.direction * t;
+			newhr.normal = Normal(position - newhr.position);
+			newhr.mtl = &mtl;
+			newhr.obj = (intptr_t)this;
+			newhr.isInside = ~ray.isInside;
+			return newhr;
+		}
+		else
+			return hr;
+	}
 	/*
 	** s2r->vector that sphere's origin towards ray
 	** t = -d.s2r-sqrt[(d.s2r)^2-(s2r^2-r^2)]
@@ -86,6 +110,7 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr, const float min)
 		newhr.normal = Normal(newhr.position - position);
 		newhr.mtl = &mtl;
 		newhr.obj = (intptr_t)this;
+		newhr.isInside = ~ray.isInside;
 		return newhr;
 	}
 	return hr;
@@ -274,10 +299,7 @@ HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float min)
 {
 	//early quit
 	if (hr.obj == (intptr_t)this)
-	{
-		if (!ray.isInside)
-			return hr;
-	}
+		return hr;
 
 	float a = ray.direction & normal;
 	if (abs(a) < 1e-6)
@@ -303,7 +325,6 @@ HitRes Plane::intersect(const Ray & ray, const HitRes & hr, const float min)
 		float ppdis = (newhr.position - position).length_sqr();
 		newhr.tcoord = Coord2D(u, v);
 		newhr.obj = (intptr_t)this;
-		newhr.isInside = ~ray.isInside;
 		return newhr;
 	}
 	else
