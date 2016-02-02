@@ -1,6 +1,46 @@
 #include "rely.h"
 #include "Basic3DObject.h"
 
+static void CreateSphere(const float radius, const unsigned int rings, const unsigned int sectors, float *vertices, float *normals, float *texcoords, GLushort *indices)
+{
+	float const R = 1.0 / (float)(rings - 1);
+	float const S = 1.0 / (float)(sectors - 1);
+
+	float* v = vertices;
+	float* n = normals;
+	float* t = texcoords;
+	GLushort *i = indices;
+
+	for (int r = 0; r < rings; r++) 
+		for (int s = 0; s < sectors; s++)
+		{
+			float const y = sin(-M_PI_2 + M_PI * r * R);
+			float const x = cos(2 * M_PI * s * S) * sin(M_PI * r * R);
+			float const z = sin(2 * M_PI * s * S) * sin(M_PI * r * R);
+			*t++ = s*S;
+			*t++ = r*R;
+			*v++ = x * radius;
+			*v++ = y * radius;
+			*v++ = z * radius;
+
+			*n++ = x;
+			*n++ = y;
+			*n++ = z;
+		}
+
+	for (int r = 0; r < rings - 1; r++)
+		for (int s = 0; s < sectors - 1; s++)
+		{
+			*i++ = r * sectors + s;
+			*i++ = r * sectors + (s + 1);
+			*i++ = (r + 1) * sectors + (s + 1);
+			*i++ = (r + 1) * sectors + s;
+		}
+}
+
+
+
+
 float BorderTest(const Ray & ray, const Vertex &Min, const Vertex &Max, float *getMax)
 {
 	Vertex tdismin = Min - ray.origin, tdismax = Max - ray.origin;
@@ -47,6 +87,20 @@ Sphere::Sphere(const float r, GLuint lnum) : DrawObject(lnum)
 	type = MY_OBJECT_SPHERE;
 	radius = r;
 	radius_sqr = r * r;
+
+	vertices = new float[80 * 80 * 3];
+	normals = new float[80 * 80 * 3];
+	texcoords = new float[80 * 80 * 2];
+	indices = new GLushort[80 * 80 * 4];
+	CreateSphere(0.5f, 80, 80, vertices, normals, texcoords, indices);
+}
+
+Sphere::~Sphere()
+{
+	delete[] vertices;
+	delete[] normals;
+	delete[] texcoords;
+	delete[] indices;
 }
 
 void Sphere::GLPrepare()
@@ -58,7 +112,23 @@ void Sphere::GLPrepare()
 	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mtl.specular);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, mtl.emission);
 	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, mtl.shiness);
-	glutSolidSphere(radius, 100, 100);
+
+	//glutSolidSphere(radius, 100, 100);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, vertices);
+	glNormalPointer(GL_FLOAT, 0, normals);
+	glTexCoordPointer(2, GL_FLOAT, 0, texcoords);
+	glEnable(GL_RESCALE_NORMAL);
+	const float sr = radius * 2;
+	glScalef(sr, sr, sr);
+	glDrawElements(GL_QUADS, 79 * 79 * 4, GL_UNSIGNED_SHORT, indices);
+	glDisable(GL_RESCALE_NORMAL);
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+
 	glEndList();
 }
 
@@ -120,6 +190,37 @@ HitRes Sphere::intersect(const Ray &ray, const HitRes &hr, const float min)
 }
 
 
+/* Vertex Coordinates */
+const float Box::cube_v[6 * 4 * 3] =
+{
+	.5, .5, .5,  -.5, .5, .5,  -.5,-.5, .5,  .5,-.5, .5,       // v0-v1-v2-v3 (front)
+
+	.5, .5, .5,   .5,-.5, .5,   .5,-.5,-.5,   .5, .5,-.5,      // v0-v3-v4-v5 (right)
+
+	.5, .5, .5,   .5, .5,-.5,  -.5, .5,-.5,  -.5, .5, .5,      // v0-v5-v6-v1 (top)
+
+	-.5, .5, .5,  -.5, .5,-.5,  -.5,-.5,-.5,  -.5,-.5, .5,      // v1-v6-v7-v2 (left)
+
+	-.5,-.5,-.5,   .5,-.5,-.5,   .5,-.5, .5,  -.5,-.5, .5,      // v7-v4-v3-v2 (bottom)
+
+	.5,-.5,-.5,  -.5,-.5,-.5,  -.5, .5,-.5,   .5, .5,-.5,      // v4-v7-v6-v5 (back)
+};
+/* Normal Vectors */
+const float Box::cube_n[6 * 4 * 3] =
+{
+	0, 0, 1,   0, 0, 1,   0, 0, 1,   0, 0, 1,      // v0-v1-v2 (front)
+
+	1, 0, 0,   1, 0, 0,   1, 0, 0,   1, 0, 0,      // v0-v3-v4 (right)
+
+	0, 1, 0,   0, 1, 0,   0, 1, 0,   0, 1, 0,      // v0-v5-v6 (top)
+
+	-1, 0, 0,  -1, 0, 0,  -1, 0, 0,  -1, 0, 0,      // v1-v6-v7 (left)
+
+	0,-1, 0,   0,-1, 0,   0,-1, 0,   0,-1, 0,      // v7-v4-v3 (bottom)
+
+	0, 0,-1,   0, 0,-1,   0, 0,-1,   0, 0,-1,      // v4-v7-v6 (back)
+};
+/* Texture Coordinates */
 
 Box::Box(const float len, GLuint lnum) : DrawObject(lnum)
 {
@@ -148,51 +249,25 @@ void Box::GLPrepare()
 	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, mtl.emission);
 	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, mtl.shiness);
 
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	//glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	glEnable(GL_RESCALE_NORMAL);
 	Vertex tmp = max - min;
 	glScalef(tmp.x, tmp.y, tmp.z);
-	glutSolidCube(1);
+
+	//glutSolidCube(1);
+	glVertexPointer(3, GL_FLOAT, 0, cube_v);
+	glNormalPointer(GL_FLOAT, 0, cube_n);
+	//glTexCoordPointer(2, GL_FLOAT, 0, cube_t);
+	glDrawArrays(GL_QUADS, 0, 6 * 4);
+	//glDrawElements(GL_QUADS, 6 * 4, GL_UNSIGNED_SHORT, cube_vi);
+
 	glDisable(GL_RESCALE_NORMAL);
-	/*
-	glBegin(GL_QUADS);
-	//fornt
-	glNormal3d(0, 0, 1);
-	glVertex3f(max.x, min.y, max.z);
-	glVertex3f(max.x, max.y, max.z);
-	glVertex3f(min.x, max.y, max.z);
-	glVertex3f(min.x, min.y, max.z);
-	//right
-	glNormal3d(1, 0, 0);
-	glVertex3f(max.x, min.y, max.z);
-	glVertex3f(max.x, max.y, max.z);
-	glVertex3f(max.x, max.y, min.z);
-	glVertex3f(max.x, min.y, min.z);
-	//back
-	glNormal3d(0, 0, -1);
-	glVertex3f(min.x, min.y, min.z);
-	glVertex3f(min.x, max.y, min.z);
-	glVertex3f(max.x, max.y, min.z);
-	glVertex3f(max.x, min.y, min.z);
-	//left
-	glNormal3d(-1, 0, 0);
-	glVertex3f(min.x, min.y, max.z);
-	glVertex3f(min.x, max.y, max.z);
-	glVertex3f(min.x, max.y, min.z);
-	glVertex3f(min.x, min.y, min.z);
-	//up
-	glNormal3d(0, 1, 0);
-	glVertex3f(max.x, max.y, max.z);
-	glVertex3f(max.x, max.y, min.z);
-	glVertex3f(min.x, max.y, min.z);
-	glVertex3f(min.x, max.y, max.z);
-	//down
-	glNormal3d(0, -1, 0);
-	glVertex3f(max.x, min.y, min.z);
-	glVertex3f(max.x, min.y, max.z);
-	glVertex3f(min.x, min.y, max.z);
-	glVertex3f(min.x, min.y, min.z);
-	glEnd();
-	*/
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
+	//glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+
 	glEndList();
 }
 
@@ -342,6 +417,20 @@ BallPlane::BallPlane(const float r, GLuint lnum) : DrawObject(lnum)
 	radius = r;
 	radius_sqr = r * r;
 	rotate(Vertex(0, 36, 0));
+
+	vertices = new float[80 * 80 * 3];
+	normals = new float[80 * 80 * 3];
+	texcoords = new float[80 * 80 * 2];
+	indices = new GLushort[80 * 80 * 4];
+	CreateSphere(r, 80, 80, vertices, normals, texcoords, indices);
+}
+
+BallPlane::~BallPlane()
+{
+	delete[] vertices;
+	delete[] normals;
+	delete[] texcoords;
+	delete[] indices;
 }
 
 void BallPlane::rotate(const Vertex & v)
@@ -382,7 +471,13 @@ void BallPlane::GLPrepare()
 			tmp = axisx * cx + axisy * cy;
 			glPushMatrix();
 			glTranslatef(tmp.x, tmp.y, tmp.z);
-			glutSolidSphere(radius, 100, 100);
+
+			//glutSolidSphere(radius, 100, 100);
+			glVertexPointer(3, GL_FLOAT, 0, vertices);
+			glNormalPointer(GL_FLOAT, 0, normals);
+			glTexCoordPointer(2, GL_FLOAT, 0, texcoords);
+			glDrawElements(GL_QUADS, 80 * 80 * 4, GL_UNSIGNED_SHORT, indices);
+
 			glPopMatrix();
 		}
 	glEndList();

@@ -6,9 +6,11 @@ class Sphere : public DrawObject
 {
 private:
 	float radius, radius_sqr;
+	float *vertices, *normals, *texcoords;
+	GLushort *indices;
 public:
-
 	Sphere(const float r = 1.0f, GLuint lnum = 0);
+	~Sphere() override;
 	virtual void GLPrepare() override;
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float min = 0) override;
 };
@@ -16,6 +18,10 @@ public:
 class Box : public DrawObject
 {
 private:
+	static const float cube_v[6 * 4 * 3];
+	static const float cube_n[6 * 4 * 3];
+	static const float cube_t[8 * 2];
+
 	float width, height, length;
 	Vertex min, max;
 public:
@@ -49,10 +55,13 @@ private:
 	Vertex ang;
 	Normal axisx, axisy;
 	float radius, radius_sqr;
+	float *vertices, *normals, *texcoords;
+	GLushort *indices;
 public:
 	Normal normal;
 
 	BallPlane(const float r = 0.3f, GLuint lnum = 0);
+	~BallPlane() override;
 	void rotate(const Vertex &v);
 	virtual void GLPrepare() override;
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float min = 0) override;

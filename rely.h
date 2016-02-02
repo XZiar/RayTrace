@@ -29,6 +29,8 @@
 #endif
 
 #define PI 3.1415926535897932384
+#define M_PI 3.14159265358979323846
+#define M_PI_2 1.57079632679489661923
 #define _MM_ALIGN32 _VCRT_ALIGN(32)
 
 #include <intrin.h>
