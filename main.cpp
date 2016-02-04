@@ -119,6 +119,7 @@ void InitMenu()
 	glutAddMenuEntry("Add Cube", 0x0002);
 	glutAddMenuEntry("Add Model", 0x0003);
 	glutAddMenuEntry("Add Plane", 0x0004);
+	glutAddMenuEntry("Add BallPlane", 0x0005);
 	glutAddMenuEntry("---Lights---", 0x0);
 	int a = 0;
 	for (; a < scene.Lights.size(); ++a)
@@ -332,6 +333,8 @@ void onKeyboard(unsigned char key, int x, int y)
 				rayt.start(MY_MODEL_SHADOWTEST, tnum); break;
 			case '7':
 				rayt.start(MY_MODEL_REFLECTTEST, tnum); break;
+			case '8':
+				rayt.start(MY_MODEL_REFRACTTEST, tnum); break;
 			}
 			glutTimerFunc(50, onTimer, 1);
 		}
@@ -539,6 +542,9 @@ void onMenu(int val)
 		case 0x04://Add Plane
 			obj_toggle = scene.AddPlane();
 			break;
+		case 0x05://Add BallPlane
+			obj_toggle = scene.AddBallPlane(0.5f);
+			break;
 		case 0x11://Parallel Light
 			lgt_toggle = scene.AddLight(MY_LIGHT_PARALLEL, Vertex(0.1f, 0.45f, 0.45f));
 			break;
@@ -591,7 +597,7 @@ void onMenu(int val)
 			case 0x3://cyan
 				clr = Vertex(0, 1, 1); break;
 			case 0x4://magenta
-				clr = Vertex(0, 1, 1); break;
+				clr = Vertex(1, 0, 1); break;
 			case 0x5://yellow
 				clr = Vertex(1, 1, 0); break;
 			case 0x6://black

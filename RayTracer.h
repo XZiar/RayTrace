@@ -9,6 +9,7 @@
 #define MY_MODEL_MATERIALTEST 0x5
 #define MY_MODEL_SHADOWTEST 0x6
 #define MY_MODEL_REFLECTTEST 0x7
+#define MY_MODEL_REFRACTTEST 0x8
 #define MY_MODEL_RAYTRACE 0x80
 
 class RayTracer
@@ -31,6 +32,8 @@ private:
 	Color RTmtl(const float zNear, const float zFar, const Ray &baseray);
 	Color RTshd(const float zNear, const float zFar, const Ray &baseray);
 	Color RTflec(const float zNear, const float zFar, const Ray &baseray,
+		const uint8_t level, const float bwc, HitRes hr);//loop count , benefit weight , base hitres
+	Color RTfrac(const float zNear, const float zFar, const Ray &baseray,
 		const uint8_t level, const float bwc, HitRes hr);//loop count , benefit weight , base hitres
 public:
 	GLuint texID;

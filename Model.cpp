@@ -392,6 +392,13 @@ void Model::zRotate()
 	GLPrepare();
 }
 
+void Model::SetMtl(const Material & mtl)
+{
+	for (auto &old : mtls)
+		old = mtl;
+	//mtls[0] = mtl;
+}
+
 void Model::RTPrepare()
 {
 	BorderMin = VerMin + position, BorderMax = VerMax + position;
@@ -792,6 +799,7 @@ HitRes Model::intersect(const Ray &ray, const HitRes &hr, const float min)
 			newhr.tcoord = objt->tcoords[0] * coord.x + objt->tcoords[1] * coord.y + objt->tcoords[2] * coord.z;
 			auto mnum = part_mtl[objpart];
 			newhr.mtl = &mtls[mnum];
+			newhr.rfr = newhr.mtl->rfr;
 			auto tnum = mtl_tex[mnum];
 			if (tnum >= 0)
 				newhr.tex = &texs[tnum];

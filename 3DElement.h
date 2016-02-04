@@ -1,13 +1,14 @@
 #pragma once
 #include "rely.h"
 
-#define MY_OBJECT_SPHERE 0x1
-#define MY_OBJECT_CUBE   0x2
-#define MY_OBJECT_MODEL  0x3
-#define MY_OBJECT_PLANE  0x4
+#define MY_OBJECT_SPHERE    0x1
+#define MY_OBJECT_CUBE      0x2
+#define MY_OBJECT_MODEL     0x3
+#define MY_OBJECT_PLANE     0x4
+#define MY_OBJECT_BALLPLANE 0x5
 
 const char MY_OBJECT_NAME[][10] =
-{ "ERROR","sphere","cube","model","plane" };
+{ "ERROR","sphere","cube","model","plane","ballplane" };
 
 #define MY_LIGHT_PARALLEL 0x1
 #define MY_LIGHT_POINT    0x2
@@ -23,6 +24,11 @@ const char MY_LIGHT_NAME[][10] =
 #define MY_MODEL_EMISSION    0x10
 #define MY_MODEL_POSITION    0x100
 #define MY_MODEL_ATTENUATION 0x200
+
+#define MY_RAY_BASERAY    0x1
+#define MY_RAY_SHADOWRAY  0x2
+#define MY_RAY_REFLECTRAY 0x3
+#define MY_RAY_REFRACTRAY 0x4
 
 
 class Coord2D
@@ -104,12 +110,13 @@ public:
 		diffuse,
 		specular,
 		emission;
-	float shiness, reflect, refract;
+	float shiness, reflect, refract, rfr;//高光权重，反射比率，折射比率，折射率
 	string name;
 	Material();
 	~Material();
 	void SetMtl(const uint8_t prop, const float r, const float g, const float b, const float a = 1.0f);
 	void SetMtl(const uint8_t prop, const Vertex &v);
+	void SetMtl(const uint8_t prop, const float val);
 };
 
 _MM_ALIGN16 struct clTri
@@ -135,7 +142,7 @@ class Color : public Vertex
 {
 public:
 	Color(const bool white = false);
-	Color(const float &ix, const float &iy, const float &iz) :Vertex(ix, iy, iz) { };
+	Color(const float &ix, const float &iy, const float &iz) :Vertex(ix, iy, iz, 1e20f) { };
 	Color(const Vertex &v);
 	Color(const Normal &n);
 	Color(const Texture* tex, const Coord2D &coord);
@@ -150,9 +157,10 @@ class Ray
 public:
 	Vertex origin;
 	Normal direction;
-	uint8_t type = 0x0;
+	float mtlrfr = 1.0f;
+	uint8_t type, isInside = 0x0;
 
-	Ray(const Vertex &o, const Normal &dir) : origin(o), direction(dir) { };
+	Ray(const Vertex &o, const Normal &dir, const uint8_t type = 0x0) : origin(o), direction(dir), type(type) { };
 };
 
 class HitRes
@@ -161,10 +169,11 @@ public:
 	Vertex position;
 	Normal normal;
 	Coord2D tcoord;
-	float distance;
 	Material *mtl = nullptr;
 	Texture *tex = nullptr;
 	intptr_t obj = (intptr_t)this;
+	float distance, rfr = 1.0f;
+	uint8_t isInside = 0x0;
 
 	HitRes(bool b = false);
 	HitRes(float dis) : distance(dis){ };
@@ -185,7 +194,7 @@ public:
 
 	DrawObject(GLuint n) : GLListNum(n) { };
 	virtual ~DrawObject() { };
-	void SetMtl(const Material &mtl) { this->mtl = mtl; };
+	virtual void SetMtl(const Material &mtl) { this->mtl = mtl; };
 	void GLDraw();
 	virtual void GLPrepare() = 0;
 	virtual void RTPrepare() { };
@@ -202,6 +211,7 @@ public:
 		attenuation;
 	float rangy, rangz, rdis,
 		angy, angz, dis;
+	float coang, exponent;//for spot light
 	uint8_t type;
 	bool bLight;
 

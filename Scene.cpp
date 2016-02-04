@@ -6,15 +6,16 @@
 Scene::Scene()
 {
 	EnvLight = Vertex(0.2f, 0.2f, 0.2f, 1.0f);
-	for (Light &light : Lights)
-		light.bLight = false;
+	
+	lbi = nullptr;
+
 	//init material library
 	Material mtl;
 	mtl.name = "brass";//»ÆÍ­²ÄÖÊ
 	mtl.SetMtl(MY_MODEL_AMBIENT, 0.329412f, 0.223529f, 0.027451f);
 	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.780392f, 0.568627f, 0.113725f);
 	mtl.SetMtl(MY_MODEL_SPECULAR, 0.992157f, 0.941176f, 0.807843f);
-	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 27.8974f);
+	mtl.SetMtl(MY_MODEL_SHINESS, 27.8974f);
 	MtlLiby.push_back(mtl);
 
 	mtl = Material();
@@ -22,7 +23,7 @@ Scene::Scene()
 	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.1f, 0.1f);
 	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1f, 0.5f, 0.8f);
 	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
-	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 100);
+	mtl.SetMtl(MY_MODEL_SHINESS, 100);
 	mtl.reflect = 0.35f;
 	MtlLiby.push_back(mtl);
 
@@ -31,7 +32,7 @@ Scene::Scene()
 	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.1f, 0.1f);
 	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1f, 0.1f, 0.1f);
 	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
-	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 127);
+	mtl.SetMtl(MY_MODEL_SHINESS, 127);
 	mtl.reflect = 0.95f;
 	MtlLiby.push_back(mtl);
 
@@ -40,13 +41,40 @@ Scene::Scene()
 	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.4f, 0.1f);
 	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.1f, 0.5f, 0.1f);
 	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
-	mtl.SetMtl(MY_MODEL_SHINESS, 0, 0, 0, 127);
+	mtl.SetMtl(MY_MODEL_SHINESS, 127);
 	mtl.reflect = 0.55f;
+	MtlLiby.push_back(mtl);
+
+	mtl = Material();
+	mtl.name = "grass";//È«ÕÛÉä
+	mtl.SetMtl(MY_MODEL_AMBIENT, 0.1f, 0.1f, 0.1f);
+	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.9f, 0.9f, 0.9f);
+	mtl.SetMtl(MY_MODEL_SPECULAR, 1.0f, 1.0f, 1.0f);
+	mtl.SetMtl(MY_MODEL_SHINESS, 127);
+	mtl.reflect = 0.15f;
+	mtl.refract = 0.75f; mtl.rfr = 1.5f;
+	MtlLiby.push_back(mtl);
+
+	mtl = Material();
+	mtl.name = "wall";//Ç½±Ú
+	mtl.SetMtl(MY_MODEL_AMBIENT, 0.2f, 0.2f, 0.2f);
+	mtl.SetMtl(MY_MODEL_DIFFUSE, 0.7f, 0.7f, 0.7f);
+	mtl.SetMtl(MY_MODEL_SPECULAR, 0.5f, 0.5f, 0.5f);
+	mtl.SetMtl(MY_MODEL_SHINESS, 5);
+	mtl.reflect = 0.15f;
+	mtl.refract = 0;
 	MtlLiby.push_back(mtl);
 }
 
 Scene::~Scene()
 {
+	if (lbi != nullptr)
+	{
+		delete[] lbv;
+		delete[] lbn;
+		delete[] lbt;
+		delete[] lbi;
+	}
 	for (auto &obj : Objects)
 		if(obj != nullptr)
 			delete obj;
@@ -107,11 +135,22 @@ uint8_t Scene::AddPlane()
 	GLuint lnum = glGenLists(1);
 	Plane *plane = new Plane(lnum);
 	Material mtl;
-	mtl.reflect = 0.8;
+	mtl.reflect = 0.6f;
 	plane->SetMtl(mtl);
 	plane->GLPrepare();
 
 	Objects.push_back(plane);
+	return Objects.size() - 1;
+}
+
+uint8_t Scene::AddBallPlane(const float radius)
+{
+	GLuint lnum = glGenLists(1);
+	BallPlane *ballp = new BallPlane(radius, lnum);
+	ballp->SetMtl(MtlLiby[1]);
+	ballp->GLPrepare();
+
+	Objects.push_back(ballp);
 	return Objects.size() - 1;
 }
 
@@ -153,6 +192,9 @@ bool Scene::ChgMtl(const uint8_t num, const Material &mtl)
 	if (num >= Objects.size())
 		return false;
 	Objects[num]->SetMtl(mtl);
+	Plane *p = dynamic_cast<Plane*>(Objects[num]);
+	if (mtl.name == "wall" && p != nullptr)
+		p->setTex(Texture(false));
 	Objects[num]->GLPrepare();
 	return true;
 }
@@ -161,15 +203,25 @@ bool Scene::ChgMtl(const uint8_t num, const Normal &clr)
 {
 	if (num >= Objects.size())
 		return false;
-	Vertex &mclr = Objects[num]->mtl.diffuse;
-	if (clr.w < 0.5f)
+	auto chgclr = [clr](Vertex &mclr) 
 	{
-		float sum = mclr.r + mclr.g + mclr.b;
-		mclr = clr * sum;
+		if (clr.w < 0.5f)
+		{
+			float sum = mclr.r + mclr.g + mclr.b;
+			mclr = clr * sum;
+		}
+		else//rewrite color
+			mclr = clr;
+	};
+	if (Objects[num]->type == MY_OBJECT_MODEL)
+	{
+		Model &m = dynamic_cast<Model&>(*Objects[num]);
+		for (Material &mtl : m.mtls)
+			chgclr(mtl.diffuse);
 	}
 	else
 	{
-		mclr = clr;
+		chgclr(Objects[num]->mtl.diffuse);
 	}
 	Objects[num]->GLPrepare();
 	return true;
@@ -206,6 +258,12 @@ bool Scene::MovePos(const uint8_t type, const uint8_t num, const Vertex & v)
 			//p.position += p.normal * -v.z;
 			p.rotate(v);
 			p.GLPrepare();
+		}
+		else if (Objects[num]->type == MY_OBJECT_BALLPLANE)
+		{
+			BallPlane &bp = dynamic_cast<BallPlane&>(*Objects[num]);
+			bp.rotate(v);
+			bp.GLPrepare();
 		}
 		else
 			Objects[num]->position += v;
@@ -298,14 +356,42 @@ void Scene::DrawScene()
 
 void Scene::DrawLight()
 {
-	Vertex lgt(1, 1, 1);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, lgt);
+	if (lbi == nullptr)
+	{
+		lbv = new float[10 * 10 * 3];
+		lbn = new float[10 * 10 * 3];
+		lbt = new float[10 * 10 * 2];
+		lbi = new GLushort[10 * 10 * 4];
+		CreateSphere(0.1f, 10, 10, lbv, lbn, lbt, lbi);
+
+		ln = glGenLists(1);
+		glNewList(ln, GL_COMPILE);
+		Vertex lgt(1, 1, 1);
+		glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, lgt);
+
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glEnableClientState(GL_NORMAL_ARRAY);
+		glVertexPointer(3, GL_FLOAT, 0, lbv);
+		glNormalPointer(GL_FLOAT, 0, lbn);
+
+		glDrawElements(GL_QUADS, 9 * 9 * 4, GL_UNSIGNED_SHORT, lbi);
+
+		glDisableClientState(GL_VERTEX_ARRAY);
+		glDisableClientState(GL_NORMAL_ARRAY);
+
+		glEndList();
+	}
+
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	for(Light &light:Lights)
 		if (light.bLight)
 		{
 			glPushMatrix();
 			glTranslatef(light.position.x, light.position.y, light.position.z);
-			glutWireSphere(0.1, 10, 10);
+			//glutWireSphere(0.1, 10, 10);
+			glCallList(ln);
 			glPopMatrix();
 		}
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
