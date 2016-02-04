@@ -67,4 +67,7 @@ public:
 	virtual HitRes intersect(const Ray &ray, const HitRes &hr, const float min = 0) override;
 };
 
+
+void CreateSphere(const float radius, const unsigned int rings, const unsigned int sectors, float *vertices, float *normals, float *texcoords, GLushort *indices);
+
 float BorderTest(const Ray &ray, const Vertex &Min, const Vertex &Max, float *getMax);

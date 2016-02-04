@@ -1,7 +1,7 @@
 #include "rely.h"
 #include "Basic3DObject.h"
 
-static void CreateSphere(const float radius, const unsigned int rings, const unsigned int sectors, float *vertices, float *normals, float *texcoords, GLushort *indices)
+void CreateSphere(const float radius, const unsigned int rings, const unsigned int sectors, float *vertices, float *normals, float *texcoords, GLushort *indices)
 {
 	float const R = 1.0 / (float)(rings - 1);
 	float const S = 1.0 / (float)(sectors - 1);

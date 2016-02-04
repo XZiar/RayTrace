@@ -17,6 +17,9 @@ class Scene
 {
 private:
 	GLuint grdList;
+	float *lbv, *lbn, *lbt;
+	GLushort *lbi;
+	GLuint ln;
 public:
 	vector<Material> MtlLiby;
 

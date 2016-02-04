@@ -6,8 +6,9 @@
 Scene::Scene()
 {
 	EnvLight = Vertex(0.2f, 0.2f, 0.2f, 1.0f);
-	for (Light &light : Lights)
-		light.bLight = false;
+	
+	lbi = nullptr;
+
 	//init material library
 	Material mtl;
 	mtl.name = "brass";//»ÆÍ­²ÄÖÊ
@@ -67,6 +68,13 @@ Scene::Scene()
 
 Scene::~Scene()
 {
+	if (lbi != nullptr)
+	{
+		delete[] lbv;
+		delete[] lbn;
+		delete[] lbt;
+		delete[] lbi;
+	}
 	for (auto &obj : Objects)
 		if(obj != nullptr)
 			delete obj;
@@ -348,14 +356,42 @@ void Scene::DrawScene()
 
 void Scene::DrawLight()
 {
-	Vertex lgt(1, 1, 1);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, lgt);
+	if (lbi == nullptr)
+	{
+		lbv = new float[10 * 10 * 3];
+		lbn = new float[10 * 10 * 3];
+		lbt = new float[10 * 10 * 2];
+		lbi = new GLushort[10 * 10 * 4];
+		CreateSphere(0.1f, 10, 10, lbv, lbn, lbt, lbi);
+
+		ln = glGenLists(1);
+		glNewList(ln, GL_COMPILE);
+		Vertex lgt(1, 1, 1);
+		glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, lgt);
+
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glEnableClientState(GL_NORMAL_ARRAY);
+		glVertexPointer(3, GL_FLOAT, 0, lbv);
+		glNormalPointer(GL_FLOAT, 0, lbn);
+
+		glDrawElements(GL_QUADS, 9 * 9 * 4, GL_UNSIGNED_SHORT, lbi);
+
+		glDisableClientState(GL_VERTEX_ARRAY);
+		glDisableClientState(GL_NORMAL_ARRAY);
+
+		glEndList();
+	}
+
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	for(Light &light:Lights)
 		if (light.bLight)
 		{
 			glPushMatrix();
 			glTranslatef(light.position.x, light.position.y, light.position.z);
-			glutWireSphere(0.1, 10, 10);
+			//glutWireSphere(0.1, 10, 10);
+			glCallList(ln);
 			glPopMatrix();
 		}
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
