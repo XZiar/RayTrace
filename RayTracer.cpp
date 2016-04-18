@@ -2,7 +2,7 @@
 #include "RayTracer.h"
 
 
-void RayTracer::parallelRT(const int8_t tNum, const int8_t tID, const PR &worker)
+void RayTracer::parallelRT(const int8_t tNum, const int8_t tID, const PerRay &worker)
 {
 	//calc time
 	LARGE_INTEGER t_s, t_e, t_f;
@@ -25,7 +25,7 @@ void RayTracer::parallelRT(const int8_t tNum, const int8_t tID, const PR &worker
 			{
 				Vertex dir = cam.n + cam.u*(xcur*dp) + cam.v*(ycur*dp);
 				Ray baseray(cam.position, dir, MY_RAY_BASERAY);
-				Color c = worker(zNear, zFar, baseray);
+				Color c = (this->*worker)(zNear, zFar, baseray);
 				if (!isRun)
 				{
 					state[tID] = true;
@@ -320,8 +320,17 @@ Color RayTracer::RTshd(const float zNear, const float zFar, const Ray &baseray)
 	return vc.mixmul(mix_vd + mix_va) + mix_vsc;
 }
 
+Color RayTracer::proxyRTflec(const float zNear, const float zFar, const Ray & baseray)
+{
+	return RTflec(zNear, zFar, baseray, 0, 1.0f, tmphr);
+}
+Color RayTracer::proxyRTfrac(const float zNear, const float zFar, const Ray & baseray)
+{
+	return RTfrac(zNear, zFar, baseray, 0, 1.0f, tmphr);
+}
+
 Color RayTracer::RTflec(const float zNear, const float zFar, const Ray & baseray,
-	const uint8_t level, const float bwc, HitRes basehr)
+	const uint8_t level, const float bwc, HitRes & basehr)
 {
 	if (level > maxLevel || bwc < 1e-5f)//deep limit
 		return Color(false);
@@ -439,7 +448,7 @@ Color RayTracer::RTflec(const float zNear, const float zFar, const Ray & baseray
 }
 
 Color RayTracer::RTfrac(const float zNear, const float zFar, const Ray & baseray,
-	const uint8_t level, const float bwc, HitRes basehr)
+	const uint8_t level, const float bwc, HitRes & basehr)
 {
 	if (level > maxLevel || bwc < 1e-5f)//deep limit
 		return Color(false);
@@ -615,32 +624,41 @@ void RayTracer::start(const uint8_t type, const int8_t tnum)
 			dobj->RTPrepare();
 	}
 	aBlock_Cur = tnum;
-	PR fun;
+
+	PerRay fun;
 	switch (type)
 	{
 	case MY_MODEL_DEPTHTEST:
-		fun = bind(&RayTracer::RTdepth, this, _1, _2, _3);
+		fun = &RayTracer::RTdepth;
+		//fun = bind(&RayTracer::RTdepth, this, _1, _2, _3);
 		break;
 	case MY_MODEL_NORMALTEST:
-		fun = bind(&RayTracer::RTnorm, this, _1, _2, _3);
+		fun = &RayTracer::RTnorm;
+		//fun = bind(&RayTracer::RTnorm, this, _1, _2, _3);
 		break;
 	case MY_MODEL_TEXTURETEST:
-		fun = bind(&RayTracer::RTtex, this, _1, _2, _3);
+		fun = &RayTracer::RTtex;
+		//fun = bind(&RayTracer::RTtex, this, _1, _2, _3);
 		break;
 	case MY_MODEL_MATERIALTEST:
-		fun = bind(&RayTracer::RTmtl, this, _1, _2, _3);
+		fun = &RayTracer::RTmtl;
+		//fun = bind(&RayTracer::RTmtl, this, _1, _2, _3);
 		break;
 	case MY_MODEL_SHADOWTEST:
-		fun = bind(&RayTracer::RTshd, this, _1, _2, _3);
+		fun = &RayTracer::RTshd;
+		//fun = bind(&RayTracer::RTshd, this, _1, _2, _3);
 		break;
 	case MY_MODEL_REFLECTTEST:
-		fun = bind(&RayTracer::RTflec, this, _1, _2, _3, 0, 1.0f, tmphr);
+		fun = &RayTracer::proxyRTflec;
+		//fun = bind(&RayTracer::RTflec, this, _1, _2, _3, 0, 1.0f, tmphr);
 		break;
 	case MY_MODEL_REFRACTTEST:
-		fun = bind(&RayTracer::RTfrac, this, _1, _2, _3, 0, 1.0f, tmphr);
+		fun = &RayTracer::proxyRTfrac;
+		//fun = bind(&RayTracer::RTfrac, this, _1, _2, _3, 0, 1.0f, tmphr);
 		break;
 	case MY_MODEL_RAYTRACE:
-		fun = bind(&RayTracer::RTfrac, this, _1, _2, _3, 0, 1.0f, tmphr);
+		fun = &RayTracer::proxyRTfrac;
+		//fun = bind(&RayTracer::RTfrac, this, _1, _2, _3, 0, 1.0f, tmphr);
 		break;
 	}
 	for (int8_t a = 0; a < tnum; a++)

@@ -3,3 +3,11 @@
 ################################################################################
 
 /ampbackup
+/broken‘s forward backup
+/clbackup
+/okversion
+/x64
+/Release
+/RayTrace.vcxproj.user
+/RayTrace.vcxproj.filters
+/RayTrace.vcxproj
